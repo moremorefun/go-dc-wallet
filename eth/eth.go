@@ -7,6 +7,7 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
 	"log"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
@@ -57,7 +58,8 @@ func CheckFreeAddress() {
 				log.Printf("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
 				return
 			}
-			address := crypto.PubkeyToAddress(*publicKeyECDSA).Hex()
+			// 地址全部储存为小写方便处理
+			address := strings.ToLower(crypto.PubkeyToAddress(*publicKeyECDSA).Hex())
 			// 存入待添加队列
 			rows = append(rows, &model.DBTAddressKey{
 				Address: address,
