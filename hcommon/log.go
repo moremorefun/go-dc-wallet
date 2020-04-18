@@ -6,6 +6,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Log 日志对象
 var Log Logger
 
 type Logger interface {
@@ -17,6 +18,7 @@ type Logger interface {
 }
 
 func init() {
+	// 初始化默认的日志对象
 	conf := zap.NewDevelopmentConfig()
 	conf.DisableStacktrace = true
 	conf.Encoding = "console"
