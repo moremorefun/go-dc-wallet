@@ -10,4 +10,5 @@ require (
 	github.com/joho/godotenv v1.3.0
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/timest/env v0.0.0-20180717050204-5fce78d35255
+	go.uber.org/zap v1.14.1
 )

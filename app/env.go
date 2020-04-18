@@ -2,7 +2,6 @@ package app
 
 import (
 	"go-dc-wallet/hcommon"
-	"log"
 	"math/rand"
 	"time"
 
@@ -32,16 +31,16 @@ func EnvCreate() {
 	}
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatalf("read env from .env err: [%T] %s", err, err.Error())
+		hcommon.Log.Fatalf("read env from .env err: [%T] %s", err, err.Error())
 	}
 	cfg := new(config)
 	env.IgnorePrefix()
 	err = env.Fill(cfg)
 	if err != nil {
-		log.Fatalf("read env config err: [%T] %s", err, err.Error())
+		hcommon.Log.Fatalf("read env config err: [%T] %s", err, err.Error())
 	}
 	if len(cfg.MySqlDataSourceName) == 0 {
-		log.Fatalf("mysql dataSourceName is emputy")
+		hcommon.Log.Fatalf("mysql dataSourceName is empty")
 	}
 	AESKey = cfg.AESKey
 

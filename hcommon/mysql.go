@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"runtime"
 	"strings"
 	"time"
@@ -36,7 +35,7 @@ func DbCreate(dataSourceName string, showSQL bool) *sqlx.DB {
 
 	db, err = sqlx.Connect("mysql", dataSourceName)
 	if err != nil {
-		log.Fatalf("db connect error: %s", err.Error())
+		Log.Fatalf("db connect error: %s", err.Error())
 		return nil
 	}
 
@@ -47,7 +46,7 @@ func DbCreate(dataSourceName string, showSQL bool) *sqlx.DB {
 
 	err = db.Ping()
 	if err != nil {
-		log.Fatalf("db ping error: %s", err.Error())
+		Log.Fatalf("db ping error: %s", err.Error())
 		return nil
 	}
 	return db
@@ -74,7 +73,7 @@ func DbExecuteCountManyContent(ctx context.Context, tx DbExeAble, query string, 
 				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf(`%v`, arg), 1)
 			}
 		}
-		log.Printf(queryStr)
+		Log.Debugf(queryStr)
 	}
 	ret, err := tx.ExecContext(
 		ctx,
@@ -112,7 +111,7 @@ func DbExecuteLastIDNamedContent(ctx context.Context, tx DbExeAble, query string
 				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf(`%v`, arg), 1)
 			}
 		}
-		log.Printf(queryStr)
+		Log.Debugf(queryStr)
 	}
 	ret, err := tx.ExecContext(
 		ctx,
@@ -150,7 +149,7 @@ func DbExecuteCountNamedContent(ctx context.Context, tx DbExeAble, query string,
 				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf(`%v`, arg), 1)
 			}
 		}
-		log.Printf(queryStr)
+		Log.Debugf(queryStr)
 	}
 	ret, err := tx.ExecContext(
 		ctx,
@@ -188,7 +187,7 @@ func DbGetNamedContent(ctx context.Context, tx DbExeAble, dest interface{}, quer
 				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf(`%v`, arg), 1)
 			}
 		}
-		log.Printf(queryStr)
+		Log.Debugf(queryStr)
 	}
 	err = tx.GetContext(
 		ctx,
@@ -228,7 +227,7 @@ func DbSelectNamedContent(ctx context.Context, tx DbExeAble, dest interface{}, q
 				queryStr = strings.Replace(queryStr, "?", fmt.Sprintf(`%v`, arg), 1)
 			}
 		}
-		log.Printf(queryStr)
+		Log.Debugf(queryStr)
 	}
 	err = tx.SelectContext(
 		ctx,

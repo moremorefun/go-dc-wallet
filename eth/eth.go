@@ -6,7 +6,6 @@ import (
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
-	"log"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -23,11 +22,11 @@ func CheckFreeAddress() {
 		"min_free_address",
 	)
 	if err != nil {
-		log.Printf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		hcommon.Log.Errorf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
 		return
 	}
 	if minFreeRow == nil {
-		log.Printf("no config int of min_free_address")
+		hcommon.Log.Errorf("no config int of min_free_address")
 		return
 	}
 	// 获取当前剩余可用地址数
@@ -36,7 +35,7 @@ func CheckFreeAddress() {
 		app.DbCon,
 	)
 	if err != nil {
-		log.Printf("SQLGetTAddressKeyFreeCount err: [%T] %s", err, err.Error())
+		hcommon.Log.Warnf("SQLGetTAddressKeyFreeCount err: [%T] %s", err, err.Error())
 		return
 	}
 	// 如果数据库中剩余可用地址小于最小允许可用地址
@@ -47,7 +46,7 @@ func CheckFreeAddress() {
 			// 生成私钥
 			privateKey, err := crypto.GenerateKey()
 			if err != nil {
-				log.Printf("GenerateKey err: [%T] %s", err, err.Error())
+				hcommon.Log.Warnf("GenerateKey err: [%T] %s", err, err.Error())
 				return
 			}
 			privateKeyBytes := crypto.FromECDSA(privateKey)
@@ -58,7 +57,7 @@ func CheckFreeAddress() {
 			publicKey := privateKey.Public()
 			publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
 			if !ok {
-				log.Printf("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
+				hcommon.Log.Warnf("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
 				return
 			}
 			// 地址全部储存为小写方便处理
@@ -77,7 +76,7 @@ func CheckFreeAddress() {
 			rows,
 		)
 		if err != nil {
-			log.Printf("SQLCreateIgnoreManyTAddressKey err: [%T] %s", err, err.Error())
+			hcommon.Log.Warnf("SQLCreateIgnoreManyTAddressKey err: [%T] %s", err, err.Error())
 			return
 		}
 	}

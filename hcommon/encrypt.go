@@ -5,7 +5,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"encoding/base64"
-	"log"
 )
 
 // AesEncrypt 加密
@@ -26,7 +25,7 @@ func AesEncrypt(orig string, key string) string {
 	// 分组秘钥
 	block, err := aes.NewCipher(k)
 	if err != nil {
-		log.Printf("NewCipher err:[%T] %s", err, err.Error())
+		Log.Fatalf("NewCipher err:[%T] %s", err, err.Error())
 		return ""
 	}
 	// 获取秘钥块的长度
