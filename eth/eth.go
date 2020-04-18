@@ -8,10 +8,15 @@ import (
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/hcommon/eth"
 	"strings"
+	"time"
+
+	"github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/ethereum/go-ethereum/crypto"
+
+	"github.com/shopspring/decimal"
 )
 
 // CheckAddressCheck 检测是否有充足的备用地址
@@ -126,6 +131,74 @@ func CheckBlockSeek() {
 			hcommon.Log.Warnf("EthRpcBlockByNum err: [%T] %s", err, err.Error())
 			return
 		}
-		hcommon.Log.Debugf("rpcBlock: %#v", rpcBlock)
+		// 将需要处理的数据存入字典和数组
+		txMap := make(map[string][]*types.Transaction)
+		var toAddresses []string
+		for _, rpcTx := range rpcBlock.Transactions() {
+			// 转账数额大于0
+			if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
+				toAddress := strings.ToLower(rpcTx.To().Hex())
+				txMap[toAddress] = append(txMap[toAddress], rpcTx)
+				toAddresses = append(toAddresses, toAddress)
+			}
+		}
+		// 从db中查询这些地址是否是冲币地址中的地址
+		dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTAddressKeyAddress,
+			},
+			toAddresses,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("dbAddressRows err: [%T] %s", err, err.Error())
+			return
+		}
+		var dbTxRows []*model.DBTTx
+		for _, dbAddressRow := range dbAddressRows {
+			txes := txMap[dbAddressRow.Address]
+			for _, tx := range txes {
+				msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()))
+				if err != nil {
+					hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
+				}
+				now := time.Now().Unix()
+				balanceReal := decimal.NewFromInt(tx.Value().Int64()).Div(decimal.NewFromInt(1e18))
+				dbTxRows = append(dbTxRows, &model.DBTTx{
+					TxID:         tx.Hash().String(),
+					FromAddress:  strings.ToLower(msg.From().Hex()),
+					ToAddress:    strings.ToLower(tx.To().Hex()),
+					Balance:      tx.Value().Int64(),
+					BalanceReal:  balanceReal.String(),
+					CreateTime:   now,
+					HandleStatus: 0,
+					HandleMsg:    "",
+					HandleTime:   now,
+				})
+			}
+		}
+		_, err = model.SQLCreateIgnoreManyTTx(
+			context.Background(),
+			app.DbCon,
+			dbTxRows,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLCreateIgnoreManyTTx err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新检查到的最新区块数
+		_, err = app.SQLUpdateTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			&model.DBTAppStatusInt{
+				K: "seek_num",
+				V: i,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
+			return
+		}
 	}
 }
