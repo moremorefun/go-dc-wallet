@@ -8,6 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.5.0
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/joho/godotenv v1.3.0
+	github.com/regcostajr/go-web3 v0.0.0-20180609031449-555e83b623dd
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/timest/env v0.0.0-20180717050204-5fce78d35255
 	go.uber.org/zap v1.14.1

@@ -13,8 +13,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-// CheckFreeAddress 检测是否有充足的备用地址
-func CheckFreeAddress() {
+// CheckAddressCheck 检测是否有充足的备用地址
+func CheckAddressCheck() {
 	// 获取配置 允许的最小剩余地址数
 	minFreeRow, err := app.SQLGetTAppConfigIntByK(
 		context.Background(),
@@ -22,7 +22,7 @@ func CheckFreeAddress() {
 		"min_free_address",
 	)
 	if err != nil {
-		hcommon.Log.Errorf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
 		return
 	}
 	if minFreeRow == nil {
@@ -52,7 +52,7 @@ func CheckFreeAddress() {
 			privateKeyBytes := crypto.FromECDSA(privateKey)
 			privateKeyStr := hexutil.Encode(privateKeyBytes)
 			// 加密密钥
-			privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, app.AESKey)
+			privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, app.Cfg.AESKey)
 			// 获取地址
 			publicKey := privateKey.Public()
 			publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
@@ -80,4 +80,29 @@ func CheckFreeAddress() {
 			return
 		}
 	}
+}
+
+// CheckBlockSeek 检测到账
+func CheckBlockSeek() {
+	// 获取状态 当前处理完成的最新的block number
+	seekRow, err := app.SQLGetTAppStatusIntByK(
+		context.Background(),
+		app.DbCon,
+		"seek_num",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
+		return
+	}
+	if seekRow == nil {
+		hcommon.Log.Errorf("no config int of seek_num")
+		return
+	}
+	// rpc 获取当前最新区块数
+	rpcBlockNum, err := hcommon.EthRpcBlockNumber(context.Background())
+	if err != nil {
+		hcommon.Log.Warnf("RpcBlockNumber err: [%T] %s", err, err.Error())
+		return
+	}
+	hcommon.Log.Debugf("rpcBlockNum: %d", rpcBlockNum)
 }

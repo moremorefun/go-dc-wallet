@@ -37,6 +37,35 @@ LIMIT 1`,
 	return &row, nil
 }
 
+// SQLGetTAppStatusIntByK 查询配置
+func SQLGetTAppStatusIntByK(ctx context.Context, tx hcommon.DbExeAble, k string) (*model.DBTAppStatusInt, error) {
+	var row model.DBTAppStatusInt
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    k,
+    v
+FROM
+	t_app_status_int
+WHERE
+	k=:k
+LIMIT 1`,
+		gin.H{
+			"k": k,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
 // SQLGetTAddressKeyFreeCount 获取剩余可用地址数
 func SQLGetTAddressKeyFreeCount(ctx context.Context, tx hcommon.DbExeAble) (int64, error) {
 	var count int64

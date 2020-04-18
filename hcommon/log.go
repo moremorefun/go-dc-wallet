@@ -7,9 +7,9 @@ import (
 )
 
 // Log 日志对象
-var Log Logger
+var Log LoggerAble
 
-type Logger interface {
+type LoggerAble interface {
 	Debugf(template string, args ...interface{})
 	Infof(template string, args ...interface{})
 	Warnf(template string, args ...interface{})
