@@ -39,8 +39,10 @@ func CheckFreeAddress() {
 		log.Printf("SQLGetTAddressKeyFreeCount err: [%T] %s", err, err.Error())
 		return
 	}
+	// 如果数据库中剩余可用地址小于最小允许可用地址
 	if freeCount < minFreeRow.V {
 		var rows []*model.DBTAddressKey
+		// 遍历差值次数
 		for i := int64(0); i < minFreeRow.V-freeCount; i++ {
 			// 生成私钥
 			privateKey, err := crypto.GenerateKey()
@@ -50,6 +52,7 @@ func CheckFreeAddress() {
 			}
 			privateKeyBytes := crypto.FromECDSA(privateKey)
 			privateKeyStr := hexutil.Encode(privateKeyBytes)
+			// 加密密钥
 			privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, app.AESKey)
 			// 获取地址
 			publicKey := privateKey.Public()
@@ -67,6 +70,7 @@ func CheckFreeAddress() {
 				UseTag:  0,
 			})
 		}
+		// 一次性将生成的地址存入数据库
 		_, err = model.SQLCreateIgnoreManyTAddressKey(
 			context.Background(),
 			app.DbCon,
