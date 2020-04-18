@@ -6,6 +6,7 @@ import (
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/hcommon/eth"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -84,6 +85,20 @@ func CheckAddressCheck() {
 
 // CheckBlockSeek 检测到账
 func CheckBlockSeek() {
+	// 获取配置 延迟确认数
+	confirmRow, err := app.SQLGetTAppConfigIntByK(
+		context.Background(),
+		app.DbCon,
+		"block_confirm_num",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		return
+	}
+	if confirmRow == nil {
+		hcommon.Log.Errorf("no config int of min_free_address")
+		return
+	}
 	// 获取状态 当前处理完成的最新的block number
 	seekRow, err := app.SQLGetTAppStatusIntByK(
 		context.Background(),
@@ -99,10 +114,18 @@ func CheckBlockSeek() {
 		return
 	}
 	// rpc 获取当前最新区块数
-	rpcBlockNum, err := hcommon.EthRpcBlockNumber(context.Background())
+	rpcBlockNum, err := eth.RpcBlockNumber(context.Background())
 	if err != nil {
 		hcommon.Log.Warnf("RpcBlockNumber err: [%T] %s", err, err.Error())
 		return
 	}
-	hcommon.Log.Debugf("rpcBlockNum: %d", rpcBlockNum)
+	// 遍历获取需要查询的block信息
+	for i := seekRow.V + 1; i < rpcBlockNum-confirmRow.V; i++ {
+		rpcBlock, err := eth.RpcBlockByNum(context.Background(), i)
+		if err != nil {
+			hcommon.Log.Warnf("EthRpcBlockByNum err: [%T] %s", err, err.Error())
+			return
+		}
+		hcommon.Log.Debugf("rpcBlock: %#v", rpcBlock)
+	}
 }
