@@ -72,6 +72,9 @@ const (
 	DBColTTxHandleStatus = "t_tx.handle_status" // 处理状态
 	DBColTTxHandleMsg    = "t_tx.handle_msg"
 	DBColTTxHandleTime   = "t_tx.handle_time" // 处理时间戳
+	DBColTTxOrgStatus    = "t_tx.org_status"
+	DBColTTxOrgMsg       = "t_tx.org_msg"
+	DBColTTxOrgTime      = "t_tx.org_time"
 )
 
 // DBTTx t_tx 数据表
@@ -85,7 +88,10 @@ const (
    create_time,
    handle_status,
    handle_msg,
-   handle_time
+   handle_time,
+   org_status,
+   org_msg,
+   org_time
 */
 type DBTTx struct {
 	ID           int64  `db:"id" json:"id"`
@@ -98,4 +104,7 @@ type DBTTx struct {
 	HandleStatus int64  `db:"handle_status" json:"handle_status"` // 处理状态
 	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
 	HandleTime   int64  `db:"handle_time" json:"handle_time"` // 处理时间戳
+	OrgStatus    int64  `db:"org_status" json:"org_status"`
+	OrgMsg       string `db:"org_msg" json:"org_msg"`
+	OrgTime      int64  `db:"org_time" json:"org_time"`
 }

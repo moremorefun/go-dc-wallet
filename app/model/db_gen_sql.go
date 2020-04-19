@@ -1178,7 +1178,10 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 ) VALUES (
     :id,
     :tx_id,
@@ -1189,7 +1192,10 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
     :create_time,
     :handle_status,
     :handle_msg,
-    :handle_time
+    :handle_time,
+    :org_status,
+    :org_msg,
+    :org_time
 )`,
 			gin.H{
 				"id":            row.ID,
@@ -1202,6 +1208,9 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
 				"handle_status": row.HandleStatus,
 				"handle_msg":    row.HandleMsg,
 				"handle_time":   row.HandleTime,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_time":      row.OrgTime,
 			},
 		)
 	} else {
@@ -1217,7 +1226,10 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 ) VALUES (
     :tx_id,
     :from_address,
@@ -1227,7 +1239,10 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
     :create_time,
     :handle_status,
     :handle_msg,
-    :handle_time
+    :handle_time,
+    :org_status,
+    :org_msg,
+    :org_time
 )`,
 			gin.H{
 				"tx_id":         row.TxID,
@@ -1239,6 +1254,9 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
 				"handle_status": row.HandleStatus,
 				"handle_msg":    row.HandleMsg,
 				"handle_time":   row.HandleTime,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_time":      row.OrgTime,
 			},
 		)
 	}
@@ -1266,7 +1284,10 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 ) VALUES (
     :id,
     :tx_id,
@@ -1277,7 +1298,10 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
     :create_time,
     :handle_status,
     :handle_msg,
-    :handle_time
+    :handle_time,
+    :org_status,
+    :org_msg,
+    :org_time
 )`,
 			gin.H{
 				"id":            row.ID,
@@ -1290,6 +1314,9 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
 				"handle_status": row.HandleStatus,
 				"handle_msg":    row.HandleMsg,
 				"handle_time":   row.HandleTime,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_time":      row.OrgTime,
 			},
 		)
 	} else {
@@ -1305,7 +1332,10 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 ) VALUES (
     :tx_id,
     :from_address,
@@ -1315,7 +1345,10 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
     :create_time,
     :handle_status,
     :handle_msg,
-    :handle_time
+    :handle_time,
+    :org_status,
+    :org_msg,
+    :org_time
 )`,
 			gin.H{
 				"tx_id":         row.TxID,
@@ -1327,6 +1360,9 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
 				"handle_status": row.HandleStatus,
 				"handle_msg":    row.HandleMsg,
 				"handle_time":   row.HandleTime,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_time":      row.OrgTime,
 			},
 		)
 	}
@@ -1357,6 +1393,9 @@ func SQLCreateManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTx) 
 					row.HandleStatus,
 					row.HandleMsg,
 					row.HandleTime,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgTime,
 				},
 			)
 		}
@@ -1374,6 +1413,9 @@ func SQLCreateManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTx) 
 					row.HandleStatus,
 					row.HandleMsg,
 					row.HandleTime,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgTime,
 				},
 			)
 		}
@@ -1394,7 +1436,10 @@ func SQLCreateManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTx) 
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 ) VALUES
     %s`,
 			len(rows),
@@ -1413,7 +1458,10 @@ func SQLCreateManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTx) 
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 ) VALUES
     %s`,
 			len(rows),
@@ -1447,6 +1495,9 @@ func SQLCreateIgnoreManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*D
 					row.HandleStatus,
 					row.HandleMsg,
 					row.HandleTime,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgTime,
 				},
 			)
 		}
@@ -1464,6 +1515,9 @@ func SQLCreateIgnoreManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*D
 					row.HandleStatus,
 					row.HandleMsg,
 					row.HandleTime,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgTime,
 				},
 			)
 		}
@@ -1484,7 +1538,10 @@ func SQLCreateIgnoreManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*D
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 ) VALUES
     %s`,
 			len(rows),
@@ -1503,7 +1560,10 @@ func SQLCreateIgnoreManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*D
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 ) VALUES
     %s`,
 			len(rows),
@@ -1533,7 +1593,10 @@ func SQLGetTTx(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTx, err
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 FROM
 	t_tx
 WHERE
@@ -1601,7 +1664,10 @@ func SQLSelectTTx(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DB
     create_time,
     handle_status,
     handle_msg,
-    handle_time
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
 FROM
 	t_tx
 WHERE
@@ -1662,7 +1728,10 @@ SET
     create_time=:create_time,
     handle_status=:handle_status,
     handle_msg=:handle_msg,
-    handle_time=:handle_time
+    handle_time=:handle_time,
+    org_status=:org_status,
+    org_msg=:org_msg,
+    org_time=:org_time
 WHERE
 	id=:id`,
 		gin.H{
@@ -1676,6 +1745,9 @@ WHERE
 			"handle_status": row.HandleStatus,
 			"handle_msg":    row.HandleMsg,
 			"handle_time":   row.HandleTime,
+			"org_status":    row.OrgStatus,
+			"org_msg":       row.OrgMsg,
+			"org_time":      row.OrgTime,
 		},
 	)
 	if err != nil {
