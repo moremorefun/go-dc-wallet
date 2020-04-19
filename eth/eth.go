@@ -593,4 +593,39 @@ func CheckWithdraw() {
 		return
 	}
 	hcommon.Log.Debugf("privateKey: %v", privateKey)
+	withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTWithdrawID,
+		},
+		0,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLSelectTWithdrawColByStatus err: [%T] %s", err, err.Error())
+		return
+	}
+	if len(withdrawRows) == 0 {
+		return
+	}
+	hotAddressBalance, err := ethclient.RpcBalanceAt(
+		context.Background(),
+		hotRow.V,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
+		return
+	}
+	hcommon.Log.Debugf("hotAddressBalance: %d", hotAddressBalance)
+	for _, withdrawRow := range withdrawRows {
+		err = handleWithdraw(withdrawRow.ID)
+		if err != nil {
+			hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
+			return
+		}
+	}
+}
+
+func handleWithdraw(withdrawID int64) error {
+	return nil
 }

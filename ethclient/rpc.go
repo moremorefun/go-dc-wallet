@@ -85,3 +85,12 @@ func RpcTransactionByHash(ctx context.Context, txHashStr string) (*types.Transac
 	}
 	return tx, nil
 }
+
+// RpcBalanceAt 获取余额
+func RpcBalanceAt(ctx context.Context, address string) (int64, error) {
+	balance, err := client.BalanceAt(ctx, common.HexToAddress(address), nil)
+	if nil != err {
+		return 0, err
+	}
+	return balance.Int64(), nil
+}

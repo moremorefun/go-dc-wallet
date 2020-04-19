@@ -370,3 +370,30 @@ WHERE
 	}
 	return rows, nil
 }
+
+// SQLSelectTWithdrawColByStatus 根据ids获取
+func SQLSelectTWithdrawColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTWithdraw, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_withdraw
+WHERE
+	handle_status=:handle_status`)
+
+	var rows []*model.DBTWithdraw
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"handle_status": status,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
