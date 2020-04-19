@@ -7,8 +7,11 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
+	"regexp"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/core/types"
 
@@ -200,5 +203,83 @@ func CheckBlockSeek() {
 			hcommon.Log.Warnf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
 			return
 		}
+	}
+}
+
+// CheckAddressOrg 零钱整理到冷钱包
+func CheckAddressOrg() {
+	// 获取冷钱包地址
+	coldRow, err := app.SQLGetTAppConfigStrByK(
+		context.Background(),
+		app.DbCon,
+		"cold_wallet_address",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		return
+	}
+	if coldRow == nil {
+		hcommon.Log.Errorf("no config int of cold_wallet_address")
+		return
+	}
+	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+	if !re.MatchString(coldRow.V) {
+		hcommon.Log.Errorf("config int cold_wallet_address err: %s", coldRow.V)
+		return
+	}
+	coldAddress := common.HexToAddress(coldRow.V)
+	hcommon.Log.Debugf("coldAddress: %s", coldAddress)
+	// 获取待整理的地址列表
+	txRows, err := app.SQLSelectTTxColByOrg(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTTxID,
+			model.DBColTTxToAddress,
+			model.DBColTTxBalance,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLSelectTTxColByOrg err: [%T] %s", err, err.Error())
+		return
+	}
+	// 将待整理地址按地址做归并处理
+	type AddressInfo struct {
+		RowIDs  []int64
+		Balance int64
+	}
+	addressMap := make(map[string]*AddressInfo)
+	// 获取gap price
+	gapPrice := int64(0)
+	if len(txRows) > 0 {
+		gasRow, err := app.SQLGetTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			"to_cold_gap_price",
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
+			return
+		}
+		if gasRow == nil {
+			hcommon.Log.Errorf("no config int of to_cold_gap_price")
+			return
+		}
+		gapPrice = gasRow.V
+	}
+	for _, txRow := range txRows {
+		info := addressMap[txRow.ToAddress]
+		if info == nil {
+			info = &AddressInfo{
+				RowIDs:  []int64{},
+				Balance: 0,
+			}
+			addressMap[txRow.ToAddress] = info
+		}
+		info.RowIDs = append(info.RowIDs, txRow.ID)
+		info.Balance += txRow.Balance
+	}
+	for address, info := range addressMap {
+		// 创建交易
 	}
 }

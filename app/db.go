@@ -38,6 +38,35 @@ LIMIT 1`,
 	return &row, nil
 }
 
+// SQLGetTAppConfigStrByK 查询配置
+func SQLGetTAppConfigStrByK(ctx context.Context, tx hcommon.DbExeAble, k string) (*model.DBTAppConfigStr, error) {
+	var row model.DBTAppConfigStr
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    k,
+    v
+FROM
+	t_app_config_str
+WHERE
+	k=:k
+LIMIT 1`,
+		gin.H{
+			"k": k,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
 // SQLGetTAppStatusIntByK 查询配置
 func SQLGetTAppStatusIntByK(ctx context.Context, tx hcommon.DbExeAble, k string) (*model.DBTAppStatusInt, error) {
 	var row model.DBTAppStatusInt
@@ -142,4 +171,31 @@ WHERE
 		return 0, err
 	}
 	return count, nil
+}
+
+// SQLSelectTTxColByOrg 获取未整理交易
+func SQLSelectTTxColByOrg(ctx context.Context, tx hcommon.DbExeAble, cols []string) ([]*model.DBTTx, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx
+WHERE
+	org_status=:org_status`)
+
+	var rows []*model.DBTTx
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"org_status": 0,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
 }

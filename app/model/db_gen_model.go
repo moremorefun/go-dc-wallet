@@ -41,6 +41,25 @@ type DBTAppConfigInt struct {
 	V  int64  `db:"v" json:"v"` // 配置键值
 }
 
+// const TAppConfigStr
+const (
+	DBColTAppConfigStrID = "t_app_config_str.id"
+	DBColTAppConfigStrK  = "t_app_config_str.k" // 配置键名
+	DBColTAppConfigStrV  = "t_app_config_str.v" // 配置键值
+)
+
+// DBTAppConfigStr t_app_config_str 数据表
+/*
+   id,
+   k,
+   v
+*/
+type DBTAppConfigStr struct {
+	ID int64  `db:"id" json:"id"`
+	K  string `db:"k" json:"k"` // 配置键名
+	V  string `db:"v" json:"v"` // 配置键值
+}
+
 // const TAppStatusInt
 const (
 	DBColTAppStatusIntID = "t_app_status_int.id"

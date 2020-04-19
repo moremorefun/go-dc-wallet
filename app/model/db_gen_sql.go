@@ -784,6 +784,382 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTAppConfigStr 创建
+func SQLCreateTAppConfigStr(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigStr) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_str (
+    id,
+    k,
+    v
+) VALUES (
+    :id,
+    :k,
+    :v
+)`,
+			gin.H{
+				"id": row.ID,
+				"k":  row.K,
+				"v":  row.V,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_str (
+    k,
+    v
+) VALUES (
+    :k,
+    :v
+)`,
+			gin.H{
+				"k": row.K,
+				"v": row.V,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTAppConfigStr 创建
+func SQLCreateIgnoreTAppConfigStr(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigStr) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_str (
+    id,
+    k,
+    v
+) VALUES (
+    :id,
+    :k,
+    :v
+)`,
+			gin.H{
+				"id": row.ID,
+				"k":  row.K,
+				"v":  row.V,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_str (
+    k,
+    v
+) VALUES (
+    :k,
+    :v
+)`,
+			gin.H{
+				"k": row.K,
+				"v": row.V,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTAppConfigStr 创建多个
+func SQLCreateManyTAppConfigStr(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTAppConfigStr) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.K,
+					row.V,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.K,
+					row.V,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_str (
+    id,
+    k,
+    v
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_str (
+    k,
+    v
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTAppConfigStr 创建多个
+func SQLCreateIgnoreManyTAppConfigStr(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTAppConfigStr) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.K,
+					row.V,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.K,
+					row.V,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_str (
+    id,
+    k,
+    v
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_str (
+    k,
+    v
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTAppConfigStr 根据id查询
+func SQLGetTAppConfigStr(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTAppConfigStr, error) {
+	var row DBTAppConfigStr
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    k,
+    v
+FROM
+	t_app_config_str
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTAppConfigStrCol 根据id查询
+func SQLGetTAppConfigStrCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTAppConfigStr, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_str
+WHERE
+	id=:id`)
+
+	var row DBTAppConfigStr
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTAppConfigStr 根据ids获取
+func SQLSelectTAppConfigStr(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTAppConfigStr, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTAppConfigStr
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    k,
+    v
+FROM
+	t_app_config_str
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTAppConfigStrCol 根据ids获取
+func SQLSelectTAppConfigStrCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTAppConfigStr, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_str
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTAppConfigStr
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTAppConfigStr 更新
+func SQLUpdateTAppConfigStr(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigStr) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_app_config_str
+SET
+    k=:k,
+    v=:v
+WHERE
+	id=:id`,
+		gin.H{
+			"id": row.ID,
+			"k":  row.K,
+			"v":  row.V,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTAppConfigStr 删除
+func SQLDeleteTAppConfigStr(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_app_config_str
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTAppStatusInt 创建
 func SQLCreateTAppStatusInt(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppStatusInt) (int64, error) {
 	var lastID int64
