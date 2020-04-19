@@ -2839,3 +2839,547 @@ WHERE
 	}
 	return count, nil
 }
+
+// SQLCreateTWithdraw 创建
+func SQLCreateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithdraw) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_withdraw (
+    id,
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :id,
+    :to_address,
+    :balance_real,
+    :out_serial,
+    :in_serial,
+    :tx_hash,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"to_address":    row.ToAddress,
+				"balance_real":  row.BalanceReal,
+				"out_serial":    row.OutSerial,
+				"in_serial":     row.InSerial,
+				"tx_hash":       row.TxHash,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_withdraw (
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :to_address,
+    :balance_real,
+    :out_serial,
+    :in_serial,
+    :tx_hash,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"to_address":    row.ToAddress,
+				"balance_real":  row.BalanceReal,
+				"out_serial":    row.OutSerial,
+				"in_serial":     row.InSerial,
+				"tx_hash":       row.TxHash,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTWithdraw 创建
+func SQLCreateIgnoreTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithdraw) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_withdraw (
+    id,
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :id,
+    :to_address,
+    :balance_real,
+    :out_serial,
+    :in_serial,
+    :tx_hash,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"to_address":    row.ToAddress,
+				"balance_real":  row.BalanceReal,
+				"out_serial":    row.OutSerial,
+				"in_serial":     row.InSerial,
+				"tx_hash":       row.TxHash,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_withdraw (
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :to_address,
+    :balance_real,
+    :out_serial,
+    :in_serial,
+    :tx_hash,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"to_address":    row.ToAddress,
+				"balance_real":  row.BalanceReal,
+				"out_serial":    row.OutSerial,
+				"in_serial":     row.InSerial,
+				"tx_hash":       row.TxHash,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTWithdraw 创建多个
+func SQLCreateManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTWithdraw) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.ToAddress,
+					row.BalanceReal,
+					row.OutSerial,
+					row.InSerial,
+					row.TxHash,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ToAddress,
+					row.BalanceReal,
+					row.OutSerial,
+					row.InSerial,
+					row.TxHash,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_withdraw (
+    id,
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_withdraw (
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTWithdraw 创建多个
+func SQLCreateIgnoreManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTWithdraw) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.ToAddress,
+					row.BalanceReal,
+					row.OutSerial,
+					row.InSerial,
+					row.TxHash,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ToAddress,
+					row.BalanceReal,
+					row.OutSerial,
+					row.InSerial,
+					row.TxHash,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_withdraw (
+    id,
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_withdraw (
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTWithdraw 根据id查询
+func SQLGetTWithdraw(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTWithdraw, error) {
+	var row DBTWithdraw
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+FROM
+	t_withdraw
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTWithdrawCol 根据id查询
+func SQLGetTWithdrawCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTWithdraw, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_withdraw
+WHERE
+	id=:id`)
+
+	var row DBTWithdraw
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTWithdraw 根据ids获取
+func SQLSelectTWithdraw(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTWithdraw, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTWithdraw
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    to_address,
+    balance_real,
+    out_serial,
+    in_serial,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+FROM
+	t_withdraw
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTWithdrawCol 根据ids获取
+func SQLSelectTWithdrawCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTWithdraw, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_withdraw
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTWithdraw
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTWithdraw 更新
+func SQLUpdateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithdraw) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_withdraw
+SET
+    to_address=:to_address,
+    balance_real=:balance_real,
+    out_serial=:out_serial,
+    in_serial=:in_serial,
+    tx_hash=:tx_hash,
+    create_time=:create_time,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"to_address":    row.ToAddress,
+			"balance_real":  row.BalanceReal,
+			"out_serial":    row.OutSerial,
+			"in_serial":     row.InSerial,
+			"tx_hash":       row.TxHash,
+			"create_time":   row.CreateTime,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTWithdraw 删除
+func SQLDeleteTWithdraw(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_withdraw
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
