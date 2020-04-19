@@ -28,6 +28,31 @@ import (
 
 // CheckAddressCheck 检测是否有充足的备用地址
 func CheckAddressCheck() {
+	lockKey := "EthCheckAddressCheck"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
 	// 获取配置 允许的最小剩余地址数
 	minFreeRow, err := app.SQLGetTAppConfigIntByK(
 		context.Background(),
@@ -97,6 +122,31 @@ func CheckAddressCheck() {
 
 // CheckBlockSeek 检测到账
 func CheckBlockSeek() {
+	lockKey := "EthCheckBlockSeek"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
 	// 获取配置 延迟确认数
 	confirmRow, err := app.SQLGetTAppConfigIntByK(
 		context.Background(),
@@ -212,6 +262,31 @@ func CheckBlockSeek() {
 
 // CheckAddressOrg 零钱整理到冷钱包
 func CheckAddressOrg() {
+	lockKey := "EthCheckAddressOrg"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
 	// 获取冷钱包地址
 	coldRow, err := app.SQLGetTAppConfigStrByK(
 		context.Background(),
@@ -440,6 +515,31 @@ func CheckAddressOrg() {
 
 // CheckRawTxSend 发送交易
 func CheckRawTxSend() {
+	lockKey := "EthCheckRawTxSend"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
 	sendRows, err := app.SQLSelectTSendColByStatus(
 		context.Background(),
 		app.DbCon,
@@ -511,6 +611,31 @@ func CheckRawTxSend() {
 
 // CheckRawTxConfirm 确认tx是否打包完成
 func CheckRawTxConfirm() {
+	lockKey := "EthCheckRawTxConfirm"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
 	sendRows, err := app.SQLSelectTSendColByStatus(
 		context.Background(),
 		app.DbCon,
@@ -575,6 +700,31 @@ func CheckRawTxConfirm() {
 
 // CheckWithdraw 检测提现
 func CheckWithdraw() {
+	lockKey := "EthCheckWithdraw"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
 	// 获取热钱包地址
 	hotRow, err := app.SQLGetTAppConfigStrByK(
 		context.Background(),

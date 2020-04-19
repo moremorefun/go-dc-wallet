@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-19 15:37:10.1600
+-- Generation Time: 2020-04-19 19:49:36.9340
 -- -------------------------------------------------------------
 
 
@@ -44,6 +44,16 @@ CREATE TABLE `t_app_config_str` (
   UNIQUE KEY `k` (`k`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE `t_app_lock` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `k` varchar(64) NOT NULL DEFAULT '' COMMENT '上锁键值',
+  `v` tinyint(2) NOT NULL COMMENT '是否锁定',
+  `create_time` bigint(20) unsigned NOT NULL COMMENT '上锁时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `k_2` (`k`),
+  KEY `k` (`k`,`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `k` varchar(64) NOT NULL DEFAULT '' COMMENT '配置键名',
@@ -54,21 +64,21 @@ CREATE TABLE `t_app_status_int` (
 
 CREATE TABLE `t_send` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `related_type` tinyint(4) NOT NULL,
-  `related_id` int(11) unsigned NOT NULL,
-  `tx_id` varchar(128) NOT NULL DEFAULT '',
-  `from_address` varchar(128) NOT NULL DEFAULT '',
-  `to_address` varchar(128) NOT NULL,
-  `balance` bigint(20) NOT NULL,
-  `balance_real` varchar(128) NOT NULL,
-  `gas` bigint(20) NOT NULL,
-  `gas_price` bigint(20) NOT NULL,
-  `nonce` int(11) NOT NULL,
-  `hex` varchar(2048) NOT NULL,
-  `create_time` bigint(20) NOT NULL,
-  `handle_status` tinyint(4) NOT NULL,
-  `handle_msg` varchar(1024) NOT NULL DEFAULT '',
-  `handle_time` bigint(20) NOT NULL,
+  `related_type` tinyint(4) NOT NULL COMMENT '关联类型 1 零钱整理 2 提币',
+  `related_id` int(11) unsigned NOT NULL COMMENT '关联id',
+  `tx_id` varchar(128) NOT NULL DEFAULT '' COMMENT 'tx hash',
+  `from_address` varchar(128) NOT NULL DEFAULT '' COMMENT '打币地址',
+  `to_address` varchar(128) NOT NULL COMMENT '收币地址',
+  `balance` bigint(20) NOT NULL COMMENT '打币金额 Wei',
+  `balance_real` varchar(128) NOT NULL COMMENT '打币金额 Ether',
+  `gas` bigint(20) NOT NULL COMMENT 'gas消耗',
+  `gas_price` bigint(20) NOT NULL COMMENT 'gasPrice',
+  `nonce` int(11) NOT NULL COMMENT 'nonce',
+  `hex` varchar(2048) NOT NULL COMMENT 'tx raw hex',
+  `create_time` bigint(20) NOT NULL COMMENT '创建时间',
+  `handle_status` tinyint(4) NOT NULL COMMENT '处理状态',
+  `handle_msg` varchar(1024) NOT NULL DEFAULT '' COMMENT '处理消息',
+  `handle_time` bigint(20) NOT NULL COMMENT '处理时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `related_id` (`related_id`,`related_type`) USING BTREE,
   KEY `tx_id` (`tx_id`) USING BTREE,
@@ -84,25 +94,25 @@ CREATE TABLE `t_tx` (
   `balance_real` varchar(512) NOT NULL COMMENT '到账金额Ether',
   `create_time` bigint(20) unsigned NOT NULL COMMENT '创建时间戳',
   `handle_status` tinyint(4) NOT NULL COMMENT '处理状态',
-  `handle_msg` varchar(128) NOT NULL DEFAULT '',
+  `handle_msg` varchar(128) NOT NULL DEFAULT '' COMMENT '处理消息',
   `handle_time` bigint(20) unsigned NOT NULL COMMENT '处理时间戳',
-  `org_status` tinyint(4) NOT NULL,
-  `org_msg` varchar(128) NOT NULL,
-  `org_time` bigint(20) unsigned NOT NULL,
+  `org_status` tinyint(4) NOT NULL COMMENT '零钱整理状态',
+  `org_msg` varchar(128) NOT NULL COMMENT '零钱整理消息',
+  `org_time` bigint(20) unsigned NOT NULL COMMENT '零钱整理时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `tx_id` (`tx_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_withdraw` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `to_address` varchar(128) NOT NULL DEFAULT '',
-  `balance_real` varchar(128) NOT NULL DEFAULT '',
-  `out_serial` varchar(64) NOT NULL DEFAULT '',
-  `tx_hash` varchar(128) NOT NULL DEFAULT '',
-  `create_time` bigint(20) unsigned NOT NULL,
-  `handle_status` int(11) NOT NULL,
-  `handle_msg` varchar(128) NOT NULL,
-  `handle_time` bigint(20) unsigned NOT NULL,
+  `to_address` varchar(128) NOT NULL DEFAULT '' COMMENT '提币地址',
+  `balance_real` varchar(128) NOT NULL DEFAULT '' COMMENT '提币金额',
+  `out_serial` varchar(64) NOT NULL DEFAULT '' COMMENT '提币唯一标示',
+  `tx_hash` varchar(128) NOT NULL DEFAULT '' COMMENT '提币tx hash',
+  `create_time` bigint(20) unsigned NOT NULL COMMENT '创建时间',
+  `handle_status` int(11) NOT NULL COMMENT '处理状态',
+  `handle_msg` varchar(128) NOT NULL COMMENT '处理消息',
+  `handle_time` bigint(20) unsigned NOT NULL COMMENT '处理时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `out_serial` (`out_serial`),
   KEY `t_withdraw_tx_hash_idx` (`tx_hash`) USING BTREE

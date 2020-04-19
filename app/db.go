@@ -515,3 +515,115 @@ WHERE
 	}
 	return count, nil
 }
+
+// SQLGetTAppLockColByK 根据id查询
+func SQLGetTAppLockColByK(ctx context.Context, tx hcommon.DbExeAble, cols []string, k string) (*model.DBTAppLock, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_lock
+WHERE
+	k=:k
+	AND v=1`)
+
+	var row model.DBTAppLock
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"k": k,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLCreateTAppLockUpdate 创建
+func SQLCreateTAppLockUpdate(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppLock) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_lock (
+    id,
+    k,
+    v,
+    create_time
+) VALUES (
+    :id,
+    :k,
+    :v,
+    :create_time
+) ON DUPLICATE KEY UPDATE 
+	v=:v,
+	create_time=:create_time`,
+			gin.H{
+				"id":          row.ID,
+				"k":           row.K,
+				"v":           row.V,
+				"create_time": row.CreateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_lock (
+    k,
+    v,
+    create_time
+) VALUES (
+    :k,
+    :v,
+    :create_time
+) ON DUPLICATE KEY UPDATE 
+	v=:v,
+	create_time=:create_time`,
+			gin.H{
+				"k":           row.K,
+				"v":           row.V,
+				"create_time": row.CreateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLUpdateTAppLockByK 更新
+func SQLUpdateTAppLockByK(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppLock) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_app_lock
+SET
+    v=:v,
+    create_time=:create_time
+WHERE
+	k=:k`,
+		gin.H{
+			"id":          row.ID,
+			"k":           row.K,
+			"v":           row.V,
+			"create_time": row.CreateTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
