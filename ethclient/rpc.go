@@ -60,3 +60,15 @@ func RpcNetworkID(ctx context.Context) (int64, error) {
 	}
 	return resp.Int64(), nil
 }
+
+// RpcSendTransaction 发送交易
+func RpcSendTransaction(ctx context.Context, tx *types.Transaction) error {
+	err := client.SendTransaction(
+		ctx,
+		tx,
+	)
+	if nil != err {
+		return err
+	}
+	return nil
+}

@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/rlp"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -433,5 +435,62 @@ func CheckAddressOrg() {
 			return
 		}
 		isComment = true
+	}
+}
+
+// CheckRawTxSend 发送交易
+func CheckRawTxSend() {
+	sendRows, err := app.SQLSelectTSendColByStatus(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTSendID,
+			model.DBColTSendHex,
+		},
+		0,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	var txIDs []string
+	for _, sendRow := range sendRows {
+		rawTxBytes, err := hex.DecodeString(sendRow.Hex)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		tx := new(types.Transaction)
+		err = rlp.DecodeBytes(rawTxBytes, &tx)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		err = ethclient.RpcSendTransaction(
+			context.Background(),
+			tx,
+		)
+		if err != nil {
+			if !strings.Contains(err.Error(), "known transaction") {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+		}
+		txIDs = append(txIDs, strings.ToLower(tx.Hash().Hex()))
+	}
+	now := time.Now().Unix()
+	_, err = app.SQLUpdateTSendStatusByTxIDs(
+		context.Background(),
+		app.DbCon,
+		txIDs,
+		model.DBTSend{
+			HandleStatus: 1,
+			HandleMsg:    "send",
+			HandleTime:   now,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
 	}
 }
