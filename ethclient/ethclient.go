@@ -517,6 +517,7 @@ func (ec *Client) SendTransaction(ctx context.Context, tx *types.Transaction) er
 	return ec.c.CallContext(ctx, nil, "eth_sendRawTransaction", hexutil.Encode(data))
 }
 
+// GetBlockNumber 获取最新的block number
 func (ec *Client) GetBlockNumber(ctx context.Context) (uint64, error) {
 	var hex hexutil.Uint64
 	if err := ec.c.CallContext(ctx, &hex, "eth_blockNumber"); err != nil {
