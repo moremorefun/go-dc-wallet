@@ -1160,6 +1160,406 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTAppLock 创建
+func SQLCreateTAppLock(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppLock) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_lock (
+    id,
+    k,
+    v,
+    create_time
+) VALUES (
+    :id,
+    :k,
+    :v,
+    :create_time
+)`,
+			gin.H{
+				"id":          row.ID,
+				"k":           row.K,
+				"v":           row.V,
+				"create_time": row.CreateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_lock (
+    k,
+    v,
+    create_time
+) VALUES (
+    :k,
+    :v,
+    :create_time
+)`,
+			gin.H{
+				"k":           row.K,
+				"v":           row.V,
+				"create_time": row.CreateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTAppLock 创建
+func SQLCreateIgnoreTAppLock(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppLock) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_lock (
+    id,
+    k,
+    v,
+    create_time
+) VALUES (
+    :id,
+    :k,
+    :v,
+    :create_time
+)`,
+			gin.H{
+				"id":          row.ID,
+				"k":           row.K,
+				"v":           row.V,
+				"create_time": row.CreateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_lock (
+    k,
+    v,
+    create_time
+) VALUES (
+    :k,
+    :v,
+    :create_time
+)`,
+			gin.H{
+				"k":           row.K,
+				"v":           row.V,
+				"create_time": row.CreateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTAppLock 创建多个
+func SQLCreateManyTAppLock(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTAppLock) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.K,
+					row.V,
+					row.CreateTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.K,
+					row.V,
+					row.CreateTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_lock (
+    id,
+    k,
+    v,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_lock (
+    k,
+    v,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTAppLock 创建多个
+func SQLCreateIgnoreManyTAppLock(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTAppLock) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.K,
+					row.V,
+					row.CreateTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.K,
+					row.V,
+					row.CreateTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_lock (
+    id,
+    k,
+    v,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_lock (
+    k,
+    v,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTAppLock 根据id查询
+func SQLGetTAppLock(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTAppLock, error) {
+	var row DBTAppLock
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    k,
+    v,
+    create_time
+FROM
+	t_app_lock
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTAppLockCol 根据id查询
+func SQLGetTAppLockCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTAppLock, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_lock
+WHERE
+	id=:id`)
+
+	var row DBTAppLock
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTAppLock 根据ids获取
+func SQLSelectTAppLock(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTAppLock, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTAppLock
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    k,
+    v,
+    create_time
+FROM
+	t_app_lock
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTAppLockCol 根据ids获取
+func SQLSelectTAppLockCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTAppLock, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_lock
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTAppLock
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTAppLock 更新
+func SQLUpdateTAppLock(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppLock) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_app_lock
+SET
+    k=:k,
+    v=:v,
+    create_time=:create_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":          row.ID,
+			"k":           row.K,
+			"v":           row.V,
+			"create_time": row.CreateTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTAppLock 删除
+func SQLDeleteTAppLock(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_app_lock
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTAppStatusInt 创建
 func SQLCreateTAppStatusInt(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppStatusInt) (int64, error) {
 	var lastID int64
