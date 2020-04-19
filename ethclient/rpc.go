@@ -72,3 +72,16 @@ func RpcSendTransaction(ctx context.Context, tx *types.Transaction) error {
 	}
 	return nil
 }
+
+// RpcTransactionByHash 确认交易是否打包完成
+func RpcTransactionByHash(ctx context.Context, txHashStr string) (*types.Transaction, error) {
+	txHash := common.HexToHash(txHashStr)
+	tx, isPending, err := client.TransactionByHash(ctx, txHash)
+	if err != nil {
+		return nil, err
+	}
+	if isPending {
+		return nil, nil
+	}
+	return tx, nil
+}

@@ -494,3 +494,47 @@ func CheckRawTxSend() {
 		return
 	}
 }
+
+// CheckRawTxConfirm 确认tx是否打包完成
+func CheckRawTxConfirm() {
+	sendRows, err := app.SQLSelectTSendColByStatus(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTSendID,
+			model.DBColTSendTxID,
+		},
+		1,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	var sendIDs []int64
+	for _, sendRow := range sendRows {
+		rpcTx, err := ethclient.RpcTransactionByHash(
+			context.Background(),
+			sendRow.TxID,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if rpcTx == nil {
+			return
+		}
+		// 完成
+		sendIDs = append(sendIDs, sendRow.ID)
+	}
+	now := time.Now().Unix()
+	_, err = app.SQLUpdateTSendStatusByIDs(
+		context.Background(),
+		app.DbCon,
+		sendIDs,
+		model.DBTSend{
+			HandleStatus: 1,
+			HandleMsg:    "confirmed",
+			HandleTime:   now,
+		},
+	)
+}
