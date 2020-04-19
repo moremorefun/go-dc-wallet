@@ -616,9 +616,19 @@ func CheckWithdraw() {
 		hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
 		return
 	}
+	pendingBalance, err := app.SQLGetTSendPendingBalance(
+		context.Background(),
+		app.DbCon,
+		hotRow.V,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTSendPendingBalance err: [%T] %s", err, err.Error())
+		return
+	}
+	hotAddressBalance -= pendingBalance
 	hcommon.Log.Debugf("hotAddressBalance: %d", hotAddressBalance)
 	for _, withdrawRow := range withdrawRows {
-		err = handleWithdraw(withdrawRow.ID)
+		err = handleWithdraw(withdrawRow.ID, &hotAddressBalance)
 		if err != nil {
 			hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
 			return
@@ -626,6 +636,6 @@ func CheckWithdraw() {
 	}
 }
 
-func handleWithdraw(withdrawID int64) error {
+func handleWithdraw(withdrawID int64, hotAddressBalance *int64) error {
 	return nil
 }

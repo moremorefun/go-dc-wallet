@@ -227,6 +227,34 @@ LIMIT 1`,
 	return i + 1, nil
 }
 
+// SQLGetTSendPendingBalance 获取地址的打包数额
+func SQLGetTSendPendingBalance(ctx context.Context, tx hcommon.DbExeAble, address string) (int64, error) {
+	var i int64
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&i,
+		`SELECT 
+	IFNULL(SUM(balance), 0)
+FROM
+	t_send
+WHERE
+	from_address=:address
+	AND handle_status<2
+LIMIT 1`,
+		gin.H{
+			"address": address,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, nil
+	}
+	return i, nil
+}
+
 // SQLGetTAddressKeyColByAddress 根据address查询
 func SQLGetTAddressKeyColByAddress(ctx context.Context, tx hcommon.DbExeAble, cols []string, address string) (*model.DBTAddressKey, error) {
 	query := strings.Builder{}
