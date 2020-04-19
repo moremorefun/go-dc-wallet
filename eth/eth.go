@@ -161,6 +161,29 @@ func CheckBlockSeek() {
 		hcommon.Log.Errorf("no config int of min_free_address")
 		return
 	}
+	// 手续费钱包列表
+	feeRow, err := app.SQLGetTAppConfigStrByK(
+		context.Background(),
+		app.DbCon,
+		"fee_wallet_address_list",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		return
+	}
+	if feeRow == nil {
+		hcommon.Log.Errorf("no config int of fee_wallet_address_list")
+		return
+	}
+	addresses := strings.Split(feeRow.V, ",")
+	var feeAddresses []string
+	for _, address := range addresses {
+		if address == "" {
+			continue
+		}
+		feeAddresses = append(feeAddresses, address)
+	}
+	hcommon.Log.Debugf("hotAddresses: %v", feeAddresses)
 	// 获取状态 当前处理完成的最新的block number
 	seekRow, err := app.SQLGetTAppStatusIntByK(
 		context.Background(),
@@ -194,6 +217,14 @@ func CheckBlockSeek() {
 		for _, rpcTx := range rpcBlock.Transactions() {
 			// 转账数额大于0
 			if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
+				msg, err := rpcTx.AsMessage(types.NewEIP155Signer(rpcTx.ChainId()))
+				if err != nil {
+					hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
+				}
+				if hcommon.IsStringInSlice(feeAddresses, strings.ToLower(msg.From().Hex())) {
+					// 如果打币地址在手续费热钱包地址则不处理
+					continue
+				}
 				toAddress := strings.ToLower(rpcTx.To().Hex())
 				txMap[toAddress] = append(txMap[toAddress], rpcTx)
 				toAddresses = append(toAddresses, toAddress)
