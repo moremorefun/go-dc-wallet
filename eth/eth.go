@@ -532,7 +532,7 @@ func CheckRawTxConfirm() {
 		app.DbCon,
 		sendIDs,
 		model.DBTSend{
-			HandleStatus: 1,
+			HandleStatus: 2,
 			HandleMsg:    "confirmed",
 			HandleTime:   now,
 		},
