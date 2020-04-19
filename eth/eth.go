@@ -538,3 +538,59 @@ func CheckRawTxConfirm() {
 		},
 	)
 }
+
+// CheckWithdraw 检测提现
+func CheckWithdraw() {
+	// 获取热钱包地址
+	hotRow, err := app.SQLGetTAppConfigStrByK(
+		context.Background(),
+		app.DbCon,
+		"hot_wallet_address",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		return
+	}
+	if hotRow == nil {
+		hcommon.Log.Errorf("no config int of hot_wallet_address")
+		return
+	}
+	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+	if !re.MatchString(hotRow.V) {
+		hcommon.Log.Errorf("config int hot_wallet_address err: %s", hotRow.V)
+		return
+	}
+	hotAddress := common.HexToAddress(hotRow.V)
+	hcommon.Log.Debugf("hotAddress: %s", hotAddress)
+	// 获取私钥
+	keyRow, err := app.SQLGetTAddressKeyColByAddress(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTAddressKeyPwd,
+		},
+		hotRow.V,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAddressKeyColByAddress err: [%T] %s", err, err.Error())
+		return
+	}
+	if keyRow == nil {
+		hcommon.Log.Errorf("no key of: %s", hotRow.V)
+		return
+	}
+	key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+	if len(key) == 0 {
+		hcommon.Log.Errorf("error key of: %s", hotRow.V)
+		return
+	}
+	if strings.HasPrefix(key, "0x") {
+		key = key[2:]
+	}
+	privateKey, err := crypto.HexToECDSA(key)
+	if err != nil {
+		hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
+		return
+	}
+	hcommon.Log.Debugf("privateKey: %v", privateKey)
+}

@@ -1,7 +1,5 @@
 package model
 
-import "time"
-
 // const TAddressKey
 const (
 	DBColTAddressKeyID      = "t_address_key.id"
@@ -194,7 +192,6 @@ const (
 	DBColTWithdrawToAddress    = "t_withdraw.to_address"
 	DBColTWithdrawBalanceReal  = "t_withdraw.balance_real"
 	DBColTWithdrawOutSerial    = "t_withdraw.out_serial"
-	DBColTWithdrawInSerial     = "t_withdraw.in_serial"
 	DBColTWithdrawTxHash       = "t_withdraw.tx_hash"
 	DBColTWithdrawCreateTime   = "t_withdraw.create_time"
 	DBColTWithdrawHandleStatus = "t_withdraw.handle_status"
@@ -208,7 +205,6 @@ const (
    to_address,
    balance_real,
    out_serial,
-   in_serial,
    tx_hash,
    create_time,
    handle_status,
@@ -216,14 +212,13 @@ const (
    handle_time
 */
 type DBTWithdraw struct {
-	ID           int64     `db:"id" json:"id"`
-	ToAddress    string    `db:"to_address" json:"to_address"`
-	BalanceReal  string    `db:"balance_real" json:"balance_real"`
-	OutSerial    string    `db:"out_serial" json:"out_serial"`
-	InSerial     string    `db:"in_serial" json:"in_serial"`
-	TxHash       string    `db:"tx_hash" json:"tx_hash"`
-	CreateTime   time.Time `db:"create_time" json:"create_time"`
-	HandleStatus int64     `db:"handle_status" json:"handle_status"`
-	HandleMsg    string    `db:"handle_msg" json:"handle_msg"`
-	HandleTime   time.Time `db:"handle_time" json:"handle_time"`
+	ID           int64  `db:"id" json:"id"`
+	ToAddress    string `db:"to_address" json:"to_address"`
+	BalanceReal  string `db:"balance_real" json:"balance_real"`
+	OutSerial    string `db:"out_serial" json:"out_serial"`
+	TxHash       string `db:"tx_hash" json:"tx_hash"`
+	CreateTime   int64  `db:"create_time" json:"create_time"`
+	HandleStatus int64  `db:"handle_status" json:"handle_status"`
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
+	HandleTime   int64  `db:"handle_time" json:"handle_time"`
 }
