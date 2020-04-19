@@ -1,8 +1,8 @@
 package app
 
 import (
+	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
-	"go-dc-wallet/hcommon/eth"
 	"math/rand"
 	"time"
 
@@ -51,7 +51,7 @@ func EnvCreate() {
 	// 初始化数据库
 	DbCon = hcommon.DbCreate(Cfg.MySqlDataSourceName, Cfg.MySqlIsShowSQL)
 	// 初始化eth rpc
-	eth.InitClient(Cfg.EthRPC)
+	ethclient.InitClient(Cfg.EthRPC)
 }
 
 // EnvDestroy 销毁运行环境

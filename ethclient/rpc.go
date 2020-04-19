@@ -1,4 +1,4 @@
-package eth
+package ethclient
 
 import (
 	"context"

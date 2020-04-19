@@ -5,8 +5,8 @@ import (
 	"crypto/ecdsa"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
+	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
-	"go-dc-wallet/hcommon/eth"
 	"strings"
 	"time"
 
@@ -119,14 +119,14 @@ func CheckBlockSeek() {
 		return
 	}
 	// rpc 获取当前最新区块数
-	rpcBlockNum, err := eth.RpcBlockNumber(context.Background())
+	rpcBlockNum, err := ethclient.RpcBlockNumber(context.Background())
 	if err != nil {
 		hcommon.Log.Warnf("RpcBlockNumber err: [%T] %s", err, err.Error())
 		return
 	}
 	// 遍历获取需要查询的block信息
 	for i := seekRow.V + 1; i < rpcBlockNum-confirmRow.V; i++ {
-		rpcBlock, err := eth.RpcBlockByNum(context.Background(), i)
+		rpcBlock, err := ethclient.RpcBlockByNum(context.Background(), i)
 		if err != nil {
 			hcommon.Log.Warnf("EthRpcBlockByNum err: [%T] %s", err, err.Error())
 			return
