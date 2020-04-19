@@ -343,6 +343,35 @@ WHERE
 	return count, nil
 }
 
+// SQLUpdateTWithdrawStatusByTxIDs 更新
+func SQLUpdateTWithdrawStatusByTxIDs(ctx context.Context, tx hcommon.DbExeAble, txIDs []string, row model.DBTWithdraw) (int64, error) {
+	if len(txIDs) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_withdraw
+SET
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	tx_hash IN (:tx_ids)`,
+		gin.H{
+			"tx_ids":        txIDs,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLUpdateTSendStatusByIDs 更新
 func SQLUpdateTSendStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTSend) (int64, error) {
 	if len(ids) == 0 {

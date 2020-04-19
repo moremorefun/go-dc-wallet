@@ -479,6 +479,20 @@ func CheckRawTxSend() {
 		txIDs = append(txIDs, strings.ToLower(tx.Hash().Hex()))
 	}
 	now := time.Now().Unix()
+	_, err = app.SQLUpdateTWithdrawStatusByTxIDs(
+		context.Background(),
+		app.DbCon,
+		txIDs,
+		model.DBTWithdraw{
+			HandleStatus: 1,
+			HandleMsg:    "send",
+			HandleTime:   now,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
 	_, err = app.SQLUpdateTSendStatusByTxIDs(
 		context.Background(),
 		app.DbCon,
@@ -501,6 +515,8 @@ func CheckRawTxConfirm() {
 		context.Background(),
 		app.DbCon,
 		[]string{
+			model.DBColTSendRelatedType,
+			model.DBColTSendRelatedID,
 			model.DBColTSendID,
 			model.DBColTSendTxID,
 		},
@@ -510,6 +526,7 @@ func CheckRawTxConfirm() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
+	now := time.Now().Unix()
 	var sendIDs []int64
 	for _, sendRow := range sendRows {
 		rpcTx, err := ethclient.RpcTransactionByHash(
@@ -525,8 +542,25 @@ func CheckRawTxConfirm() {
 		}
 		// 完成
 		sendIDs = append(sendIDs, sendRow.ID)
+		if sendRow.RelatedType == 2 {
+			// 提币
+			_, err := app.SQLUpdateTWithdrawGenTx(
+				context.Background(),
+				app.DbCon,
+				&model.DBTWithdraw{
+					ID:           sendRow.RelatedID,
+					TxHash:       sendRow.TxID,
+					HandleStatus: 2,
+					HandleMsg:    "confirmed",
+					HandleTime:   now,
+				},
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+		}
 	}
-	now := time.Now().Unix()
 	_, err = app.SQLUpdateTSendStatusByIDs(
 		context.Background(),
 		app.DbCon,
