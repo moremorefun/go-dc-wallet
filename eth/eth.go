@@ -322,7 +322,7 @@ func CheckAddressOrg() {
 			return
 		}
 		// 获取nonce值
-		nonce, err := GetNonce(address)
+		nonce, err := GetNonce(app.DbCon, address)
 		if err != nil {
 			hcommon.Log.Warnf("GetNonce err: [%T] %s", err, err.Error())
 			return
@@ -637,5 +637,22 @@ func CheckWithdraw() {
 }
 
 func handleWithdraw(withdrawID int64, hotAddressBalance *int64) error {
+	isComment := false
+	dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if !isComment {
+			_ = dbTx.Rollback()
+		}
+	}()
+	// 处理业务
+	// 处理完成
+	err = dbTx.Commit()
+	if err != nil {
+		return err
+	}
+	isComment = true
 	return nil
 }

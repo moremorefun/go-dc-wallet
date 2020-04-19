@@ -4,9 +4,10 @@ import (
 	"context"
 	"go-dc-wallet/app"
 	"go-dc-wallet/ethclient"
+	"go-dc-wallet/hcommon"
 )
 
-func GetNonce(address string) (int64, error) {
+func GetNonce(tx hcommon.DbExeAble, address string) (int64, error) {
 	// 通过rpc获取
 	rpcNonce, err := ethclient.RpcNonceAt(
 		context.Background(),
@@ -18,7 +19,7 @@ func GetNonce(address string) (int64, error) {
 	// 获取db nonce
 	dbNonce, err := app.SQLGetTSendMaxNonce(
 		context.Background(),
-		app.DbCon,
+		tx,
 		address,
 	)
 	if nil != err {
