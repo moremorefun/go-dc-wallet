@@ -3,10 +3,12 @@ package eth
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
+	"math/big"
 	"regexp"
 	"strings"
 	"time"
@@ -250,7 +252,7 @@ func CheckAddressOrg() {
 	}
 	addressMap := make(map[string]*AddressInfo)
 	// 获取gap price
-	gapPrice := int64(0)
+	gasPrice := int64(0)
 	if len(txRows) > 0 {
 		gasRow, err := app.SQLGetTAppStatusIntByK(
 			context.Background(),
@@ -265,8 +267,11 @@ func CheckAddressOrg() {
 			hcommon.Log.Errorf("no config int of to_cold_gap_price")
 			return
 		}
-		gapPrice = gasRow.V
+		gasPrice = gasRow.V
 	}
+	gasLimit := int64(21000)
+	feeValue := gasLimit * gasPrice
+	var addresses []string
 	for _, txRow := range txRows {
 		info := addressMap[txRow.ToAddress]
 		if info == nil {
@@ -278,8 +283,155 @@ func CheckAddressOrg() {
 		}
 		info.RowIDs = append(info.RowIDs, txRow.ID)
 		info.Balance += txRow.Balance
+
+		addresses = append(addresses, txRow.ToAddress)
 	}
+	now := time.Now().Unix()
+	var sendRows []*model.DBTSend
 	for address, info := range addressMap {
-		// 创建交易
+		// 获取私钥
+		keyRow, err := app.SQLGetTAddressKeyColByAddress(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTAddressKeyPwd,
+			},
+			address,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLGetTAddressKeyColByAddress err: [%T] %s", err, err.Error())
+			return
+		}
+		if keyRow == nil {
+			hcommon.Log.Errorf("no key of: %s", address)
+			return
+		}
+		key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+		if len(key) == 0 {
+			hcommon.Log.Errorf("error key of: %s", address)
+			return
+		}
+		if strings.HasPrefix(key, "0x") {
+			key = key[2:]
+		}
+		privateKey, err := crypto.HexToECDSA(key)
+		if err != nil {
+			hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
+			return
+		}
+		// 获取nonce值
+		nonce, err := GetNonce(address)
+		if err != nil {
+			hcommon.Log.Warnf("GetNonce err: [%T] %s", err, err.Error())
+			return
+		}
+		// 发送数量
+		sendBalance := info.Balance - feeValue
+		sendBalanceReal := decimal.NewFromInt(sendBalance).Div(decimal.NewFromInt(1e18))
+		// 生成tx
+		var data []byte
+		tx := types.NewTransaction(
+			uint64(nonce),
+			coldAddress,
+			big.NewInt(sendBalance),
+			uint64(gasLimit),
+			big.NewInt(gasPrice),
+			data,
+		)
+		chainID, err := ethclient.RpcNetworkID(context.Background())
+		if err != nil {
+			hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+			return
+		}
+		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
+		if err != nil {
+			hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+			return
+		}
+		ts := types.Transactions{signedTx}
+		rawTxBytes := ts.GetRlp(0)
+		rawTxHex := hex.EncodeToString(rawTxBytes)
+		txHash := strings.ToLower(signedTx.Hash().Hex())
+		// 创建存入数据
+		for rowIndex, rowID := range info.RowIDs {
+			if rowIndex == 0 {
+				sendRows = append(sendRows, &model.DBTSend{
+					RelatedType:  1,
+					RelatedID:    rowID,
+					TxID:         txHash,
+					FromAddress:  address,
+					ToAddress:    coldRow.V,
+					Balance:      sendBalance,
+					BalanceReal:  sendBalanceReal.String(),
+					Gas:          gasLimit,
+					GasPrice:     gasPrice,
+					Nonce:        nonce,
+					Hex:          rawTxHex,
+					CreateTime:   now,
+					HandleStatus: 0,
+					HandleMsg:    "",
+					HandleTime:   now,
+				})
+			} else {
+				sendRows = append(sendRows, &model.DBTSend{
+					RelatedType:  1,
+					RelatedID:    rowID,
+					TxID:         txHash,
+					FromAddress:  address,
+					ToAddress:    coldRow.V,
+					Balance:      0,
+					BalanceReal:  "",
+					Gas:          0,
+					GasPrice:     0,
+					Nonce:        -1,
+					Hex:          "",
+					CreateTime:   now,
+					HandleStatus: 0,
+					HandleMsg:    "",
+					HandleTime:   now,
+				})
+			}
+		}
+	}
+	// 用事物处理数据
+	if len(addresses) > 0 {
+		isComment := false
+		tx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		defer func() {
+			if !isComment {
+				_ = tx.Rollback()
+			}
+		}()
+		// 更改状态
+		_, err = app.SQLUpdateTTxOrgStatusByAddresses(
+			context.Background(),
+			tx,
+			addresses,
+			model.DBTTx{
+				OrgStatus: 1,
+				OrgMsg:    "gen raw tx",
+				OrgTime:   now,
+			},
+		)
+		// 插入数据
+		_, err = model.SQLCreateManyTSend(
+			context.Background(),
+			tx,
+			sendRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		err = tx.Commit()
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		isComment = true
 	}
 }

@@ -5,6 +5,8 @@ import (
 	"go-dc-wallet/hcommon"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
@@ -35,4 +37,26 @@ func RpcBlockByNum(ctx context.Context, blockNum int64) (*types.Block, error) {
 		return nil, err
 	}
 	return resp, nil
+}
+
+// RpcNonceAt 获取nonce
+func RpcNonceAt(ctx context.Context, address string) (int64, error) {
+	count, err := client.NonceAt(
+		ctx,
+		common.HexToAddress(address),
+		nil,
+	)
+	if nil != err {
+		return 0, err
+	}
+	return int64(count), nil
+}
+
+// RpcNetworkID 获取block信息
+func RpcNetworkID(ctx context.Context) (int64, error) {
+	resp, err := client.NetworkID(ctx)
+	if nil != err {
+		return 0, err
+	}
+	return resp.Int64(), nil
 }

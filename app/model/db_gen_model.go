@@ -79,6 +79,64 @@ type DBTAppStatusInt struct {
 	V  int64  `db:"v" json:"v"` // 配置键值
 }
 
+// const TSend
+const (
+	DBColTSendID           = "t_send.id"
+	DBColTSendRelatedType  = "t_send.related_type"
+	DBColTSendRelatedID    = "t_send.related_id"
+	DBColTSendTxID         = "t_send.tx_id"
+	DBColTSendFromAddress  = "t_send.from_address"
+	DBColTSendToAddress    = "t_send.to_address"
+	DBColTSendBalance      = "t_send.balance"
+	DBColTSendBalanceReal  = "t_send.balance_real"
+	DBColTSendGas          = "t_send.gas"
+	DBColTSendGasPrice     = "t_send.gas_price"
+	DBColTSendNonce        = "t_send.nonce"
+	DBColTSendHex          = "t_send.hex"
+	DBColTSendCreateTime   = "t_send.create_time"
+	DBColTSendHandleStatus = "t_send.handle_status"
+	DBColTSendHandleMsg    = "t_send.handle_msg"
+	DBColTSendHandleTime   = "t_send.handle_time"
+)
+
+// DBTSend t_send 数据表
+/*
+   id,
+   related_type,
+   related_id,
+   tx_id,
+   from_address,
+   to_address,
+   balance,
+   balance_real,
+   gas,
+   gas_price,
+   nonce,
+   hex,
+   create_time,
+   handle_status,
+   handle_msg,
+   handle_time
+*/
+type DBTSend struct {
+	ID           int64  `db:"id" json:"id"`
+	RelatedType  int64  `db:"related_type" json:"related_type"`
+	RelatedID    int64  `db:"related_id" json:"related_id"`
+	TxID         string `db:"tx_id" json:"tx_id"`
+	FromAddress  string `db:"from_address" json:"from_address"`
+	ToAddress    string `db:"to_address" json:"to_address"`
+	Balance      int64  `db:"balance" json:"balance"`
+	BalanceReal  string `db:"balance_real" json:"balance_real"`
+	Gas          int64  `db:"gas" json:"gas"`
+	GasPrice     int64  `db:"gas_price" json:"gas_price"`
+	Nonce        int64  `db:"nonce" json:"nonce"`
+	Hex          string `db:"hex" json:"hex"`
+	CreateTime   int64  `db:"create_time" json:"create_time"`
+	HandleStatus int64  `db:"handle_status" json:"handle_status"`
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
+	HandleTime   int64  `db:"handle_time" json:"handle_time"`
+}
+
 // const TTx
 const (
 	DBColTTxID           = "t_tx.id"

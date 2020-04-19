@@ -199,3 +199,89 @@ WHERE
 	}
 	return rows, nil
 }
+
+// SQLGetTSendMaxNonce 获取地址的nonce
+func SQLGetTSendMaxNonce(ctx context.Context, tx hcommon.DbExeAble, address string) (int64, error) {
+	var i int64
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&i,
+		`SELECT 
+	IFNULL(MAX(nonce), -1)
+FROM
+	t_send
+WHERE
+	from_address=:address
+LIMIT 1`,
+		gin.H{
+			"address": address,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, nil
+	}
+	return i + 1, nil
+}
+
+// SQLGetTAddressKeyColByAddress 根据address查询
+func SQLGetTAddressKeyColByAddress(ctx context.Context, tx hcommon.DbExeAble, cols []string, address string) (*model.DBTAddressKey, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_address_key
+WHERE
+	address=:address`)
+
+	var row model.DBTAddressKey
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"address": address,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLUpdateTTxOrgStatusByAddresses 更新
+func SQLUpdateTTxOrgStatusByAddresses(ctx context.Context, tx hcommon.DbExeAble, addresses []string, row model.DBTTx) (int64, error) {
+	if len(addresses) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx
+SET
+    org_status=:org_status,
+    org_msg=:org_msg,
+    org_time=:org_time
+WHERE
+	to_address IN (:addresses)`,
+		gin.H{
+			"addresses":  addresses,
+			"org_status": row.OrgStatus,
+			"org_msg":    row.OrgMsg,
+			"org_time":   row.OrgTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
