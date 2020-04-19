@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-19 13:59:12.3470
+-- Generation Time: 2020-04-19 15:37:32.4500
 -- -------------------------------------------------------------
 
 
@@ -19,7 +19,8 @@
 
 
 INSERT INTO `t_app_config_str` (`id`, `k`, `v`) VALUES
-('3', 'cold_wallet_address', '0xba71da7d56322dba3348204735bd419de245ad04');
+('3', 'cold_wallet_address', '0xba71da7d56322dba3348204735bd419de245ad04'),
+('4', 'hot_wallet_address', '0x47284d23b4c375878a52e7a7e5f0d4fbfb60fe22');
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

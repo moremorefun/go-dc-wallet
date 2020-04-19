@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-19 13:58:45.8680
+-- Generation Time: 2020-04-19 15:37:10.1600
 -- -------------------------------------------------------------
 
 
@@ -42,7 +42,7 @@ CREATE TABLE `t_app_config_str` (
   `v` varchar(1024) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -50,7 +50,7 @@ CREATE TABLE `t_app_status_int` (
   `v` int(11) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_send` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -91,6 +91,21 @@ CREATE TABLE `t_tx` (
   `org_time` bigint(20) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tx_id` (`tx_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `t_withdraw` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `to_address` varchar(128) NOT NULL DEFAULT '',
+  `balance_real` varchar(128) NOT NULL DEFAULT '',
+  `out_serial` varchar(64) NOT NULL DEFAULT '',
+  `tx_hash` varchar(128) NOT NULL DEFAULT '',
+  `create_time` bigint(20) unsigned NOT NULL,
+  `handle_status` int(11) NOT NULL,
+  `handle_msg` varchar(128) NOT NULL,
+  `handle_time` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `out_serial` (`out_serial`),
+  KEY `t_withdraw_tx_hash_idx` (`tx_hash`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
 
 
