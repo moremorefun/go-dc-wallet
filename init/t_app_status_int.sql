@@ -1,10 +1,10 @@
 -- -------------------------------------------------------------
--- TablePlus 3.3.0(302)
+-- TablePlus 3.4.0(305)
 --
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-18 11:08:05.1940
+-- Generation Time: 2020-04-19 13:59:23.1830
 -- -------------------------------------------------------------
 
 
@@ -19,7 +19,8 @@
 
 
 INSERT INTO `t_app_status_int` (`id`, `k`, `v`) VALUES
-('1', 'seek_num', '9893882');
+('1', 'seek_num', '9893903'),
+('2', 'to_cold_gap_price', '1000000000');
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

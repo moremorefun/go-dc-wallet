@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-19 13:59:04.0550
+-- Generation Time: 2020-04-19 13:59:12.3470
 -- -------------------------------------------------------------
 
 
@@ -18,9 +18,8 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
-INSERT INTO `t_app_config_int` (`id`, `k`, `v`) VALUES
-('1', 'min_free_address', '100'),
-('2', 'block_confirm_num', '15');
+INSERT INTO `t_app_config_str` (`id`, `k`, `v`) VALUES
+('3', 'cold_wallet_address', '0xba71da7d56322dba3348204735bd419de245ad04');
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
