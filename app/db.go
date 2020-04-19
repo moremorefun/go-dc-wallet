@@ -425,3 +425,64 @@ WHERE
 	}
 	return rows, nil
 }
+
+// SQLGetTWithdrawColForUpdate 根据id查询
+func SQLGetTWithdrawColForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64, status int64) (*model.DBTWithdraw, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_withdraw
+WHERE
+	id=:id
+	AND handle_status=:handle_status
+FOR UPDATE`)
+
+	var row model.DBTWithdraw
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id":            id,
+			"handle_status": status,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLUpdateTWithdrawGenTx 更新
+func SQLUpdateTWithdrawGenTx(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTWithdraw) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_withdraw
+SET
+    tx_hash=:tx_hash,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"tx_hash":       row.TxHash,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
