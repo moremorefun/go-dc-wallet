@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/shopspring/decimal"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 )
@@ -272,6 +274,31 @@ func postWithdraw(c *gin.Context) {
 		})
 		return
 	}
+	// 验证金额
+	balanceObj, err := decimal.NewFromString(req.Balance)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorBalanceFormat,
+			"err_msg": hcommon.ErrorBalanceFormatMsg,
+		})
+		return
+	}
+	if balanceObj.LessThanOrEqual(decimal.NewFromInt(0)) {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorBalanceFormat,
+			"err_msg": hcommon.ErrorBalanceFormatMsg,
+		})
+		return
+	}
+	if balanceObj.Exponent() < -18 {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorBalanceFormat,
+			"err_msg": hcommon.ErrorBalanceFormatMsg,
+		})
+		return
+	}
+
 	now := time.Now().Unix()
 	// 开始事物
 	isComment := false

@@ -33,4 +33,7 @@ const (
 
 	ErrorAddressWrong    = -8
 	ErrorAddressWrongMsg = "address error"
+
+	ErrorBalanceFormat    = -9
+	ErrorBalanceFormatMsg = "balance format error"
 )
