@@ -27,4 +27,7 @@ const (
 
 	ErrorNonceRepeat    = -6
 	ErrorNonceRepeatMsg = "nonce repeat"
+
+	ErrorNoFreeAddress    = -7
+	ErrorNoFreeAddressMsg = "no free address"
 )

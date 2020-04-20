@@ -37,6 +37,7 @@ func productReq(c *gin.Context) {
 		c,
 		app.DbCon,
 		[]string{
+			model.DBColTProductID,
 			model.DBColTProductAppSk,
 			model.DBColTProductWhitelistIP,
 		},
@@ -138,11 +139,13 @@ func productReq(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	c.Set("product_id", productRow.ID)
 }
 
 func postAddress(c *gin.Context) {
 	var req struct {
 		AppName string `json:"app_name" binding:"required"`
+		Symbol  string `json:"symbol" binding:"required" validate:"oneof=eth"`
 	}
 	err := c.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
@@ -150,9 +153,92 @@ func postAddress(c *gin.Context) {
 		hcommon.GinFillBindError(c, err)
 		return
 	}
+	// 开始事物
+	isComment := false
+	tx, err := app.DbCon.BeginTxx(c, nil)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	defer func() {
+		if !isComment {
+			_ = tx.Rollback()
+		}
+	}()
+	productID := c.GetInt64("product_id")
+	if productID == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+
+	addressRow, err := app.SQLGetTAddressKeyColFreeForUpdate(
+		c,
+		tx,
+		[]string{
+			model.DBColTAddressKeyID,
+			model.DBColTAddressKeyAddress,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	if addressRow == nil {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorNoFreeAddress,
+			"err_msg": hcommon.ErrorNoFreeAddressMsg,
+		})
+		return
+	}
+	count, err := app.SQLUpdateTAddressKeyUseTag(
+		c,
+		tx,
+		&model.DBTAddressKey{
+			ID:     addressRow.ID,
+			UseTag: productID,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	if count <= 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	// 提交事物
+	err = tx.Commit()
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	isComment = true
 	c.JSON(http.StatusOK, gin.H{
 		"error":   hcommon.ErrorSuccess,
 		"err_msg": hcommon.ErrorSuccessMsg,
+		"address": addressRow.Address,
 	})
 }
 

@@ -657,3 +657,55 @@ WHERE
 	}
 	return &row, nil
 }
+
+// SQLGetTAddressKeyColFreeForUpdate 根据id查询
+func SQLGetTAddressKeyColFreeForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string) (*model.DBTAddressKey, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_address_key
+WHERE
+	use_tag=0
+LIMIT 1
+FOR UPDATE`)
+
+	var row model.DBTAddressKey
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLUpdateTAddressKeyUseTag 更新
+func SQLUpdateTAddressKeyUseTag(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAddressKey) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_address_key
+SET
+    use_tag=:use_tag
+WHERE
+	id=:id`,
+		gin.H{
+			"id":      row.ID,
+			"use_tag": row.UseTag,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
