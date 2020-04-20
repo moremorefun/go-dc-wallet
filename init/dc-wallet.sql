@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-20 11:15:42.5670
+-- Generation Time: 2020-04-20 14:45:17.0130
 -- -------------------------------------------------------------
 
 
@@ -70,7 +70,15 @@ CREATE TABLE `t_product` (
   `whitelist_ip` varchar(1024) NOT NULL DEFAULT '' COMMENT 'ip白名单',
   PRIMARY KEY (`id`),
   UNIQUE KEY `app_name` (`app_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `t_product_nonce` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `c` varchar(128) NOT NULL DEFAULT '',
+  `create_time` bigint(20) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `c` (`c`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_send` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -115,18 +123,19 @@ CREATE TABLE `t_tx` (
 
 CREATE TABLE `t_withdraw` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(11) unsigned NOT NULL COMMENT '产品id',
+  `out_serial` varchar(64) NOT NULL DEFAULT '' COMMENT '提币唯一标示',
   `to_address` varchar(128) NOT NULL DEFAULT '' COMMENT '提币地址',
   `balance_real` varchar(128) NOT NULL DEFAULT '' COMMENT '提币金额',
-  `out_serial` varchar(64) NOT NULL DEFAULT '' COMMENT '提币唯一标示',
   `tx_hash` varchar(128) NOT NULL DEFAULT '' COMMENT '提币tx hash',
   `create_time` bigint(20) unsigned NOT NULL COMMENT '创建时间',
   `handle_status` int(11) NOT NULL COMMENT '处理状态',
   `handle_msg` varchar(128) NOT NULL COMMENT '处理消息',
   `handle_time` bigint(20) unsigned NOT NULL COMMENT '处理时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `out_serial` (`out_serial`),
+  UNIQUE KEY `out_serial` (`out_serial`,`product_id`) USING BTREE,
   KEY `t_withdraw_tx_hash_idx` (`tx_hash`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
 
 

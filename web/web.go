@@ -7,6 +7,7 @@ import (
 	"go-dc-wallet/hcommon"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -144,13 +145,20 @@ func productReq(c *gin.Context) {
 
 func postAddress(c *gin.Context) {
 	var req struct {
-		AppName string `json:"app_name" binding:"required"`
-		Symbol  string `json:"symbol" binding:"required" validate:"oneof=eth"`
+		Symbol string `json:"symbol" binding:"required" validate:"oneof=eth"`
 	}
 	err := c.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
 		hcommon.Log.Warnf("req args error: %#v", err)
 		hcommon.GinFillBindError(c, err)
+		return
+	}
+	productID := c.GetInt64("product_id")
+	if productID == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
 		return
 	}
 	// 开始事物
@@ -169,15 +177,6 @@ func postAddress(c *gin.Context) {
 			_ = tx.Rollback()
 		}
 	}()
-	productID := c.GetInt64("product_id")
-	if productID == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		return
-	}
-
 	addressRow, err := app.SQLGetTAddressKeyColFreeForUpdate(
 		c,
 		tx,
@@ -243,5 +242,81 @@ func postAddress(c *gin.Context) {
 }
 
 func postWithdraw(c *gin.Context) {
-
+	var req struct {
+		Symbol    string `json:"symbol" binding:"required" validate:"oneof=eth"`
+		OutSerial string `json:"out_serial" binding:"required" validate:"max=40"`
+		Address   string `json:"address" binding:"required"`
+		Balance   string `json:"balance" binding:"required"`
+	}
+	err := c.ShouldBindBodyWith(&req, binding.JSON)
+	if err != nil {
+		hcommon.Log.Warnf("req args error: %#v", err)
+		hcommon.GinFillBindError(c, err)
+		return
+	}
+	productID := c.GetInt64("product_id")
+	if productID == 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	// 验证地址
+	req.Address = strings.ToLower(req.Address)
+	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+	if !re.MatchString(req.Address) {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorAddressWrong,
+			"err_msg": hcommon.ErrorAddressWrongMsg,
+		})
+		return
+	}
+	now := time.Now().Unix()
+	// 开始事物
+	isComment := false
+	tx, err := app.DbCon.BeginTxx(c, nil)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	defer func() {
+		if !isComment {
+			_ = tx.Rollback()
+		}
+	}()
+	_, err = model.SQLCreateIgnoreTWithdraw(
+		c,
+		tx,
+		&model.DBTWithdraw{
+			ProductID:    productID,
+			OutSerial:    req.OutSerial,
+			ToAddress:    req.Address,
+			BalanceReal:  req.Balance,
+			TxHash:       "",
+			CreateTime:   now,
+			HandleStatus: 0,
+			HandleMsg:    "",
+			HandleTime:   now,
+		},
+	)
+	// 提交事物
+	err = tx.Commit()
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	isComment = true
+	c.JSON(http.StatusOK, gin.H{
+		"error":   hcommon.ErrorSuccess,
+		"err_msg": hcommon.ErrorSuccessMsg,
+	})
 }

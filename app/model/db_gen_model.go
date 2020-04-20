@@ -255,9 +255,10 @@ type DBTTx struct {
 // const TWithdraw
 const (
 	DBColTWithdrawID           = "t_withdraw.id"
+	DBColTWithdrawProductID    = "t_withdraw.product_id"    // 产品id
+	DBColTWithdrawOutSerial    = "t_withdraw.out_serial"    // 提币唯一标示
 	DBColTWithdrawToAddress    = "t_withdraw.to_address"    // 提币地址
 	DBColTWithdrawBalanceReal  = "t_withdraw.balance_real"  // 提币金额
-	DBColTWithdrawOutSerial    = "t_withdraw.out_serial"    // 提币唯一标示
 	DBColTWithdrawTxHash       = "t_withdraw.tx_hash"       // 提币tx hash
 	DBColTWithdrawCreateTime   = "t_withdraw.create_time"   // 创建时间
 	DBColTWithdrawHandleStatus = "t_withdraw.handle_status" // 处理状态
@@ -268,9 +269,10 @@ const (
 // DBTWithdraw t_withdraw 数据表
 /*
    id,
+   product_id,
+   out_serial,
    to_address,
    balance_real,
-   out_serial,
    tx_hash,
    create_time,
    handle_status,
@@ -279,9 +281,10 @@ const (
 */
 type DBTWithdraw struct {
 	ID           int64  `db:"id" json:"id"`
+	ProductID    int64  `db:"product_id" json:"product_id"`       // 产品id
+	OutSerial    string `db:"out_serial" json:"out_serial"`       // 提币唯一标示
 	ToAddress    string `db:"to_address" json:"to_address"`       // 提币地址
 	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 提币金额
-	OutSerial    string `db:"out_serial" json:"out_serial"`       // 提币唯一标示
 	TxHash       string `db:"tx_hash" json:"tx_hash"`             // 提币tx hash
 	CreateTime   int64  `db:"create_time" json:"create_time"`     // 创建时间
 	HandleStatus int64  `db:"handle_status" json:"handle_status"` // 处理状态

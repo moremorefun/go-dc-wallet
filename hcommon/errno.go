@@ -30,4 +30,7 @@ const (
 
 	ErrorNoFreeAddress    = -7
 	ErrorNoFreeAddressMsg = "no free address"
+
+	ErrorAddressWrong    = -8
+	ErrorAddressWrongMsg = "address error"
 )
