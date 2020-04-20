@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
@@ -12,6 +13,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -1023,4 +1026,104 @@ func CheckTxNotify() {
 		}
 	}()
 
+	txRows, err := app.SQLSelectTTxColByStatus(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTTxID,
+			model.DBColTTxProductID,
+			model.DBColTTxTxID,
+			model.DBColTTxToAddress,
+			model.DBColTTxBalanceReal,
+		},
+		0,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	var productIDs []int64
+	for _, txRow := range txRows {
+		if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+			productIDs = append(productIDs, txRow.ProductID)
+		}
+	}
+	productRows, err := model.SQLSelectTProductCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTProductID,
+			model.DBColTProductAppName,
+			model.DBColTProductCbURL,
+		},
+		productIDs,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	productMap := make(map[int64]*model.DBTProduct)
+	for _, productRow := range productRows {
+		productMap[productRow.ID] = productRow
+	}
+	var notifyTxIDs []int64
+	var notifyRows []*model.DBTProductNotify
+	now := time.Now().Unix()
+	for _, txRow := range txRows {
+		productRow, ok := productMap[txRow.ProductID]
+		if !ok {
+			continue
+		}
+		nonce := hcommon.GetUUIDStr()
+		reqObj := gin.H{
+			"tx_hash":     txRow.TxID,
+			"app_name":    productRow.AppName,
+			"address":     txRow.ToAddress,
+			"balance":     txRow.BalanceReal,
+			"symbol":      "eth",
+			"notify_type": 1,
+		}
+		req, err := json.Marshal(reqObj)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		notifyRows = append(notifyRows, &model.DBTProductNotify{
+			Nonce:        nonce,
+			ProductID:    txRow.ProductID,
+			ItemType:     1,
+			ItemID:       txRow.ID,
+			NotifyType:   0,
+			URL:          productRow.CbURL,
+			Msg:          string(req),
+			HandleStatus: 0,
+			HandleMsg:    "",
+			CreateTime:   now,
+			UpdateTime:   now,
+		})
+		notifyTxIDs = append(notifyTxIDs, txRow.ID)
+	}
+	_, err = model.SQLCreateIgnoreManyTProductNotify(
+		context.Background(),
+		app.DbCon,
+		notifyRows,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	_, err = app.SQLUpdateTTxStatusByIDs(
+		context.Background(),
+		app.DbCon,
+		notifyTxIDs,
+		model.DBTTx{
+			HandleStatus: 1,
+			HandleMsg:    "notify",
+			HandleTime:   now,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
 }

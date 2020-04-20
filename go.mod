@@ -11,9 +11,11 @@ require (
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/joho/godotenv v1.3.0
+	github.com/myesui/uuid v1.0.0 // indirect
 	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/stretchr/testify v1.5.1 // indirect
 	github.com/timest/env v0.0.0-20180717050204-5fce78d35255
+	github.com/twinj/uuid v1.0.0
 	go.uber.org/zap v1.14.1
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )

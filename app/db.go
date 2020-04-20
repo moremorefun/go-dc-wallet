@@ -314,6 +314,35 @@ WHERE
 	return count, nil
 }
 
+// SQLUpdateTTxStatusByIDs 更新
+func SQLUpdateTTxStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTx) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx
+SET
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids":           ids,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLUpdateTSendStatusByTxIDs 更新
 func SQLUpdateTSendStatusByTxIDs(ctx context.Context, tx hcommon.DbExeAble, txIDs []string, row model.DBTSend) (int64, error) {
 	if len(txIDs) == 0 {
@@ -708,4 +737,31 @@ WHERE
 		return 0, err
 	}
 	return count, nil
+}
+
+// SQLSelectTTxColByStatus 根据ids获取
+func SQLSelectTTxColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTx, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx
+WHERE
+	handle_status=:handle_status`)
+
+	var rows []*model.DBTTx
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"handle_status": status,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
