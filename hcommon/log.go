@@ -8,6 +8,7 @@ import (
 
 // Log 日志对象
 var Log LoggerAble
+var ZapLog *zap.Logger
 
 type LoggerAble interface {
 	Debugf(template string, args ...interface{})
@@ -19,12 +20,13 @@ type LoggerAble interface {
 
 func init() {
 	// 初始化默认的日志对象
+	var err error
 	conf := zap.NewDevelopmentConfig()
 	conf.DisableStacktrace = true
 	conf.Encoding = "console"
-	zapLogger, err := conf.Build()
+	ZapLog, err = conf.Build()
 	if err != nil {
 		log.Fatalf("build logger error: [%T] %s", err, err.Error())
 	}
-	Log = zapLogger.Sugar()
+	Log = ZapLog.Sugar()
 }
