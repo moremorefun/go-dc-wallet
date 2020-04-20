@@ -126,6 +126,25 @@ type DBTProduct struct {
 	WhitelistIP string `db:"whitelist_ip" json:"whitelist_ip"` // ip白名单
 }
 
+// const TProductNonce
+const (
+	DBColTProductNonceID         = "t_product_nonce.id"
+	DBColTProductNonceC          = "t_product_nonce.c"
+	DBColTProductNonceCreateTime = "t_product_nonce.create_time"
+)
+
+// DBTProductNonce t_product_nonce 数据表
+/*
+   id,
+   c,
+   create_time
+*/
+type DBTProductNonce struct {
+	ID         int64  `db:"id" json:"id"`
+	C          string `db:"c" json:"c"`
+	CreateTime int64  `db:"create_time" json:"create_time"`
+}
+
 // const TSend
 const (
 	DBColTSendID           = "t_send.id"

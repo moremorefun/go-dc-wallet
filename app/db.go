@@ -627,3 +627,33 @@ WHERE
 	}
 	return count, nil
 }
+
+// SQLGetTProductColByName 根据id查询
+func SQLGetTProductColByName(ctx context.Context, tx hcommon.DbExeAble, cols []string, appName string) (*model.DBTProduct, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_product
+WHERE
+	app_name=:app_name`)
+
+	var row model.DBTProduct
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"app_name": appName,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}

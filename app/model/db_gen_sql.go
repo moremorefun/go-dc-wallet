@@ -2360,6 +2360,382 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTProductNonce 创建
+func SQLCreateTProductNonce(ctx context.Context, tx hcommon.DbExeAble, row *DBTProductNonce) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product_nonce (
+    id,
+    c,
+    create_time
+) VALUES (
+    :id,
+    :c,
+    :create_time
+)`,
+			gin.H{
+				"id":          row.ID,
+				"c":           row.C,
+				"create_time": row.CreateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product_nonce (
+    c,
+    create_time
+) VALUES (
+    :c,
+    :create_time
+)`,
+			gin.H{
+				"c":           row.C,
+				"create_time": row.CreateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTProductNonce 创建
+func SQLCreateIgnoreTProductNonce(ctx context.Context, tx hcommon.DbExeAble, row *DBTProductNonce) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product_nonce (
+    id,
+    c,
+    create_time
+) VALUES (
+    :id,
+    :c,
+    :create_time
+)`,
+			gin.H{
+				"id":          row.ID,
+				"c":           row.C,
+				"create_time": row.CreateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product_nonce (
+    c,
+    create_time
+) VALUES (
+    :c,
+    :create_time
+)`,
+			gin.H{
+				"c":           row.C,
+				"create_time": row.CreateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTProductNonce 创建多个
+func SQLCreateManyTProductNonce(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTProductNonce) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.C,
+					row.CreateTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.C,
+					row.CreateTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product_nonce (
+    id,
+    c,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product_nonce (
+    c,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTProductNonce 创建多个
+func SQLCreateIgnoreManyTProductNonce(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTProductNonce) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.C,
+					row.CreateTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.C,
+					row.CreateTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product_nonce (
+    id,
+    c,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product_nonce (
+    c,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTProductNonce 根据id查询
+func SQLGetTProductNonce(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTProductNonce, error) {
+	var row DBTProductNonce
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    c,
+    create_time
+FROM
+	t_product_nonce
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTProductNonceCol 根据id查询
+func SQLGetTProductNonceCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTProductNonce, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_product_nonce
+WHERE
+	id=:id`)
+
+	var row DBTProductNonce
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTProductNonce 根据ids获取
+func SQLSelectTProductNonce(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTProductNonce, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTProductNonce
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    c,
+    create_time
+FROM
+	t_product_nonce
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTProductNonceCol 根据ids获取
+func SQLSelectTProductNonceCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTProductNonce, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_product_nonce
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTProductNonce
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTProductNonce 更新
+func SQLUpdateTProductNonce(ctx context.Context, tx hcommon.DbExeAble, row *DBTProductNonce) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_product_nonce
+SET
+    c=:c,
+    create_time=:create_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":          row.ID,
+			"c":           row.C,
+			"create_time": row.CreateTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTProductNonce 删除
+func SQLDeleteTProductNonce(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_product_nonce
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTSend 创建
 func SQLCreateTSend(ctx context.Context, tx hcommon.DbExeAble, row *DBTSend) (int64, error) {
 	var lastID int64
