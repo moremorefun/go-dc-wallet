@@ -435,6 +435,9 @@ func CheckAddressOrg() {
 		}
 		// 发送数量
 		sendBalance := info.Balance - feeValue
+		if sendBalance <= 0 {
+			continue
+		}
 		sendBalanceReal := decimal.NewFromInt(sendBalance).Div(decimal.NewFromInt(1e18))
 		// 生成tx
 		var data []byte
