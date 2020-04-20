@@ -1055,6 +1055,7 @@ func CheckTxNotify() {
 			model.DBColTProductID,
 			model.DBColTProductAppName,
 			model.DBColTProductCbURL,
+			model.DBColTProductAppSk,
 		},
 		productIDs,
 	)
@@ -1083,6 +1084,7 @@ func CheckTxNotify() {
 			"symbol":      "eth",
 			"notify_type": 1,
 		}
+		reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
 		req, err := json.Marshal(reqObj)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
