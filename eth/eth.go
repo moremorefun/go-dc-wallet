@@ -235,6 +235,7 @@ func CheckBlockSeek() {
 			context.Background(),
 			app.DbCon,
 			[]string{
+				model.DBColTAddressKeyUseTag,
 				model.DBColTAddressKeyAddress,
 			},
 			toAddresses,
@@ -244,6 +245,10 @@ func CheckBlockSeek() {
 			return
 		}
 		var dbTxRows []*model.DBTTx
+		addressProductMap := make(map[string]int64)
+		for _, dbAddressRow := range dbAddressRows {
+			addressProductMap[dbAddressRow.Address] = dbAddressRow.UseTag
+		}
 		for _, dbAddressRow := range dbAddressRows {
 			txes := txMap[dbAddressRow.Address]
 			for _, tx := range txes {
@@ -252,11 +257,13 @@ func CheckBlockSeek() {
 					hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
 				}
 				now := time.Now().Unix()
+				toAddress := strings.ToLower(tx.To().Hex())
 				balanceReal := decimal.NewFromInt(tx.Value().Int64()).Div(decimal.NewFromInt(1e18))
 				dbTxRows = append(dbTxRows, &model.DBTTx{
+					ProductID:    addressProductMap[toAddress],
 					TxID:         tx.Hash().String(),
 					FromAddress:  strings.ToLower(msg.From().Hex()),
-					ToAddress:    strings.ToLower(tx.To().Hex()),
+					ToAddress:    toAddress,
 					Balance:      tx.Value().Int64(),
 					BalanceReal:  balanceReal.String(),
 					CreateTime:   now,

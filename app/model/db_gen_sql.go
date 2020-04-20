@@ -2736,6 +2736,598 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTProductNotify 创建
+func SQLCreateTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBTProductNotify) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product_notify (
+    id,
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+) VALUES (
+    :id,
+    :nonce,
+    :product_id,
+    :item_type,
+    :item_id,
+    :notify_type,
+    :url,
+    :msg,
+    :handle_status,
+    :handle_msg,
+    :create_time,
+    :update_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"nonce":         row.Nonce,
+				"product_id":    row.ProductID,
+				"item_type":     row.ItemType,
+				"item_id":       row.ItemID,
+				"notify_type":   row.NotifyType,
+				"url":           row.URL,
+				"msg":           row.Msg,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"create_time":   row.CreateTime,
+				"update_time":   row.UpdateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product_notify (
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+) VALUES (
+    :nonce,
+    :product_id,
+    :item_type,
+    :item_id,
+    :notify_type,
+    :url,
+    :msg,
+    :handle_status,
+    :handle_msg,
+    :create_time,
+    :update_time
+)`,
+			gin.H{
+				"nonce":         row.Nonce,
+				"product_id":    row.ProductID,
+				"item_type":     row.ItemType,
+				"item_id":       row.ItemID,
+				"notify_type":   row.NotifyType,
+				"url":           row.URL,
+				"msg":           row.Msg,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"create_time":   row.CreateTime,
+				"update_time":   row.UpdateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTProductNotify 创建
+func SQLCreateIgnoreTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBTProductNotify) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product_notify (
+    id,
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+) VALUES (
+    :id,
+    :nonce,
+    :product_id,
+    :item_type,
+    :item_id,
+    :notify_type,
+    :url,
+    :msg,
+    :handle_status,
+    :handle_msg,
+    :create_time,
+    :update_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"nonce":         row.Nonce,
+				"product_id":    row.ProductID,
+				"item_type":     row.ItemType,
+				"item_id":       row.ItemID,
+				"notify_type":   row.NotifyType,
+				"url":           row.URL,
+				"msg":           row.Msg,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"create_time":   row.CreateTime,
+				"update_time":   row.UpdateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product_notify (
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+) VALUES (
+    :nonce,
+    :product_id,
+    :item_type,
+    :item_id,
+    :notify_type,
+    :url,
+    :msg,
+    :handle_status,
+    :handle_msg,
+    :create_time,
+    :update_time
+)`,
+			gin.H{
+				"nonce":         row.Nonce,
+				"product_id":    row.ProductID,
+				"item_type":     row.ItemType,
+				"item_id":       row.ItemID,
+				"notify_type":   row.NotifyType,
+				"url":           row.URL,
+				"msg":           row.Msg,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"create_time":   row.CreateTime,
+				"update_time":   row.UpdateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTProductNotify 创建多个
+func SQLCreateManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTProductNotify) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.Nonce,
+					row.ProductID,
+					row.ItemType,
+					row.ItemID,
+					row.NotifyType,
+					row.URL,
+					row.Msg,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.CreateTime,
+					row.UpdateTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.Nonce,
+					row.ProductID,
+					row.ItemType,
+					row.ItemID,
+					row.NotifyType,
+					row.URL,
+					row.Msg,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.CreateTime,
+					row.UpdateTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product_notify (
+    id,
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product_notify (
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTProductNotify 创建多个
+func SQLCreateIgnoreManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTProductNotify) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.Nonce,
+					row.ProductID,
+					row.ItemType,
+					row.ItemID,
+					row.NotifyType,
+					row.URL,
+					row.Msg,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.CreateTime,
+					row.UpdateTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.Nonce,
+					row.ProductID,
+					row.ItemType,
+					row.ItemID,
+					row.NotifyType,
+					row.URL,
+					row.Msg,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.CreateTime,
+					row.UpdateTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product_notify (
+    id,
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product_notify (
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTProductNotify 根据id查询
+func SQLGetTProductNotify(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTProductNotify, error) {
+	var row DBTProductNotify
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+FROM
+	t_product_notify
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTProductNotifyCol 根据id查询
+func SQLGetTProductNotifyCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTProductNotify, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_product_notify
+WHERE
+	id=:id`)
+
+	var row DBTProductNotify
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTProductNotify 根据ids获取
+func SQLSelectTProductNotify(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTProductNotify, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTProductNotify
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    nonce,
+    product_id,
+    item_type,
+    item_id,
+    notify_type,
+    url,
+    msg,
+    handle_status,
+    handle_msg,
+    create_time,
+    update_time
+FROM
+	t_product_notify
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTProductNotifyCol 根据ids获取
+func SQLSelectTProductNotifyCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTProductNotify, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_product_notify
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTProductNotify
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTProductNotify 更新
+func SQLUpdateTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBTProductNotify) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_product_notify
+SET
+    nonce=:nonce,
+    product_id=:product_id,
+    item_type=:item_type,
+    item_id=:item_id,
+    notify_type=:notify_type,
+    url=:url,
+    msg=:msg,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    create_time=:create_time,
+    update_time=:update_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"nonce":         row.Nonce,
+			"product_id":    row.ProductID,
+			"item_type":     row.ItemType,
+			"item_id":       row.ItemID,
+			"notify_type":   row.NotifyType,
+			"url":           row.URL,
+			"msg":           row.Msg,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"create_time":   row.CreateTime,
+			"update_time":   row.UpdateTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTProductNotify 删除
+func SQLDeleteTProductNotify(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_product_notify
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTSend 创建
 func SQLCreateTSend(ctx context.Context, tx hcommon.DbExeAble, row *DBTSend) (int64, error) {
 	var lastID int64
@@ -3434,6 +4026,7 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
 			tx,
 			`INSERT INTO t_tx (
     id,
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3448,6 +4041,7 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
     org_time
 ) VALUES (
     :id,
+    :product_id,
     :tx_id,
     :from_address,
     :to_address,
@@ -3463,6 +4057,7 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
 )`,
 			gin.H{
 				"id":            row.ID,
+				"product_id":    row.ProductID,
 				"tx_id":         row.TxID,
 				"from_address":  row.FromAddress,
 				"to_address":    row.ToAddress,
@@ -3482,6 +4077,7 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
 			ctx,
 			tx,
 			`INSERT INTO t_tx (
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3495,6 +4091,7 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
     org_msg,
     org_time
 ) VALUES (
+    :product_id,
     :tx_id,
     :from_address,
     :to_address,
@@ -3509,6 +4106,7 @@ func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
     :org_time
 )`,
 			gin.H{
+				"product_id":    row.ProductID,
 				"tx_id":         row.TxID,
 				"from_address":  row.FromAddress,
 				"to_address":    row.ToAddress,
@@ -3540,6 +4138,7 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
 			tx,
 			`INSERT IGNORE INTO t_tx (
     id,
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3554,6 +4153,7 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
     org_time
 ) VALUES (
     :id,
+    :product_id,
     :tx_id,
     :from_address,
     :to_address,
@@ -3569,6 +4169,7 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
 )`,
 			gin.H{
 				"id":            row.ID,
+				"product_id":    row.ProductID,
 				"tx_id":         row.TxID,
 				"from_address":  row.FromAddress,
 				"to_address":    row.ToAddress,
@@ -3588,6 +4189,7 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_tx (
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3601,6 +4203,7 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
     org_msg,
     org_time
 ) VALUES (
+    :product_id,
     :tx_id,
     :from_address,
     :to_address,
@@ -3615,6 +4218,7 @@ func SQLCreateIgnoreTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (
     :org_time
 )`,
 			gin.H{
+				"product_id":    row.ProductID,
 				"tx_id":         row.TxID,
 				"from_address":  row.FromAddress,
 				"to_address":    row.ToAddress,
@@ -3648,6 +4252,7 @@ func SQLCreateManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTx) 
 				args,
 				[]interface{}{
 					row.ID,
+					row.ProductID,
 					row.TxID,
 					row.FromAddress,
 					row.ToAddress,
@@ -3668,6 +4273,7 @@ func SQLCreateManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTx) 
 			args = append(
 				args,
 				[]interface{}{
+					row.ProductID,
 					row.TxID,
 					row.FromAddress,
 					row.ToAddress,
@@ -3692,6 +4298,7 @@ func SQLCreateManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTx) 
 			tx,
 			`INSERT INTO t_tx (
     id,
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3714,6 +4321,7 @@ func SQLCreateManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTx) 
 			ctx,
 			tx,
 			`INSERT INTO t_tx (
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3750,6 +4358,7 @@ func SQLCreateIgnoreManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*D
 				args,
 				[]interface{}{
 					row.ID,
+					row.ProductID,
 					row.TxID,
 					row.FromAddress,
 					row.ToAddress,
@@ -3770,6 +4379,7 @@ func SQLCreateIgnoreManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*D
 			args = append(
 				args,
 				[]interface{}{
+					row.ProductID,
 					row.TxID,
 					row.FromAddress,
 					row.ToAddress,
@@ -3794,6 +4404,7 @@ func SQLCreateIgnoreManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*D
 			tx,
 			`INSERT IGNORE INTO t_tx (
     id,
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3816,6 +4427,7 @@ func SQLCreateIgnoreManyTTx(ctx context.Context, tx hcommon.DbExeAble, rows []*D
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_tx (
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3849,6 +4461,7 @@ func SQLGetTTx(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTx, err
 		&row,
 		`SELECT
     id,
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3920,6 +4533,7 @@ func SQLSelectTTx(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DB
 		&rows,
 		`SELECT
     id,
+    product_id,
     tx_id,
     from_address,
     to_address,
@@ -3984,6 +4598,7 @@ func SQLUpdateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64,
 		`UPDATE
 	t_tx
 SET
+    product_id=:product_id,
     tx_id=:tx_id,
     from_address=:from_address,
     to_address=:to_address,
@@ -4000,6 +4615,7 @@ WHERE
 	id=:id`,
 		gin.H{
 			"id":            row.ID,
+			"product_id":    row.ProductID,
 			"tx_id":         row.TxID,
 			"from_address":  row.FromAddress,
 			"to_address":    row.ToAddress,

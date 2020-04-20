@@ -145,6 +145,52 @@ type DBTProductNonce struct {
 	CreateTime int64  `db:"create_time" json:"create_time"`
 }
 
+// const TProductNotify
+const (
+	DBColTProductNotifyID           = "t_product_notify.id"
+	DBColTProductNotifyNonce        = "t_product_notify.nonce"
+	DBColTProductNotifyProductID    = "t_product_notify.product_id"
+	DBColTProductNotifyItemType     = "t_product_notify.item_type"
+	DBColTProductNotifyItemID       = "t_product_notify.item_id"
+	DBColTProductNotifyNotifyType   = "t_product_notify.notify_type"
+	DBColTProductNotifyURL          = "t_product_notify.url"
+	DBColTProductNotifyMsg          = "t_product_notify.msg"
+	DBColTProductNotifyHandleStatus = "t_product_notify.handle_status"
+	DBColTProductNotifyHandleMsg    = "t_product_notify.handle_msg"
+	DBColTProductNotifyCreateTime   = "t_product_notify.create_time"
+	DBColTProductNotifyUpdateTime   = "t_product_notify.update_time"
+)
+
+// DBTProductNotify t_product_notify 数据表
+/*
+   id,
+   nonce,
+   product_id,
+   item_type,
+   item_id,
+   notify_type,
+   url,
+   msg,
+   handle_status,
+   handle_msg,
+   create_time,
+   update_time
+*/
+type DBTProductNotify struct {
+	ID           int64  `db:"id" json:"id"`
+	Nonce        string `db:"nonce" json:"nonce"`
+	ProductID    int64  `db:"product_id" json:"product_id"`
+	ItemType     int64  `db:"item_type" json:"item_type"`
+	ItemID       int64  `db:"item_id" json:"item_id"`
+	NotifyType   int64  `db:"notify_type" json:"notify_type"`
+	URL          string `db:"url" json:"url"`
+	Msg          string `db:"msg" json:"msg"`
+	HandleStatus int64  `db:"handle_status" json:"handle_status"`
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
+	CreateTime   int64  `db:"create_time" json:"create_time"`
+	UpdateTime   int64  `db:"update_time" json:"update_time"`
+}
+
 // const TSend
 const (
 	DBColTSendID           = "t_send.id"
@@ -206,6 +252,7 @@ type DBTSend struct {
 // const TTx
 const (
 	DBColTTxID           = "t_tx.id"
+	DBColTTxProductID    = "t_tx.product_id"
 	DBColTTxTxID         = "t_tx.tx_id"         // 交易id
 	DBColTTxFromAddress  = "t_tx.from_address"  // 来源地址
 	DBColTTxToAddress    = "t_tx.to_address"    // 目标地址
@@ -223,6 +270,7 @@ const (
 // DBTTx t_tx 数据表
 /*
    id,
+   product_id,
    tx_id,
    from_address,
    to_address,
@@ -238,6 +286,7 @@ const (
 */
 type DBTTx struct {
 	ID           int64  `db:"id" json:"id"`
+	ProductID    int64  `db:"product_id" json:"product_id"`
 	TxID         string `db:"tx_id" json:"tx_id"`                 // 交易id
 	FromAddress  string `db:"from_address" json:"from_address"`   // 来源地址
 	ToAddress    string `db:"to_address" json:"to_address"`       // 目标地址

@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-20 14:45:17.0130
+-- Generation Time: 2020-04-20 15:10:44.6560
 -- -------------------------------------------------------------
 
 
@@ -80,6 +80,23 @@ CREATE TABLE `t_product_nonce` (
   UNIQUE KEY `c` (`c`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE `t_product_notify` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `nonce` varchar(128) NOT NULL DEFAULT '',
+  `product_id` int(11) NOT NULL,
+  `item_type` int(11) NOT NULL,
+  `item_id` int(11) NOT NULL,
+  `notify_type` int(11) NOT NULL,
+  `url` varchar(512) NOT NULL DEFAULT '',
+  `msg` varchar(4089) NOT NULL,
+  `handle_status` int(11) NOT NULL,
+  `handle_msg` varchar(512) NOT NULL,
+  `create_time` bigint(20) unsigned NOT NULL,
+  `update_time` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `product_id` (`product_id`,`item_type`,`item_id`,`notify_type`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `t_send` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `related_type` tinyint(4) NOT NULL COMMENT '关联类型 1 零钱整理 2 提币',
@@ -105,6 +122,7 @@ CREATE TABLE `t_send` (
 
 CREATE TABLE `t_tx` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` int(11) unsigned NOT NULL,
   `tx_id` varchar(128) NOT NULL DEFAULT '' COMMENT '交易id',
   `from_address` varchar(128) NOT NULL DEFAULT '' COMMENT '来源地址',
   `to_address` varchar(128) NOT NULL DEFAULT '' COMMENT '目标地址',
