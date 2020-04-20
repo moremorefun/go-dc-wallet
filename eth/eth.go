@@ -589,7 +589,10 @@ func CheckRawTxSend() {
 		app.DbCon,
 		[]string{
 			model.DBColTSendID,
+			model.DBColTSendTxID,
 			model.DBColTSendHex,
+			model.DBColTSendRelatedType,
+			model.DBColTSendRelatedID,
 		},
 		0,
 	)
@@ -597,7 +600,65 @@ func CheckRawTxSend() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
+
+	var withdrawIDs []int64
+	withdrawMap := make(map[int64]*model.DBTWithdraw)
+	for _, sendRow := range sendRows {
+		if sendRow.RelatedType == 2 {
+			// 提币
+			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
+				withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
+			}
+
+		}
+	}
+	withdrawRows, err := model.SQLSelectTWithdrawCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTWithdrawID,
+			model.DBColTWithdrawProductID,
+			model.DBColTWithdrawOutSerial,
+			model.DBColTWithdrawToAddress,
+			model.DBColTWithdrawBalanceReal,
+		},
+		withdrawIDs,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	var productIDs []int64
+	sendRowProductMap := make(map[int64]int64)
+	for _, withdrawRow := range withdrawRows {
+		withdrawMap[withdrawRow.ID] = withdrawRow
+		sendRowProductMap[withdrawRow.ID] = withdrawRow.ProductID
+		if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
+			productIDs = append(productIDs, withdrawRow.ProductID)
+		}
+	}
+	productRows, err := model.SQLSelectTProductCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTProductID,
+			model.DBColTProductAppName,
+			model.DBColTProductCbURL,
+			model.DBColTProductAppSk,
+		},
+		productIDs,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	productMap := make(map[int64]*model.DBTProduct)
+	for _, productRow := range productRows {
+		productMap[productRow.ID] = productRow
+	}
 	var txIDs []string
+	var notifyRows []*model.DBTProductNotify
+	now := time.Now().Unix()
 	for _, sendRow := range sendRows {
 		rawTxBytes, err := hex.DecodeString(sendRow.Hex)
 		if err != nil {
@@ -620,9 +681,51 @@ func CheckRawTxSend() {
 				return
 			}
 		}
+		if sendRow.RelatedType == 2 {
+			// 通知
+			withdrawRow := withdrawMap[sendRow.RelatedID]
+			productRow := productMap[withdrawRow.ProductID]
+			nonce := hcommon.GetUUIDStr()
+			reqObj := gin.H{
+				"tx_hash":     sendRow.TxID,
+				"balance":     withdrawRow.BalanceReal,
+				"app_name":    productRow.AppName,
+				"out_serial":  withdrawRow.OutSerial,
+				"address":     withdrawRow.ToAddress,
+				"symbol":      "eth",
+				"notify_type": 2,
+			}
+			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			req, err := json.Marshal(reqObj)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			notifyRows = append(notifyRows, &model.DBTProductNotify{
+				Nonce:        nonce,
+				ProductID:    withdrawRow.ProductID,
+				ItemType:     2,
+				ItemID:       withdrawRow.ID,
+				NotifyType:   2,
+				URL:          productRow.CbURL,
+				Msg:          string(req),
+				HandleStatus: 0,
+				HandleMsg:    "",
+				CreateTime:   now,
+				UpdateTime:   now,
+			})
+		}
 		txIDs = append(txIDs, strings.ToLower(tx.Hash().Hex()))
 	}
-	now := time.Now().Unix()
+	_, err = model.SQLCreateIgnoreManyTProductNotify(
+		context.Background(),
+		app.DbCon,
+		notifyRows,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
 	_, err = app.SQLUpdateTWithdrawStatusByTxIDs(
 		context.Background(),
 		app.DbCon,
@@ -695,7 +798,64 @@ func CheckRawTxConfirm() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
+	var withdrawIDs []int64
+	withdrawMap := make(map[int64]*model.DBTWithdraw)
+	for _, sendRow := range sendRows {
+		if sendRow.RelatedType == 2 {
+			// 提币
+			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
+				withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
+			}
+
+		}
+	}
+	withdrawRows, err := model.SQLSelectTWithdrawCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTWithdrawID,
+			model.DBColTWithdrawProductID,
+			model.DBColTWithdrawOutSerial,
+			model.DBColTWithdrawToAddress,
+			model.DBColTWithdrawBalanceReal,
+		},
+		withdrawIDs,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	var productIDs []int64
+	sendRowProductMap := make(map[int64]int64)
+	for _, withdrawRow := range withdrawRows {
+		withdrawMap[withdrawRow.ID] = withdrawRow
+		sendRowProductMap[withdrawRow.ID] = withdrawRow.ProductID
+		if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
+			productIDs = append(productIDs, withdrawRow.ProductID)
+		}
+	}
+	productRows, err := model.SQLSelectTProductCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTProductID,
+			model.DBColTProductAppName,
+			model.DBColTProductCbURL,
+			model.DBColTProductAppSk,
+		},
+		productIDs,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	productMap := make(map[int64]*model.DBTProduct)
+	for _, productRow := range productRows {
+		productMap[productRow.ID] = productRow
+	}
+	var notifyRows []*model.DBTProductNotify
 	now := time.Now().Unix()
+
 	var sendIDs []int64
 	for _, sendRow := range sendRows {
 		rpcTx, err := ethclient.RpcTransactionByHash(
@@ -712,8 +872,40 @@ func CheckRawTxConfirm() {
 		// 完成
 		sendIDs = append(sendIDs, sendRow.ID)
 		if sendRow.RelatedType == 2 {
+			// 通知
+			withdrawRow := withdrawMap[sendRow.RelatedID]
+			productRow := productMap[withdrawRow.ProductID]
+			nonce := hcommon.GetUUIDStr()
+			reqObj := gin.H{
+				"tx_hash":     sendRow.TxID,
+				"balance":     withdrawRow.BalanceReal,
+				"app_name":    productRow.AppName,
+				"out_serial":  withdrawRow.OutSerial,
+				"address":     withdrawRow.ToAddress,
+				"symbol":      "eth",
+				"notify_type": 3,
+			}
+			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			req, err := json.Marshal(reqObj)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			notifyRows = append(notifyRows, &model.DBTProductNotify{
+				Nonce:        nonce,
+				ProductID:    withdrawRow.ProductID,
+				ItemType:     2,
+				ItemID:       withdrawRow.ID,
+				NotifyType:   3,
+				URL:          productRow.CbURL,
+				Msg:          string(req),
+				HandleStatus: 0,
+				HandleMsg:    "",
+				CreateTime:   now,
+				UpdateTime:   now,
+			})
 			// 提币
-			_, err := app.SQLUpdateTWithdrawGenTx(
+			_, err = app.SQLUpdateTWithdrawGenTx(
 				context.Background(),
 				app.DbCon,
 				&model.DBTWithdraw{
@@ -729,6 +921,15 @@ func CheckRawTxConfirm() {
 				return
 			}
 		}
+	}
+	_, err = model.SQLCreateIgnoreManyTProductNotify(
+		context.Background(),
+		app.DbCon,
+		notifyRows,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
 	}
 	_, err = app.SQLUpdateTSendStatusByIDs(
 		context.Background(),
