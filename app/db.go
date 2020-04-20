@@ -765,3 +765,58 @@ WHERE
 	}
 	return rows, nil
 }
+
+// SQLSelectTProductNotifyColByStatusAndTime 根据ids获取
+func SQLSelectTProductNotifyColByStatusAndTime(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64, t int64) ([]*model.DBTProductNotify, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_product_notify
+WHERE
+	handle_status=:handle_status
+	AND update_time<:update_time`)
+
+	var rows []*model.DBTProductNotify
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"handle_status": status,
+			"update_time":   t,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTProductNotifyStatusByID 更新
+func SQLUpdateTProductNotifyStatusByID(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTProductNotify) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_product_notify
+SET
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    update_time=:update_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"update_time":   row.UpdateTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
