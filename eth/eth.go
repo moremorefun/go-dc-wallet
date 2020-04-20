@@ -996,3 +996,31 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 	isComment = true
 	return nil
 }
+
+func CheckTxNotify() {
+	lockKey := "CheckTxNotify"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
+}

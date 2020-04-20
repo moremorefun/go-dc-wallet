@@ -60,7 +60,7 @@ func ReleaseLock(ctx context.Context, tx hcommon.DbExeAble, k string) error {
 		tx,
 		&model.DBTAppLock{
 			K:          k,
-			V:          1,
+			V:          0,
 			CreateTime: time.Now().Unix(),
 		},
 	)
