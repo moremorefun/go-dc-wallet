@@ -1936,6 +1936,430 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTProduct 创建
+func SQLCreateTProduct(ctx context.Context, tx hcommon.DbExeAble, row *DBTProduct) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product (
+    id,
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+) VALUES (
+    :id,
+    :app_name,
+    :app_sk,
+    :cb_url,
+    :whitelist_ip
+)`,
+			gin.H{
+				"id":           row.ID,
+				"app_name":     row.AppName,
+				"app_sk":       row.AppSk,
+				"cb_url":       row.CbURL,
+				"whitelist_ip": row.WhitelistIP,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product (
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+) VALUES (
+    :app_name,
+    :app_sk,
+    :cb_url,
+    :whitelist_ip
+)`,
+			gin.H{
+				"app_name":     row.AppName,
+				"app_sk":       row.AppSk,
+				"cb_url":       row.CbURL,
+				"whitelist_ip": row.WhitelistIP,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTProduct 创建
+func SQLCreateIgnoreTProduct(ctx context.Context, tx hcommon.DbExeAble, row *DBTProduct) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product (
+    id,
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+) VALUES (
+    :id,
+    :app_name,
+    :app_sk,
+    :cb_url,
+    :whitelist_ip
+)`,
+			gin.H{
+				"id":           row.ID,
+				"app_name":     row.AppName,
+				"app_sk":       row.AppSk,
+				"cb_url":       row.CbURL,
+				"whitelist_ip": row.WhitelistIP,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product (
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+) VALUES (
+    :app_name,
+    :app_sk,
+    :cb_url,
+    :whitelist_ip
+)`,
+			gin.H{
+				"app_name":     row.AppName,
+				"app_sk":       row.AppSk,
+				"cb_url":       row.CbURL,
+				"whitelist_ip": row.WhitelistIP,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTProduct 创建多个
+func SQLCreateManyTProduct(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTProduct) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.AppName,
+					row.AppSk,
+					row.CbURL,
+					row.WhitelistIP,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.AppName,
+					row.AppSk,
+					row.CbURL,
+					row.WhitelistIP,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product (
+    id,
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_product (
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTProduct 创建多个
+func SQLCreateIgnoreManyTProduct(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTProduct) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.AppName,
+					row.AppSk,
+					row.CbURL,
+					row.WhitelistIP,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.AppName,
+					row.AppSk,
+					row.CbURL,
+					row.WhitelistIP,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product (
+    id,
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_product (
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTProduct 根据id查询
+func SQLGetTProduct(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTProduct, error) {
+	var row DBTProduct
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+FROM
+	t_product
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTProductCol 根据id查询
+func SQLGetTProductCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTProduct, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_product
+WHERE
+	id=:id`)
+
+	var row DBTProduct
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTProduct 根据ids获取
+func SQLSelectTProduct(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTProduct, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTProduct
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    app_name,
+    app_sk,
+    cb_url,
+    whitelist_ip
+FROM
+	t_product
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTProductCol 根据ids获取
+func SQLSelectTProductCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTProduct, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_product
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTProduct
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTProduct 更新
+func SQLUpdateTProduct(ctx context.Context, tx hcommon.DbExeAble, row *DBTProduct) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_product
+SET
+    app_name=:app_name,
+    app_sk=:app_sk,
+    cb_url=:cb_url,
+    whitelist_ip=:whitelist_ip
+WHERE
+	id=:id`,
+		gin.H{
+			"id":           row.ID,
+			"app_name":     row.AppName,
+			"app_sk":       row.AppSk,
+			"cb_url":       row.CbURL,
+			"whitelist_ip": row.WhitelistIP,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTProduct 删除
+func SQLDeleteTProduct(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_product
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTSend 创建
 func SQLCreateTSend(ctx context.Context, tx hcommon.DbExeAble, row *DBTSend) (int64, error) {
 	var lastID int64

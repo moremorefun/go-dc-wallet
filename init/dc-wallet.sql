@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-19 19:49:36.9340
+-- Generation Time: 2020-04-20 11:15:42.5670
 -- -------------------------------------------------------------
 
 
@@ -42,7 +42,7 @@ CREATE TABLE `t_app_config_str` (
   `v` varchar(1024) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_lock` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -52,7 +52,7 @@ CREATE TABLE `t_app_lock` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `k_2` (`k`),
   KEY `k` (`k`,`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -61,6 +61,16 @@ CREATE TABLE `t_app_status_int` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `t_product` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `app_name` varchar(128) NOT NULL DEFAULT '' COMMENT '应用名',
+  `app_sk` varchar(64) NOT NULL DEFAULT '' COMMENT '应用私钥',
+  `cb_url` varchar(512) NOT NULL COMMENT '回调地址',
+  `whitelist_ip` varchar(1024) NOT NULL DEFAULT '' COMMENT 'ip白名单',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `app_name` (`app_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_send` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,

@@ -101,6 +101,31 @@ type DBTAppStatusInt struct {
 	V  int64  `db:"v" json:"v"` // 配置键值
 }
 
+// const TProduct
+const (
+	DBColTProductID          = "t_product.id"
+	DBColTProductAppName     = "t_product.app_name"     // 应用名
+	DBColTProductAppSk       = "t_product.app_sk"       // 应用私钥
+	DBColTProductCbURL       = "t_product.cb_url"       // 回调地址
+	DBColTProductWhitelistIP = "t_product.whitelist_ip" // ip白名单
+)
+
+// DBTProduct t_product 数据表
+/*
+   id,
+   app_name,
+   app_sk,
+   cb_url,
+   whitelist_ip
+*/
+type DBTProduct struct {
+	ID          int64  `db:"id" json:"id"`
+	AppName     string `db:"app_name" json:"app_name"`         // 应用名
+	AppSk       string `db:"app_sk" json:"app_sk"`             // 应用私钥
+	CbURL       string `db:"cb_url" json:"cb_url"`             // 回调地址
+	WhitelistIP string `db:"whitelist_ip" json:"whitelist_ip"` // ip白名单
+}
+
 // const TSend
 const (
 	DBColTSendID           = "t_send.id"
