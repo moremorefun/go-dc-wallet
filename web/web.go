@@ -47,6 +47,7 @@ func productReq(c *gin.Context) {
 		req.AppName,
 	)
 	if err != nil {
+		hcommon.Log.Warnf("err: [%T] %s", err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"error":   hcommon.ErrorInternal,
 			"err_msg": hcommon.ErrorInternalMsg,
@@ -55,6 +56,7 @@ func productReq(c *gin.Context) {
 		return
 	}
 	if productRow == nil {
+		hcommon.Log.Warnf("no product of: %s", req.AppName)
 		c.JSON(http.StatusOK, gin.H{
 			"error":   hcommon.ErrorNoProduct,
 			"err_msg": hcommon.ErrorNoProductMsg,
@@ -65,6 +67,7 @@ func productReq(c *gin.Context) {
 	// 对比ip白名单
 	if len(productRow.WhitelistIP) > 0 {
 		if !strings.Contains(productRow.WhitelistIP, c.ClientIP()) {
+			hcommon.Log.Warnf("no in ip list of: %s %s", req.AppName, c.ClientIP())
 			c.JSON(http.StatusOK, gin.H{
 				"error":   hcommon.ErrorIPLimit,
 				"err_msg": hcommon.ErrorIPLimitMsg,
@@ -95,6 +98,7 @@ func productReq(c *gin.Context) {
 	oldObj := gin.H{}
 	err = json.Unmarshal(body, &oldObj)
 	if err != nil {
+		hcommon.Log.Warnf("req body error")
 		c.JSON(http.StatusOK, gin.H{
 			"error":   hcommon.ErrorInternal,
 			"err_msg": hcommon.ErrorInternalMsg,
@@ -110,6 +114,7 @@ func productReq(c *gin.Context) {
 	}
 	checkSign := hcommon.GetSign(productRow.AppSk, checkObj)
 	if checkSign == "" || checkSign != req.Sign {
+		hcommon.Log.Warnf("sign error of: %s", req.AppName)
 		c.JSON(http.StatusOK, gin.H{
 			"error":   hcommon.ErrorSignWrong,
 			"err_msg": hcommon.ErrorSignWrongMsg,
@@ -127,6 +132,7 @@ func productReq(c *gin.Context) {
 		},
 	)
 	if err != nil {
+		hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 		c.JSON(http.StatusOK, gin.H{
 			"error":   hcommon.ErrorInternal,
 			"err_msg": hcommon.ErrorInternalMsg,
@@ -135,6 +141,7 @@ func productReq(c *gin.Context) {
 		return
 	}
 	if count <= 0 {
+		hcommon.Log.Warnf("nonce repeated")
 		c.JSON(http.StatusOK, gin.H{
 			"error":   hcommon.ErrorNonceRepeat,
 			"err_msg": hcommon.ErrorNonceRepeatMsg,
