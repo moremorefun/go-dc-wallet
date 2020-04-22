@@ -1311,7 +1311,7 @@ func CheckTxNotify() {
 			ProductID:    txRow.ProductID,
 			ItemType:     1,
 			ItemID:       txRow.ID,
-			NotifyType:   0,
+			NotifyType:   1,
 			URL:          productRow.CbURL,
 			Msg:          string(req),
 			HandleStatus: 0,
@@ -1430,6 +1430,7 @@ func CheckErc20BlockSeek() {
 				model.DBColTAppConfigTokenID,
 				model.DBColTAppConfigTokenTokenAddress,
 				model.DBColTAppConfigTokenTokenDecimals,
+				model.DBColTAppConfigTokenTokenSymbol,
 			},
 		)
 		if err != nil {
