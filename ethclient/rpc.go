@@ -90,6 +90,16 @@ func RpcTransactionByHash(ctx context.Context, txHashStr string) (*types.Transac
 	return tx, nil
 }
 
+// RpcTransactionReceipt 确认交易是否打包完成
+func RpcTransactionReceipt(ctx context.Context, txHashStr string) (*types.Receipt, error) {
+	txHash := common.HexToHash(txHashStr)
+	tx, err := client.TransactionReceipt(ctx, txHash)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
 // RpcBalanceAt 获取余额
 func RpcBalanceAt(ctx context.Context, address string) (int64, error) {
 	balance, err := client.BalanceAt(ctx, common.HexToAddress(address), nil)

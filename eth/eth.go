@@ -1379,11 +1379,11 @@ func CheckErc20BlockSeek() {
 		"block_confirm_num",
 	)
 	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 		return
 	}
 	if confirmRow == nil {
-		hcommon.Log.Errorf("no config int of min_free_address")
+		hcommon.Log.Errorf("no config int of block_confirm_num")
 		return
 	}
 	// 获取状态 当前处理完成的最新的block number
@@ -1393,17 +1393,17 @@ func CheckErc20BlockSeek() {
 		"erc20_seek_num",
 	)
 	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
+		hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 		return
 	}
 	if seekRow == nil {
-		hcommon.Log.Errorf("no config int of seek_num")
+		hcommon.Log.Errorf("no config int of erc20_seek_num")
 		return
 	}
 	// rpc 获取当前最新区块数
 	rpcBlockNum, err := ethclient.RpcBlockNumber(context.Background())
 	if err != nil {
-		hcommon.Log.Warnf("RpcBlockNumber err: [%T] %s", err, err.Error())
+		hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 		return
 	}
 	startI := seekRow.V + 1
@@ -1417,13 +1417,13 @@ func CheckErc20BlockSeek() {
 		}
 		contractAbi, err := abi.JSON(strings.NewReader(EthABI))
 		if err != nil {
-			hcommon.Log.Warnf("JSON err: [%T] %s", err, err.Error())
-
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
 		}
 		// 获取所有token
-		var contractAddresses []string
-		contractMap := make(map[string]*model.DBTAppConfigToken)
-		contractRows, err := app.SQLSelectTAppConfigTokenColAll(
+		var configTokenRowAddresses []string
+		configTokenRowMap := make(map[string]*model.DBTAppConfigToken)
+		configTokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 			context.Background(),
 			app.DbCon,
 			[]string{
@@ -1433,22 +1433,22 @@ func CheckErc20BlockSeek() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Warnf("SQLSelectTAppConfigTokenColAll err: [%T] %s", err, err.Error())
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 			return
 		}
-		for _, contractRow := range contractRows {
-			contractAddresses = append(contractAddresses, contractRow.TokenAddress)
-			contractMap[contractRow.TokenAddress] = contractRow
+		for _, contractRow := range configTokenRows {
+			configTokenRowAddresses = append(configTokenRowAddresses, contractRow.TokenAddress)
+			configTokenRowMap[contractRow.TokenAddress] = contractRow
 		}
 		// 遍历获取需要查询的block信息
 		for i := startI; i < endI; i++ {
-			if len(contractAddresses) > 0 {
+			if len(configTokenRowAddresses) > 0 {
 				// rpc获取block信息
 				logs, err := ethclient.RpcFilterLogs(
 					context.Background(),
 					i,
 					i,
-					contractAddresses,
+					configTokenRowAddresses,
 					contractAbi.Events["Transfer"],
 				)
 				if err != nil {
@@ -1458,13 +1458,16 @@ func CheckErc20BlockSeek() {
 				// 接收地址列表
 				var toAddresses []string
 				// map[接收地址] => []交易信息
-				toAddressTxMap := make(map[string][]types.Log)
+				toAddressLogMap := make(map[string][]types.Log)
 				for _, log := range logs {
+					if log.Removed {
+						continue
+					}
 					toAddress := strings.ToLower(common.HexToAddress(log.Topics[2].Hex()).Hex())
 					if !hcommon.IsStringInSlice(toAddresses, toAddress) {
 						toAddresses = append(toAddresses, toAddress)
 					}
-					toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], log)
+					toAddressLogMap[toAddress] = append(toAddressLogMap[toAddress], log)
 				}
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
@@ -1477,10 +1480,9 @@ func CheckErc20BlockSeek() {
 					toAddresses,
 				)
 				if err != nil {
-					hcommon.Log.Warnf("dbAddressRows err: [%T] %s", err, err.Error())
+					hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 					return
 				}
-				// 待插入数据
 				// map[接收地址] => 产品id
 				addressProductMap := make(map[string]int64)
 				for _, dbAddressRow := range dbAddressRows {
@@ -1488,25 +1490,41 @@ func CheckErc20BlockSeek() {
 				}
 				// 时间
 				now := time.Now().Unix()
+				// 待添加数组
 				var txErc20Rows []*model.DBTTxErc20
 				// 遍历数据库中有交易的地址
 				for _, dbAddressRow := range dbAddressRows {
 					// 获取地址对应的交易列表
-					logs := toAddressTxMap[dbAddressRow.Address]
+					logs, ok := toAddressLogMap[dbAddressRow.Address]
+					if !ok {
+						hcommon.Log.Errorf("toAddressLogMap no: %s", dbAddressRow.Address)
+						return
+					}
 					for _, log := range logs {
 						var transferEvent LogTransfer
-
 						err := contractAbi.Unpack(&transferEvent, "Transfer", log.Data)
 						if err != nil {
 							hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+							return
 						}
 						transferEvent.From = strings.ToLower(common.HexToAddress(log.Topics[1].Hex()).Hex())
 						transferEvent.To = strings.ToLower(common.HexToAddress(log.Topics[2].Hex()).Hex())
 						contractAddress := strings.ToLower(log.Address.Hex())
-						contractRow, ok := contractMap[contractAddress]
+						configTokenRow, ok := configTokenRowMap[contractAddress]
 						if !ok {
-							hcommon.Log.Errorf("no contract of: %s", contractAddress)
+							hcommon.Log.Errorf("no configTokenRowMap of: %s", contractAddress)
 							return
+						}
+						rpcTxReceipt, err := ethclient.RpcTransactionReceipt(
+							context.Background(),
+							log.TxHash.Hex(),
+						)
+						if err != nil {
+							hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+							return
+						}
+						if rpcTxReceipt.Status <= 0 {
+							continue
 						}
 						rpcTx, err := ethclient.RpcTransactionByHash(
 							context.Background(),
@@ -1514,10 +1532,11 @@ func CheckErc20BlockSeek() {
 						)
 						if err != nil {
 							hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+							return
 						}
 						if strings.ToLower(rpcTx.To().Hex()) != contractAddress {
-							// 合于地址和tx的to地址不匹配
-							return
+							// 合约地址和tx的to地址不匹配
+							continue
 						}
 						// 检测input
 						input, err := contractAbi.Pack(
@@ -1531,11 +1550,12 @@ func CheckErc20BlockSeek() {
 						}
 						if hexutil.Encode(input) != hexutil.Encode(rpcTx.Data()) {
 							// input 不匹配
-							return
+							continue
 						}
-						balanceReal := decimal.NewFromInt(transferEvent.Tokens.Int64()).Div(decimal.NewFromInt(int64(math.Pow10(int(contractRow.TokenDecimals))))).String()
+						balanceReal := decimal.NewFromInt(transferEvent.Tokens.Int64()).Div(decimal.NewFromInt(int64(math.Pow10(int(configTokenRow.TokenDecimals))))).String()
+						// 放入待插入数组
 						txErc20Rows = append(txErc20Rows, &model.DBTTxErc20{
-							TokenID:      contractRow.ID,
+							TokenID:      configTokenRow.ID,
 							ProductID:    addressProductMap[transferEvent.To],
 							TxID:         log.TxHash.Hex(),
 							FromAddress:  transferEvent.From,
