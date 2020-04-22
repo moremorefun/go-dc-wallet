@@ -1412,7 +1412,7 @@ func CheckErc20BlockSeek() {
 		type LogTransfer struct {
 			From   string
 			To     string
-			Amount *big.Int
+			Tokens *big.Int
 		}
 		contractAbi, err := abi.JSON(strings.NewReader(EthABI))
 		if err != nil {
@@ -1521,7 +1521,7 @@ func CheckErc20BlockSeek() {
 						input, err := contractAbi.Pack(
 							"transfer",
 							common.HexToAddress(log.Topics[2].Hex()),
-							transferEvent.Amount,
+							transferEvent.Tokens,
 						)
 						if err != nil {
 							hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
