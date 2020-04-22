@@ -1599,3 +1599,155 @@ func CheckErc20BlockSeek() {
 		}
 	}
 }
+
+func CheckErc20TxNotify() {
+	lockKey := "CheckErc20TxNotify"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
+	txRows, err := app.SQLSelectTTxErc20ColByStatus(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTTxErc20ID,
+			model.DBColTTxErc20TokenID,
+			model.DBColTTxErc20ProductID,
+			model.DBColTTxErc20TxID,
+			model.DBColTTxErc20ToAddress,
+			model.DBColTTxErc20BalanceReal,
+		},
+		0,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	var productIDs []int64
+	var tokenIDs []int64
+	for _, txRow := range txRows {
+		if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+			productIDs = append(productIDs, txRow.ProductID)
+		}
+		if !hcommon.IsIntInSlice(tokenIDs, txRow.TokenID) {
+			tokenIDs = append(tokenIDs, txRow.TokenID)
+		}
+	}
+	productRows, err := model.SQLSelectTProductCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTProductID,
+			model.DBColTProductAppName,
+			model.DBColTProductCbURL,
+			model.DBColTProductAppSk,
+		},
+		productIDs,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	productMap := make(map[int64]*model.DBTProduct)
+	for _, productRow := range productRows {
+		productMap[productRow.ID] = productRow
+	}
+	tokenRows, err := model.SQLSelectTAppConfigTokenCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTAppConfigTokenID,
+			model.DBColTAppConfigTokenTokenSymbol,
+		},
+		tokenIDs,
+	)
+	tokenMap := make(map[int64]*model.DBTAppConfigToken)
+	for _, tokenRow := range tokenRows {
+		tokenMap[tokenRow.ID] = tokenRow
+	}
+	var notifyTxIDs []int64
+	var notifyRows []*model.DBTProductNotify
+	now := time.Now().Unix()
+	for _, txRow := range txRows {
+		productRow, ok := productMap[txRow.ProductID]
+		if !ok {
+			continue
+		}
+		tokenRow, ok := tokenMap[txRow.TokenID]
+		if !ok {
+			continue
+		}
+		nonce := hcommon.GetUUIDStr()
+		reqObj := gin.H{
+			"tx_hash":     txRow.TxID,
+			"app_name":    productRow.AppName,
+			"address":     txRow.ToAddress,
+			"balance":     txRow.BalanceReal,
+			"symbol":      tokenRow.TokenSymbol,
+			"notify_type": 1,
+		}
+		reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+		req, err := json.Marshal(reqObj)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		notifyRows = append(notifyRows, &model.DBTProductNotify{
+			Nonce:        nonce,
+			ProductID:    txRow.ProductID,
+			ItemType:     1,
+			ItemID:       txRow.ID,
+			NotifyType:   1,
+			URL:          productRow.CbURL,
+			Msg:          string(req),
+			HandleStatus: 0,
+			HandleMsg:    "",
+			CreateTime:   now,
+			UpdateTime:   now,
+		})
+		notifyTxIDs = append(notifyTxIDs, txRow.ID)
+	}
+	_, err = model.SQLCreateIgnoreManyTProductNotify(
+		context.Background(),
+		app.DbCon,
+		notifyRows,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	_, err = app.SQLUpdateTTxErc20StatusByIDs(
+		context.Background(),
+		app.DbCon,
+		notifyTxIDs,
+		model.DBTTxErc20{
+			HandleStatus: 1,
+			HandleMsg:    "notify",
+			HandleTime:   now,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+}
