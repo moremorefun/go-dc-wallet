@@ -9,6 +9,7 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
+	"math"
 	"math/big"
 	"regexp"
 	"strings"
@@ -1486,7 +1487,8 @@ func CheckErc20BlockSeek() {
 					addressProductMap[dbAddressRow.Address] = dbAddressRow.UseTag
 				}
 				// 时间
-				//now := time.Now().Unix()
+				now := time.Now().Unix()
+				var txErc20Rows []*model.DBTTxErc20
 				// 遍历数据库中有交易的地址
 				for _, dbAddressRow := range dbAddressRows {
 					// 获取地址对应的交易列表
@@ -1525,13 +1527,39 @@ func CheckErc20BlockSeek() {
 						)
 						if err != nil {
 							hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+							return
 						}
 						if hexutil.Encode(input) != hexutil.Encode(rpcTx.Data()) {
 							// input 不匹配
 							return
 						}
-						_ = contractRow
+						balanceReal := decimal.NewFromInt(transferEvent.Tokens.Int64()).Div(decimal.NewFromInt(int64(math.Pow10(int(contractRow.TokenDecimals))))).String()
+						txErc20Rows = append(txErc20Rows, &model.DBTTxErc20{
+							TokenID:      contractRow.ID,
+							ProductID:    addressProductMap[transferEvent.To],
+							TxID:         log.TxHash.Hex(),
+							FromAddress:  transferEvent.From,
+							ToAddress:    transferEvent.To,
+							Balance:      transferEvent.Tokens.Int64(),
+							BalanceReal:  balanceReal,
+							CreateTime:   now,
+							HandleStatus: 0,
+							HandleMsg:    "",
+							HandleTime:   now,
+							OrgStatus:    0,
+							OrgMsg:       "",
+							OrgTime:      0,
+						})
 					}
+				}
+				_, err = model.SQLCreateIgnoreManyTTxErc20(
+					context.Background(),
+					app.DbCon,
+					txErc20Rows,
+				)
+				if err != nil {
+					hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+					return
 				}
 			}
 			// 更新检查到的最新区块数
