@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-20 15:10:44.6560
+-- Generation Time: 2020-04-22 13:52:53.0020
 -- -------------------------------------------------------------
 
 
@@ -44,6 +44,19 @@ CREATE TABLE `t_app_config_str` (
   UNIQUE KEY `k` (`k`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE `t_app_config_token` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `token_address` varchar(128) NOT NULL DEFAULT '',
+  `token_decimals` int(11) unsigned NOT NULL,
+  `token_symbol` varchar(128) NOT NULL,
+  `cold_address` varchar(128) NOT NULL DEFAULT '',
+  `hot_address` varchar(128) NOT NULL DEFAULT '',
+  `org_min_balance` varchar(128) NOT NULL DEFAULT '0',
+  `create_time` bigint(20) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token_address` (`token_address`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `t_app_lock` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `k` varchar(64) NOT NULL DEFAULT '' COMMENT '上锁键值',
@@ -52,7 +65,7 @@ CREATE TABLE `t_app_lock` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `k_2` (`k`),
   KEY `k` (`k`,`create_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -95,7 +108,7 @@ CREATE TABLE `t_product_notify` (
   `update_time` bigint(20) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `product_id` (`product_id`,`item_type`,`item_id`,`notify_type`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_send` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,

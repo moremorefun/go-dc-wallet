@@ -60,6 +60,40 @@ type DBTAppConfigStr struct {
 	V  string `db:"v" json:"v"` // 配置键值
 }
 
+// const TAppConfigToken
+const (
+	DBColTAppConfigTokenID            = "t_app_config_token.id"
+	DBColTAppConfigTokenTokenAddress  = "t_app_config_token.token_address"
+	DBColTAppConfigTokenTokenDecimals = "t_app_config_token.token_decimals"
+	DBColTAppConfigTokenTokenSymbol   = "t_app_config_token.token_symbol"
+	DBColTAppConfigTokenColdAddress   = "t_app_config_token.cold_address"
+	DBColTAppConfigTokenHotAddress    = "t_app_config_token.hot_address"
+	DBColTAppConfigTokenOrgMinBalance = "t_app_config_token.org_min_balance"
+	DBColTAppConfigTokenCreateTime    = "t_app_config_token.create_time"
+)
+
+// DBTAppConfigToken t_app_config_token 数据表
+/*
+   id,
+   token_address,
+   token_decimals,
+   token_symbol,
+   cold_address,
+   hot_address,
+   org_min_balance,
+   create_time
+*/
+type DBTAppConfigToken struct {
+	ID            int64  `db:"id" json:"id"`
+	TokenAddress  string `db:"token_address" json:"token_address"`
+	TokenDecimals int64  `db:"token_decimals" json:"token_decimals"`
+	TokenSymbol   string `db:"token_symbol" json:"token_symbol"`
+	ColdAddress   string `db:"cold_address" json:"cold_address"`
+	HotAddress    string `db:"hot_address" json:"hot_address"`
+	OrgMinBalance string `db:"org_min_balance" json:"org_min_balance"`
+	CreateTime    int64  `db:"create_time" json:"create_time"`
+}
+
 // const TAppLock
 const (
 	DBColTAppLockID         = "t_app_lock.id"

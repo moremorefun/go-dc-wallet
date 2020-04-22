@@ -1160,6 +1160,502 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTAppConfigToken 创建
+func SQLCreateTAppConfigToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigToken) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_token (
+    id,
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+) VALUES (
+    :id,
+    :token_address,
+    :token_decimals,
+    :token_symbol,
+    :cold_address,
+    :hot_address,
+    :org_min_balance,
+    :create_time
+)`,
+			gin.H{
+				"id":              row.ID,
+				"token_address":   row.TokenAddress,
+				"token_decimals":  row.TokenDecimals,
+				"token_symbol":    row.TokenSymbol,
+				"cold_address":    row.ColdAddress,
+				"hot_address":     row.HotAddress,
+				"org_min_balance": row.OrgMinBalance,
+				"create_time":     row.CreateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_token (
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+) VALUES (
+    :token_address,
+    :token_decimals,
+    :token_symbol,
+    :cold_address,
+    :hot_address,
+    :org_min_balance,
+    :create_time
+)`,
+			gin.H{
+				"token_address":   row.TokenAddress,
+				"token_decimals":  row.TokenDecimals,
+				"token_symbol":    row.TokenSymbol,
+				"cold_address":    row.ColdAddress,
+				"hot_address":     row.HotAddress,
+				"org_min_balance": row.OrgMinBalance,
+				"create_time":     row.CreateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTAppConfigToken 创建
+func SQLCreateIgnoreTAppConfigToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigToken) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_token (
+    id,
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+) VALUES (
+    :id,
+    :token_address,
+    :token_decimals,
+    :token_symbol,
+    :cold_address,
+    :hot_address,
+    :org_min_balance,
+    :create_time
+)`,
+			gin.H{
+				"id":              row.ID,
+				"token_address":   row.TokenAddress,
+				"token_decimals":  row.TokenDecimals,
+				"token_symbol":    row.TokenSymbol,
+				"cold_address":    row.ColdAddress,
+				"hot_address":     row.HotAddress,
+				"org_min_balance": row.OrgMinBalance,
+				"create_time":     row.CreateTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_token (
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+) VALUES (
+    :token_address,
+    :token_decimals,
+    :token_symbol,
+    :cold_address,
+    :hot_address,
+    :org_min_balance,
+    :create_time
+)`,
+			gin.H{
+				"token_address":   row.TokenAddress,
+				"token_decimals":  row.TokenDecimals,
+				"token_symbol":    row.TokenSymbol,
+				"cold_address":    row.ColdAddress,
+				"hot_address":     row.HotAddress,
+				"org_min_balance": row.OrgMinBalance,
+				"create_time":     row.CreateTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTAppConfigToken 创建多个
+func SQLCreateManyTAppConfigToken(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTAppConfigToken) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.TokenAddress,
+					row.TokenDecimals,
+					row.TokenSymbol,
+					row.ColdAddress,
+					row.HotAddress,
+					row.OrgMinBalance,
+					row.CreateTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.TokenAddress,
+					row.TokenDecimals,
+					row.TokenSymbol,
+					row.ColdAddress,
+					row.HotAddress,
+					row.OrgMinBalance,
+					row.CreateTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_token (
+    id,
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_token (
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTAppConfigToken 创建多个
+func SQLCreateIgnoreManyTAppConfigToken(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTAppConfigToken) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.TokenAddress,
+					row.TokenDecimals,
+					row.TokenSymbol,
+					row.ColdAddress,
+					row.HotAddress,
+					row.OrgMinBalance,
+					row.CreateTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.TokenAddress,
+					row.TokenDecimals,
+					row.TokenSymbol,
+					row.ColdAddress,
+					row.HotAddress,
+					row.OrgMinBalance,
+					row.CreateTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_token (
+    id,
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_token (
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTAppConfigToken 根据id查询
+func SQLGetTAppConfigToken(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTAppConfigToken, error) {
+	var row DBTAppConfigToken
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+FROM
+	t_app_config_token
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTAppConfigTokenCol 根据id查询
+func SQLGetTAppConfigTokenCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTAppConfigToken, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_token
+WHERE
+	id=:id`)
+
+	var row DBTAppConfigToken
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTAppConfigToken 根据ids获取
+func SQLSelectTAppConfigToken(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTAppConfigToken, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTAppConfigToken
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    token_address,
+    token_decimals,
+    token_symbol,
+    cold_address,
+    hot_address,
+    org_min_balance,
+    create_time
+FROM
+	t_app_config_token
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTAppConfigTokenCol 根据ids获取
+func SQLSelectTAppConfigTokenCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTAppConfigToken, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_token
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTAppConfigToken
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTAppConfigToken 更新
+func SQLUpdateTAppConfigToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigToken) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_app_config_token
+SET
+    token_address=:token_address,
+    token_decimals=:token_decimals,
+    token_symbol=:token_symbol,
+    cold_address=:cold_address,
+    hot_address=:hot_address,
+    org_min_balance=:org_min_balance,
+    create_time=:create_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":              row.ID,
+			"token_address":   row.TokenAddress,
+			"token_decimals":  row.TokenDecimals,
+			"token_symbol":    row.TokenSymbol,
+			"cold_address":    row.ColdAddress,
+			"hot_address":     row.HotAddress,
+			"org_min_balance": row.OrgMinBalance,
+			"create_time":     row.CreateTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTAppConfigToken 删除
+func SQLDeleteTAppConfigToken(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_app_config_token
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTAppLock 创建
 func SQLCreateTAppLock(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppLock) (int64, error) {
 	var lastID int64
