@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/ethereum/go-ethereum/rlp"
@@ -1340,5 +1342,211 @@ func CheckTxNotify() {
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
+	}
+}
+
+func CheckErc20BlockSeek() {
+	lockKey := "Erc20CheckBlockSeek"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+
+	// 获取配置 延迟确认数
+	confirmRow, err := app.SQLGetTAppConfigIntByK(
+		context.Background(),
+		app.DbCon,
+		"block_confirm_num",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		return
+	}
+	if confirmRow == nil {
+		hcommon.Log.Errorf("no config int of min_free_address")
+		return
+	}
+	// 获取状态 当前处理完成的最新的block number
+	seekRow, err := app.SQLGetTAppStatusIntByK(
+		context.Background(),
+		app.DbCon,
+		"erc20_seek_num",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
+		return
+	}
+	if seekRow == nil {
+		hcommon.Log.Errorf("no config int of seek_num")
+		return
+	}
+	// rpc 获取当前最新区块数
+	rpcBlockNum, err := ethclient.RpcBlockNumber(context.Background())
+	if err != nil {
+		hcommon.Log.Warnf("RpcBlockNumber err: [%T] %s", err, err.Error())
+		return
+	}
+	startI := seekRow.V + 1
+	endI := rpcBlockNum - confirmRow.V
+	if startI < endI {
+		// 读取abi
+		type LogTransfer struct {
+			From   string
+			To     string
+			Amount *big.Int
+		}
+		contractAbi, err := abi.JSON(strings.NewReader(EthABI))
+		if err != nil {
+			hcommon.Log.Warnf("JSON err: [%T] %s", err, err.Error())
+
+		}
+		// 获取所有token
+		var contractAddresses []string
+		contractMap := make(map[string]*model.DBTAppConfigToken)
+		contractRows, err := app.SQLSelectTAppConfigTokenColAll(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTAppConfigTokenID,
+				model.DBColTAppConfigTokenTokenAddress,
+				model.DBColTAppConfigTokenTokenDecimals,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLSelectTAppConfigTokenColAll err: [%T] %s", err, err.Error())
+			return
+		}
+		for _, contractRow := range contractRows {
+			contractAddresses = append(contractAddresses, contractRow.TokenAddress)
+			contractMap[contractRow.TokenAddress] = contractRow
+		}
+		// 遍历获取需要查询的block信息
+		for i := startI; i < endI; i++ {
+			if len(contractAddresses) > 0 {
+				// rpc获取block信息
+				logs, err := ethclient.RpcFilterLogs(
+					context.Background(),
+					i,
+					i,
+					contractAddresses,
+					contractAbi.Events["Transfer"],
+				)
+				if err != nil {
+					hcommon.Log.Warnf("SQLSelectTAppConfigTokenColAll err: [%T] %s", err, err.Error())
+					return
+				}
+				// 接收地址列表
+				var toAddresses []string
+				// map[接收地址] => []交易信息
+				toAddressTxMap := make(map[string][]types.Log)
+				for _, log := range logs {
+					toAddress := strings.ToLower(common.HexToAddress(log.Topics[2].Hex()).Hex())
+					if !hcommon.IsStringInSlice(toAddresses, toAddress) {
+						toAddresses = append(toAddresses, toAddress)
+					}
+					toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], log)
+				}
+				// 从db中查询这些地址是否是冲币地址中的地址
+				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
+					context.Background(),
+					app.DbCon,
+					[]string{
+						model.DBColTAddressKeyAddress,
+						model.DBColTAddressKeyUseTag,
+					},
+					toAddresses,
+				)
+				if err != nil {
+					hcommon.Log.Warnf("dbAddressRows err: [%T] %s", err, err.Error())
+					return
+				}
+				// 待插入数据
+				// map[接收地址] => 产品id
+				addressProductMap := make(map[string]int64)
+				for _, dbAddressRow := range dbAddressRows {
+					addressProductMap[dbAddressRow.Address] = dbAddressRow.UseTag
+				}
+				// 时间
+				//now := time.Now().Unix()
+				// 遍历数据库中有交易的地址
+				for _, dbAddressRow := range dbAddressRows {
+					// 获取地址对应的交易列表
+					logs := toAddressTxMap[dbAddressRow.Address]
+					for _, log := range logs {
+						var transferEvent LogTransfer
+
+						err := contractAbi.Unpack(&transferEvent, "Transfer", log.Data)
+						if err != nil {
+							hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+						}
+						transferEvent.From = strings.ToLower(common.HexToAddress(log.Topics[1].Hex()).Hex())
+						transferEvent.To = strings.ToLower(common.HexToAddress(log.Topics[2].Hex()).Hex())
+						contractAddress := strings.ToLower(log.Address.Hex())
+						contractRow, ok := contractMap[contractAddress]
+						if !ok {
+							hcommon.Log.Errorf("no contract of: %s", contractAddress)
+							return
+						}
+						rpcTx, err := ethclient.RpcTransactionByHash(
+							context.Background(),
+							log.TxHash.Hex(),
+						)
+						if err != nil {
+							hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+						}
+						if strings.ToLower(rpcTx.To().Hex()) != contractAddress {
+							// 合于地址和tx的to地址不匹配
+							return
+						}
+						// 检测input
+						input, err := contractAbi.Pack(
+							"transfer",
+							common.HexToAddress(log.Topics[2].Hex()),
+							transferEvent.Amount,
+						)
+						if err != nil {
+							hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+						}
+						if hexutil.Encode(input) != hexutil.Encode(rpcTx.Data()) {
+							// input 不匹配
+							return
+						}
+						_ = contractRow
+					}
+				}
+			}
+			// 更新检查到的最新区块数
+			_, err = app.SQLUpdateTAppStatusIntByK(
+				context.Background(),
+				app.DbCon,
+				&model.DBTAppStatusInt{
+					K: "erc20_seek_num",
+					V: i,
+				},
+			)
+			if err != nil {
+				hcommon.Log.Warnf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
+				return
+			}
+		}
 	}
 }

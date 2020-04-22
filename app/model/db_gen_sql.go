@@ -5152,6 +5152,670 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTTxErc20 创建
+func SQLCreateTTxErc20(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxErc20) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_erc20 (
+    id,
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+) VALUES (
+    :id,
+    :token_id,
+    :product_id,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :balance,
+    :balance_real,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time,
+    :org_status,
+    :org_msg,
+    :org_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"token_id":      row.TokenID,
+				"product_id":    row.ProductID,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"balance":       row.Balance,
+				"balance_real":  row.BalanceReal,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_time":      row.OrgTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_erc20 (
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+) VALUES (
+    :token_id,
+    :product_id,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :balance,
+    :balance_real,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time,
+    :org_status,
+    :org_msg,
+    :org_time
+)`,
+			gin.H{
+				"token_id":      row.TokenID,
+				"product_id":    row.ProductID,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"balance":       row.Balance,
+				"balance_real":  row.BalanceReal,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_time":      row.OrgTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTTxErc20 创建
+func SQLCreateIgnoreTTxErc20(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxErc20) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_erc20 (
+    id,
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+) VALUES (
+    :id,
+    :token_id,
+    :product_id,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :balance,
+    :balance_real,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time,
+    :org_status,
+    :org_msg,
+    :org_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"token_id":      row.TokenID,
+				"product_id":    row.ProductID,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"balance":       row.Balance,
+				"balance_real":  row.BalanceReal,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_time":      row.OrgTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_erc20 (
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+) VALUES (
+    :token_id,
+    :product_id,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :balance,
+    :balance_real,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time,
+    :org_status,
+    :org_msg,
+    :org_time
+)`,
+			gin.H{
+				"token_id":      row.TokenID,
+				"product_id":    row.ProductID,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"balance":       row.Balance,
+				"balance_real":  row.BalanceReal,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_time":      row.OrgTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTTxErc20 创建多个
+func SQLCreateManyTTxErc20(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxErc20) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.TokenID,
+					row.ProductID,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Balance,
+					row.BalanceReal,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.TokenID,
+					row.ProductID,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Balance,
+					row.BalanceReal,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_erc20 (
+    id,
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_erc20 (
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTTxErc20 创建多个
+func SQLCreateIgnoreManyTTxErc20(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxErc20) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.TokenID,
+					row.ProductID,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Balance,
+					row.BalanceReal,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.TokenID,
+					row.ProductID,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Balance,
+					row.BalanceReal,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_erc20 (
+    id,
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_erc20 (
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTTxErc20 根据id查询
+func SQLGetTTxErc20(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTxErc20, error) {
+	var row DBTTxErc20
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+FROM
+	t_tx_erc20
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTTxErc20Col 根据id查询
+func SQLGetTTxErc20Col(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTTxErc20, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_erc20
+WHERE
+	id=:id`)
+
+	var row DBTTxErc20
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTTxErc20 根据ids获取
+func SQLSelectTTxErc20(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTTxErc20, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTTxErc20
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    token_id,
+    product_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time,
+    org_status,
+    org_msg,
+    org_time
+FROM
+	t_tx_erc20
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTTxErc20Col 根据ids获取
+func SQLSelectTTxErc20Col(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTTxErc20, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_erc20
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTTxErc20
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTTxErc20 更新
+func SQLUpdateTTxErc20(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxErc20) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_erc20
+SET
+    token_id=:token_id,
+    product_id=:product_id,
+    tx_id=:tx_id,
+    from_address=:from_address,
+    to_address=:to_address,
+    balance=:balance,
+    balance_real=:balance_real,
+    create_time=:create_time,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time,
+    org_status=:org_status,
+    org_msg=:org_msg,
+    org_time=:org_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"token_id":      row.TokenID,
+			"product_id":    row.ProductID,
+			"tx_id":         row.TxID,
+			"from_address":  row.FromAddress,
+			"to_address":    row.ToAddress,
+			"balance":       row.Balance,
+			"balance_real":  row.BalanceReal,
+			"create_time":   row.CreateTime,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+			"org_status":    row.OrgStatus,
+			"org_msg":       row.OrgMsg,
+			"org_time":      row.OrgTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTTxErc20 删除
+func SQLDeleteTTxErc20(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_tx_erc20
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTWithdraw 创建
 func SQLCreateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithdraw) (int64, error) {
 	var lastID int64

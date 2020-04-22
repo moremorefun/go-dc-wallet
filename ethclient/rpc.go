@@ -5,6 +5,10 @@ import (
 	"go-dc-wallet/hcommon"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+
+	"github.com/ethereum/go-ethereum"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -93,4 +97,25 @@ func RpcBalanceAt(ctx context.Context, address string) (int64, error) {
 		return 0, err
 	}
 	return balance.Int64(), nil
+}
+
+// RpcFilterLogs 获取日志
+func RpcFilterLogs(ctx context.Context, startBlock int64, endBlock int64, contractAddresses []string, event abi.Event) ([]types.Log, error) {
+	var warpAddresses []common.Address
+	for _, contractAddress := range contractAddresses {
+		warpAddresses = append(warpAddresses, common.HexToAddress(contractAddress))
+	}
+	query := ethereum.FilterQuery{
+		FromBlock: big.NewInt(startBlock),
+		ToBlock:   big.NewInt(endBlock),
+		Addresses: warpAddresses,
+		Topics: [][]common.Hash{
+			{event.ID()},
+		},
+	}
+	logs, err := client.FilterLogs(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	return logs, nil
 }

@@ -335,6 +335,61 @@ type DBTTx struct {
 	OrgTime      int64  `db:"org_time" json:"org_time"`           // 零钱整理时间
 }
 
+// const TTxErc20
+const (
+	DBColTTxErc20ID           = "t_tx_erc20.id"
+	DBColTTxErc20TokenID      = "t_tx_erc20.token_id"
+	DBColTTxErc20ProductID    = "t_tx_erc20.product_id"
+	DBColTTxErc20TxID         = "t_tx_erc20.tx_id"         // 交易id
+	DBColTTxErc20FromAddress  = "t_tx_erc20.from_address"  // 来源地址
+	DBColTTxErc20ToAddress    = "t_tx_erc20.to_address"    // 目标地址
+	DBColTTxErc20Balance      = "t_tx_erc20.balance"       // 到账金额Wei
+	DBColTTxErc20BalanceReal  = "t_tx_erc20.balance_real"  // 到账金额Ether
+	DBColTTxErc20CreateTime   = "t_tx_erc20.create_time"   // 创建时间戳
+	DBColTTxErc20HandleStatus = "t_tx_erc20.handle_status" // 处理状态
+	DBColTTxErc20HandleMsg    = "t_tx_erc20.handle_msg"    // 处理消息
+	DBColTTxErc20HandleTime   = "t_tx_erc20.handle_time"   // 处理时间戳
+	DBColTTxErc20OrgStatus    = "t_tx_erc20.org_status"    // 零钱整理状态
+	DBColTTxErc20OrgMsg       = "t_tx_erc20.org_msg"       // 零钱整理消息
+	DBColTTxErc20OrgTime      = "t_tx_erc20.org_time"      // 零钱整理时间
+)
+
+// DBTTxErc20 t_tx_erc20 数据表
+/*
+   id,
+   token_id,
+   product_id,
+   tx_id,
+   from_address,
+   to_address,
+   balance,
+   balance_real,
+   create_time,
+   handle_status,
+   handle_msg,
+   handle_time,
+   org_status,
+   org_msg,
+   org_time
+*/
+type DBTTxErc20 struct {
+	ID           int64  `db:"id" json:"id"`
+	TokenID      int64  `db:"token_id" json:"token_id"`
+	ProductID    int64  `db:"product_id" json:"product_id"`
+	TxID         string `db:"tx_id" json:"tx_id"`                 // 交易id
+	FromAddress  string `db:"from_address" json:"from_address"`   // 来源地址
+	ToAddress    string `db:"to_address" json:"to_address"`       // 目标地址
+	Balance      int64  `db:"balance" json:"balance"`             // 到账金额Wei
+	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 到账金额Ether
+	CreateTime   int64  `db:"create_time" json:"create_time"`     // 创建时间戳
+	HandleStatus int64  `db:"handle_status" json:"handle_status"` // 处理状态
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`       // 处理消息
+	HandleTime   int64  `db:"handle_time" json:"handle_time"`     // 处理时间戳
+	OrgStatus    int64  `db:"org_status" json:"org_status"`       // 零钱整理状态
+	OrgMsg       string `db:"org_msg" json:"org_msg"`             // 零钱整理消息
+	OrgTime      int64  `db:"org_time" json:"org_time"`           // 零钱整理时间
+}
+
 // const TWithdraw
 const (
 	DBColTWithdrawID           = "t_withdraw.id"

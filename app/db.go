@@ -820,3 +820,26 @@ WHERE
 	}
 	return count, nil
 }
+
+// SQLSelectTAppConfigTokenColAll 根据ids获取
+func SQLSelectTAppConfigTokenColAll(ctx context.Context, tx hcommon.DbExeAble, cols []string) ([]*model.DBTAppConfigToken, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_token`)
+
+	var rows []*model.DBTAppConfigToken
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
