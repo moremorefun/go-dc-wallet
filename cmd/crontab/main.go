@@ -60,6 +60,16 @@ func main() {
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
+	// 检测 erc20 冲币
+	_, err = c.AddFunc("@every 5s", eth.CheckErc20BlockSeek)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 erc20 通知到账
+	_, err = c.AddFunc("@every 5s", eth.CheckErc20TxNotify)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
 
 	c.Start()
 	select {}
