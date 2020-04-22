@@ -221,7 +221,7 @@ func CheckBlockSeek() {
 			var toAddresses []string
 			// map[接收地址] => []交易信息
 			toAddressTxMap := make(map[string][]*types.Transaction)
-
+			// 遍历block中的tx
 			for _, rpcTx := range rpcBlock.Transactions() {
 				// 转账数额大于0 and 不是创建合约交易
 				if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
