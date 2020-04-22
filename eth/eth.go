@@ -211,16 +211,19 @@ func CheckBlockSeek() {
 		}
 		// 遍历获取需要查询的block信息
 		for i := startI; i < endI; i++ {
+			// rpc获取block信息
 			rpcBlock, err := ethclient.RpcBlockByNum(context.Background(), i)
 			if err != nil {
 				hcommon.Log.Warnf("EthRpcBlockByNum err: [%T] %s", err, err.Error())
 				return
 			}
-			// 将需要处理的数据存入字典和数组
-			txMap := make(map[string][]*types.Transaction)
+			// 接收地址列表
 			var toAddresses []string
+			// map[接收地址] => []交易信息
+			toAddressTxMap := make(map[string][]*types.Transaction)
+
 			for _, rpcTx := range rpcBlock.Transactions() {
-				// 转账数额大于0
+				// 转账数额大于0 and 不是创建合约交易
 				if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
 					msg, err := rpcTx.AsMessage(types.NewEIP155Signer(rpcTx.ChainId()))
 					if err != nil {
@@ -231,7 +234,7 @@ func CheckBlockSeek() {
 						continue
 					}
 					toAddress := strings.ToLower(rpcTx.To().Hex())
-					txMap[toAddress] = append(txMap[toAddress], rpcTx)
+					toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], rpcTx)
 					toAddresses = append(toAddresses, toAddress)
 				}
 			}
@@ -240,8 +243,8 @@ func CheckBlockSeek() {
 				context.Background(),
 				app.DbCon,
 				[]string{
-					model.DBColTAddressKeyUseTag,
 					model.DBColTAddressKeyAddress,
+					model.DBColTAddressKeyUseTag,
 				},
 				toAddresses,
 			)
@@ -249,19 +252,24 @@ func CheckBlockSeek() {
 				hcommon.Log.Warnf("dbAddressRows err: [%T] %s", err, err.Error())
 				return
 			}
+			// 待插入数据
 			var dbTxRows []*model.DBTTx
+			// map[接收地址] => 产品id
 			addressProductMap := make(map[string]int64)
 			for _, dbAddressRow := range dbAddressRows {
 				addressProductMap[dbAddressRow.Address] = dbAddressRow.UseTag
 			}
+			// 时间
+			now := time.Now().Unix()
+			// 遍历数据库中有交易的地址
 			for _, dbAddressRow := range dbAddressRows {
-				txes := txMap[dbAddressRow.Address]
+				// 获取地址对应的交易列表
+				txes := toAddressTxMap[dbAddressRow.Address]
 				for _, tx := range txes {
 					msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()))
 					if err != nil {
 						hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
 					}
-					now := time.Now().Unix()
 					toAddress := strings.ToLower(tx.To().Hex())
 					balanceReal := decimal.NewFromInt(tx.Value().Int64()).Div(decimal.NewFromInt(1e18))
 					dbTxRows = append(dbTxRows, &model.DBTTx{
@@ -278,6 +286,7 @@ func CheckBlockSeek() {
 					})
 				}
 			}
+			// 插入交易数据
 			_, err = model.SQLCreateIgnoreManyTTx(
 				context.Background(),
 				app.DbCon,
