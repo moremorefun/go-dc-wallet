@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
@@ -14,6 +15,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
@@ -1419,7 +1422,7 @@ func CheckErc20BlockSeek() {
 			To     string
 			Tokens *big.Int
 		}
-		contractAbi, err := abi.JSON(strings.NewReader(EthABI))
+		contractAbi, err := abi.JSON(strings.NewReader(ethclient.EthABI))
 		if err != nil {
 			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 			return
@@ -1781,4 +1784,286 @@ func CheckErc20TxOrg() {
 			return
 		}
 	}()
+
+	txRows, err := app.SQLSelectTTxErc20ColByOrg(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTTxErc20ID,
+			model.DBColTTxErc20TokenID,
+			model.DBColTTxErc20ProductID,
+			model.DBColTTxErc20ToAddress,
+			model.DBColTTxErc20Balance,
+		},
+		[]int64{app.TxOrgStatusInit, app.TxOrgStatusFeeConfirm},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	if len(txRows) <= 0 {
+		return
+	}
+	addressEthBalanceMap := make(map[string]int64)
+	txMap := make(map[int64]*model.DBTTxErc20)
+
+	type StOrgInfo struct {
+		TxIDs        []int64
+		ToAddress    string
+		TokenID      int64
+		TokenBalance int64
+	}
+	orgMap := make(map[string]*StOrgInfo)
+
+	var tokenIDs []int64
+	var productIDs []int64
+	var toAddresses []string
+	tokenMap := make(map[int64]*model.DBTAppConfigToken)
+	productMap := make(map[int64]*model.DBTProduct)
+	addressMap := make(map[string]*model.DBTAddressKey)
+
+	for _, txRow := range txRows {
+		// 读取eth余额
+		_, ok := addressEthBalanceMap[txRow.ToAddress]
+		if !ok {
+			balance, err := ethclient.RpcBalanceAt(
+				context.Background(),
+				txRow.ToAddress,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			addressEthBalanceMap[txRow.ToAddress] = balance
+		}
+
+		// 转换为map
+		txMap[txRow.ID] = txRow
+		// 整理信息
+		orgKey := fmt.Sprintf("%s-%d", txRow.ToAddress, txRow.TokenID)
+		orgInfo, ok := orgMap[orgKey]
+		if !ok {
+			orgInfo = &StOrgInfo{
+				TokenID:   txRow.TokenID,
+				ToAddress: txRow.ToAddress,
+			}
+			orgMap[orgKey] = orgInfo
+		}
+		orgInfo.TxIDs = append(orgInfo.TxIDs, txRow.TokenID)
+		orgInfo.TokenBalance += txRow.Balance
+
+		// 待查询id
+		if hcommon.IsIntInSlice(tokenIDs, txRow.TokenID) {
+			tokenIDs = append(tokenIDs, txRow.TokenID)
+		}
+		if hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+			productIDs = append(productIDs, txRow.ProductID)
+		}
+		if hcommon.IsStringInSlice(toAddresses, txRow.ToAddress) {
+			toAddresses = append(toAddresses, txRow.ToAddress)
+		}
+	}
+	tokenRows, err := model.SQLSelectTAppConfigTokenCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTAppConfigTokenID,
+			model.DBColTAppConfigTokenTokenAddress,
+			model.DBColTAppConfigTokenTokenDecimals,
+			model.DBColTAppConfigTokenTokenSymbol,
+			model.DBColTAppConfigTokenColdAddress,
+			model.DBColTAppConfigTokenOrgMinBalance,
+		},
+		tokenIDs,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	for _, tokenRow := range tokenRows {
+		tokenMap[tokenRow.ID] = tokenRow
+	}
+	productRows, err := model.SQLSelectTProductCol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTProductID,
+		},
+		productIDs,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	for _, productRow := range productRows {
+		productMap[productRow.ID] = productRow
+	}
+	addressRows, err := app.SQLSelectTAddressKeyColByAddress(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTAddressKeyAddress,
+			model.DBColTAddressKeyPwd,
+		},
+		toAddresses,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	for _, addressRow := range addressRows {
+		addressMap[addressRow.Address] = addressRow
+	}
+
+	// 计算转账token所需的手续费
+	erc20GasRow, err := app.SQLGetTAppConfigIntByK(
+		context.Background(),
+		app.DbCon,
+		"erc20_gas_use",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+		return
+	}
+	if erc20GasRow == nil {
+		hcommon.Log.Errorf("no config int of erc20_gas_use")
+		return
+	}
+	gasPriceRow, err := app.SQLGetTAppStatusIntByK(
+		context.Background(),
+		app.DbCon,
+		"to_cold_gap_price",
+	)
+	if err != nil {
+		hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
+		return
+	}
+	if gasPriceRow == nil {
+		hcommon.Log.Errorf("no config int of to_cold_gap_price")
+		return
+	}
+	chainID, err := ethclient.RpcNetworkID(context.Background())
+	if err != nil {
+		hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+		return
+	}
+	erc20Fee := erc20GasRow.V * gasPriceRow.V
+	needEthFeeMap := make(map[string]*StOrgInfo)
+	// 待插入数据
+	var sendRows []*model.DBTSend
+	for k, orgInfo := range orgMap {
+		toAddress := orgInfo.ToAddress
+		addressEthBalanceMap[toAddress] -= erc20Fee
+		if addressEthBalanceMap[toAddress] < 0 {
+			// eth手续费不足
+			// 处理添加手续费
+			needEthFeeMap[k] = orgInfo
+			continue
+		}
+		tokenRow, ok := tokenMap[orgInfo.TokenID]
+		if !ok {
+			hcommon.Log.Errorf("no tokenMap: %d", orgInfo.TokenID)
+		}
+		// 处理token转账
+		addressRow, ok := addressMap[toAddress]
+		if !ok {
+			hcommon.Log.Errorf("addressMap no: %s", toAddress)
+			return
+		}
+		key := hcommon.AesDecrypt(addressRow.Pwd, app.Cfg.AESKey)
+		if len(key) == 0 {
+			hcommon.Log.Errorf("error key of: %s", toAddress)
+			return
+		}
+		if strings.HasPrefix(key, "0x") {
+			key = key[2:]
+		}
+		privateKey, err := crypto.HexToECDSA(key)
+		if err != nil {
+			hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
+			return
+		}
+		// 获取nonce值
+		nonce, err := GetNonce(app.DbCon, toAddress)
+		if err != nil {
+			hcommon.Log.Warnf("GetNonce err: [%T] %s", err, err.Error())
+			return
+		}
+		rpcTx, err := ethclient.RpcGenTokenTransfer(
+			context.Background(),
+			tokenRow.TokenAddress,
+			&bind.TransactOpts{
+				Nonce:    big.NewInt(nonce),
+				GasPrice: big.NewInt(gasPriceRow.V),
+				GasLimit: uint64(erc20GasRow.V),
+			},
+			tokenRow.ColdAddress,
+			orgInfo.TokenBalance,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
+		}
+		signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
+		if err != nil {
+			hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+			return
+		}
+		ts := types.Transactions{signedTx}
+		rawTxBytes := ts.GetRlp(0)
+		rawTxHex := hex.EncodeToString(rawTxBytes)
+		txHash := strings.ToLower(signedTx.Hash().Hex())
+		// 创建存入数据
+		now := time.Now().Unix()
+		balanceReal := decimal.NewFromInt(orgInfo.TokenBalance).Div(decimal.NewFromInt(int64(math.Pow10(int(tokenRow.TokenDecimals))))).String()
+		for rowIndex, txID := range orgInfo.TxIDs {
+			if rowIndex == 0 {
+				sendRows = append(sendRows, &model.DBTSend{
+					RelatedType:  app.SendRelationTypeTxErc20,
+					RelatedID:    txID,
+					TokenID:      orgInfo.TokenID,
+					TxID:         txHash,
+					FromAddress:  toAddress,
+					ToAddress:    tokenRow.ColdAddress,
+					Balance:      orgInfo.TokenBalance,
+					BalanceReal:  balanceReal,
+					Gas:          erc20GasRow.V,
+					GasPrice:     gasPriceRow.V,
+					Nonce:        nonce,
+					Hex:          rawTxHex,
+					CreateTime:   now,
+					HandleStatus: app.SendStatusInit,
+					HandleMsg:    "",
+					HandleTime:   now,
+				})
+			} else {
+				sendRows = append(sendRows, &model.DBTSend{
+					RelatedType:  app.SendRelationTypeTxErc20,
+					RelatedID:    txID,
+					TokenID:      orgInfo.TokenID,
+					TxID:         txHash,
+					FromAddress:  toAddress,
+					ToAddress:    tokenRow.ColdAddress,
+					Balance:      0,
+					BalanceReal:  "",
+					Gas:          0,
+					GasPrice:     0,
+					Nonce:        -1,
+					Hex:          "",
+					CreateTime:   now,
+					HandleStatus: app.SendStatusInit,
+					HandleMsg:    "",
+					HandleTime:   now,
+				})
+			}
+		}
+	}
+	// 生成eth转账
+	if len(needEthFeeMap) > 0 {
+		for k, orgInfo := range needEthFeeMap {
+			_ = k
+			_ = orgInfo
+		}
+	}
+
 }

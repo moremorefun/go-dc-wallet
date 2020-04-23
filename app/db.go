@@ -899,3 +899,30 @@ WHERE
 	}
 	return rows, nil
 }
+
+// SQLSelectTTxErc20ColByOrg 获取未整理交易
+func SQLSelectTTxErc20ColByOrg(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatuses []int64) ([]*model.DBTTxErc20, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_erc20
+WHERE
+	org_status IN (:org_status)`)
+
+	var rows []*model.DBTTxErc20
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"org_status": orgStatuses,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}

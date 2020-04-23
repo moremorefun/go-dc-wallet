@@ -5,6 +5,8 @@ import (
 	"go-dc-wallet/hcommon"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
 	"github.com/ethereum/go-ethereum"
@@ -128,4 +130,18 @@ func RpcFilterLogs(ctx context.Context, startBlock int64, endBlock int64, contra
 		return nil, err
 	}
 	return logs, nil
+}
+
+// RpcGenTokenTransfer 生成token转账交易
+func RpcGenTokenTransfer(ctx context.Context, tokenAddress string, opts *bind.TransactOpts, to string, balance int64) (*types.Transaction, error) {
+	address := common.HexToAddress(tokenAddress)
+	instance, err := NewEth(address, client)
+	if err != nil {
+		return nil, err
+	}
+	tx, err := instance.Transfer(opts, common.HexToAddress(to), big.NewInt(balance))
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
 }
