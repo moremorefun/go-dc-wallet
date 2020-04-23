@@ -26,9 +26,10 @@ const (
 
 // 发送类型
 const (
-	SendRelationTypeTx       = 1
-	SendRelationTypeWithdraw = 2
-	SendRelationTypeTxErc20  = 3
+	SendRelationTypeTx         = 1
+	SendRelationTypeWithdraw   = 2
+	SendRelationTypeTxErc20    = 3
+	SendRelationTypeTxErc20Fee = 4
 )
 
 // 通知状态

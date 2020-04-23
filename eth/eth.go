@@ -2069,10 +2069,203 @@ func CheckErc20TxOrg() {
 	}
 	// 生成eth转账
 	if len(needEthFeeMap) > 0 {
-		for k, orgInfo := range needEthFeeMap {
-			_ = k
-			_ = orgInfo
+		// 获取热钱包地址
+		feeRow, err := app.SQLGetTAppConfigStrByK(
+			context.Background(),
+			app.DbCon,
+			"fee_wallet_address",
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+			return
+		}
+		if feeRow == nil {
+			hcommon.Log.Errorf("no config int of fee_wallet_address")
+			return
+		}
+		re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+		if !re.MatchString(feeRow.V) {
+			hcommon.Log.Errorf("config int fee_wallet_address err: %s", feeRow.V)
+			return
+		}
+		hotAddress := common.HexToAddress(feeRow.V)
+		hcommon.Log.Debugf("hotAddress: %s", hotAddress)
+		// 获取私钥
+		keyRow, err := app.SQLGetTAddressKeyColByAddress(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTAddressKeyPwd,
+			},
+			feeRow.V,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLGetTAddressKeyColByAddress err: [%T] %s", err, err.Error())
+			return
+		}
+		if keyRow == nil {
+			hcommon.Log.Errorf("no key of: %s", feeRow.V)
+			return
+		}
+		key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+		if len(key) == 0 {
+			hcommon.Log.Errorf("error key of: %s", feeRow.V)
+			return
+		}
+		if strings.HasPrefix(key, "0x") {
+			key = key[2:]
+		}
+		privateKey, err := crypto.HexToECDSA(key)
+		if err != nil {
+			hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
+			return
+		}
+		hcommon.Log.Debugf("privateKey: %v", privateKey)
+		feeAddressBalance, err := ethclient.RpcBalanceAt(
+			context.Background(),
+			feeRow.V,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
+			return
+		}
+		pendingBalance, err := app.SQLGetTSendPendingBalance(
+			context.Background(),
+			app.DbCon,
+			feeRow.V,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLGetTSendPendingBalance err: [%T] %s", err, err.Error())
+			return
+		}
+		feeAddressBalance -= pendingBalance
+		// 获取gap price
+		gasRow, err := app.SQLGetTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			"to_cold_gap_price",
+		)
+		if err != nil {
+			hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
+			return
+		}
+		if gasRow == nil {
+			hcommon.Log.Errorf("no config int of to_cold_gap_price")
+			return
+		}
+		gasPrice := gasRow.V
+		gasLimit := int64(21000)
+		ethFee := gasLimit * gasPrice
+		chainID, err := ethclient.RpcNetworkID(context.Background())
+		if err != nil {
+			hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+			return
+		}
+		tokenFee := erc20GasRow.V * gasPrice
+		for _, orgInfo := range needEthFeeMap {
+			feeAddressBalance -= ethFee + tokenFee
+			if feeAddressBalance < 0 {
+				hcommon.Log.Errorf("eth fee balance limit")
+				return
+			}
+			// nonce
+			nonce, err := GetNonce(
+				app.DbCon,
+				feeRow.V,
+			)
+			if err != nil {
+				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+				return
+			}
+			// 创建交易
+			var data []byte
+			tx := types.NewTransaction(
+				uint64(nonce),
+				common.HexToAddress(orgInfo.ToAddress),
+				big.NewInt(tokenFee),
+				uint64(gasLimit),
+				big.NewInt(gasPrice),
+				data,
+			)
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
+			if err != nil {
+				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+				return
+			}
+			ts := types.Transactions{signedTx}
+			rawTxBytes := ts.GetRlp(0)
+			rawTxHex := hex.EncodeToString(rawTxBytes)
+			txHash := strings.ToLower(signedTx.Hash().Hex())
+			now := time.Now().Unix()
+			balanceReal := decimal.NewFromInt(tokenFee).Div(decimal.NewFromInt(int64(math.Pow10(18)))).String()
+			// 待插入数据
+			var sendRows []*model.DBTSend
+			var sendTxIDs []int64
+			for rowIndex, txID := range orgInfo.TxIDs {
+				if rowIndex == 0 {
+					sendRows = append(sendRows, &model.DBTSend{
+						RelatedType:  app.SendRelationTypeTxErc20Fee,
+						RelatedID:    txID,
+						TokenID:      0,
+						TxID:         txHash,
+						FromAddress:  feeRow.V,
+						ToAddress:    orgInfo.ToAddress,
+						Balance:      feeAddressBalance,
+						BalanceReal:  balanceReal,
+						Gas:          gasLimit,
+						GasPrice:     gasPriceRow.V,
+						Nonce:        nonce,
+						Hex:          rawTxHex,
+						CreateTime:   now,
+						HandleStatus: app.SendStatusInit,
+						HandleMsg:    "",
+						HandleTime:   now,
+					})
+				} else {
+					sendRows = append(sendRows, &model.DBTSend{
+						RelatedType:  app.SendRelationTypeTxErc20Fee,
+						RelatedID:    txID,
+						TokenID:      0,
+						TxID:         txHash,
+						FromAddress:  feeRow.V,
+						ToAddress:    orgInfo.ToAddress,
+						Balance:      0,
+						BalanceReal:  "",
+						Gas:          0,
+						GasPrice:     0,
+						Nonce:        -1,
+						Hex:          "",
+						CreateTime:   now,
+						HandleStatus: app.SendStatusInit,
+						HandleMsg:    "",
+						HandleTime:   now,
+					})
+				}
+				sendTxIDs = append(sendTxIDs, txID)
+			}
+			_, err = model.SQLCreateIgnoreManyTSend(
+				context.Background(),
+				app.DbCon,
+				sendRows,
+			)
+			if err != nil {
+				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+				return
+			}
+			_, err = app.SQLUpdateTTxErc20OrgStatusByAddresses(
+				context.Background(),
+				app.DbCon,
+				sendTxIDs,
+				model.DBTTxErc20{
+					OrgStatus: app.TxOrgStatusFeeHex,
+					OrgMsg:    "fee hex",
+					OrgTime:   now,
+				},
+			)
+			if err != nil {
+				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+				return
+			}
 		}
 	}
-
 }
