@@ -50,7 +50,7 @@ func CheckDoNotify() {
 			model.DBColTProductNotifyURL,
 			model.DBColTProductNotifyMsg,
 		},
-		0,
+		NotifyStatusInit,
 		time.Now().Unix(),
 	)
 	if err != nil {
@@ -66,7 +66,7 @@ func CheckDoNotify() {
 			model.DBColTProductNotifyURL,
 			model.DBColTProductNotifyMsg,
 		},
-		1,
+		NotifyStatusFail,
 		time.Now().Add(-time.Minute*10).Unix(),
 	)
 	if err != nil {
@@ -84,7 +84,7 @@ func CheckDoNotify() {
 				DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
-					HandleStatus: 1,
+					HandleStatus: NotifyStatusFail,
 					HandleMsg:    errs[0].Error(),
 					UpdateTime:   time.Now().Unix(),
 				},
@@ -102,7 +102,7 @@ func CheckDoNotify() {
 				DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
-					HandleStatus: 1,
+					HandleStatus: NotifyStatusFail,
 					HandleMsg:    fmt.Sprintf("http status: %d", gresp.StatusCode),
 					UpdateTime:   time.Now().Unix(),
 				},
@@ -121,7 +121,7 @@ func CheckDoNotify() {
 				DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
-					HandleStatus: 1,
+					HandleStatus: NotifyStatusFail,
 					HandleMsg:    body,
 					UpdateTime:   time.Now().Unix(),
 				},
@@ -139,7 +139,7 @@ func CheckDoNotify() {
 				DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
-					HandleStatus: 2,
+					HandleStatus: NotifyStatusPass,
 					HandleMsg:    body,
 					UpdateTime:   time.Now().Unix(),
 				},
@@ -154,7 +154,7 @@ func CheckDoNotify() {
 				DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
-					HandleStatus: 1,
+					HandleStatus: NotifyStatusFail,
 					HandleMsg:    body,
 					UpdateTime:   time.Now().Unix(),
 				},
