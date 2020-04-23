@@ -128,7 +128,7 @@ func CheckAddressCheck() {
 
 // CheckBlockSeek 检测到账
 func CheckBlockSeek() {
-	lockKey := "EthCheckBlockSeek"
+	lockKey := "CheckBlockSeek"
 	ok, err := app.GetLock(
 		context.Background(),
 		app.DbCon,
@@ -1351,7 +1351,7 @@ func CheckTxNotify() {
 }
 
 func CheckErc20BlockSeek() {
-	lockKey := "Erc20CheckBlockSeek"
+	lockKey := "CheckErc20BlockSeek"
 	ok, err := app.GetLock(
 		context.Background(),
 		app.DbCon,
