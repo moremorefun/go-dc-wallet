@@ -427,7 +427,6 @@ func CheckAddressOrg() {
 		addresses = append(addresses, txRow.ToAddress)
 	}
 	now := time.Now().Unix()
-	var sendRows []*model.DBTSend
 	for address, info := range addressMap {
 		// 获取私钥
 		keyRow, err := app.SQLGetTAddressKeyColByAddress(
@@ -496,6 +495,7 @@ func CheckAddressOrg() {
 		rawTxHex := hex.EncodeToString(rawTxBytes)
 		txHash := strings.ToLower(signedTx.Hash().Hex())
 		// 创建存入数据
+		var sendRows []*model.DBTSend
 		for rowIndex, rowID := range info.RowIDs {
 			if rowIndex == 0 {
 				sendRows = append(sendRows, &model.DBTSend{
@@ -535,24 +535,23 @@ func CheckAddressOrg() {
 				})
 			}
 		}
-	}
-	// 用事物处理数据
-	if len(addresses) > 0 {
-		isComment := false
-		tx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		// 插入数据
+		_, err = model.SQLCreateManyTSend(
+			context.Background(),
+			app.DbCon,
+			sendRows,
+		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		defer func() {
-			if !isComment {
-				_ = tx.Rollback()
-			}
-		}()
+	}
+	// 用事物处理数据
+	if len(addresses) > 0 {
 		// 更改状态
 		_, err = app.SQLUpdateTTxOrgStatusByAddresses(
 			context.Background(),
-			tx,
+			app.DbCon,
 			addresses,
 			model.DBTTx{
 				OrgStatus: app.TxOrgStatusHex,
@@ -560,22 +559,6 @@ func CheckAddressOrg() {
 				OrgTime:   now,
 			},
 		)
-		// 插入数据
-		_, err = model.SQLCreateManyTSend(
-			context.Background(),
-			tx,
-			sendRows,
-		)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		err = tx.Commit()
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		isComment = true
 	}
 }
 
@@ -1949,8 +1932,7 @@ func CheckErc20TxOrg() {
 	}
 	erc20Fee := erc20GasRow.V * gasPriceRow.V
 	needEthFeeMap := make(map[string]*StOrgInfo)
-	// 待插入数据
-	var sendRows []*model.DBTSend
+
 	for k, orgInfo := range orgMap {
 		toAddress := orgInfo.ToAddress
 		addressEthBalanceMap[toAddress] -= erc20Fee
@@ -2016,6 +1998,9 @@ func CheckErc20TxOrg() {
 		// 创建存入数据
 		now := time.Now().Unix()
 		balanceReal := decimal.NewFromInt(orgInfo.TokenBalance).Div(decimal.NewFromInt(int64(math.Pow10(int(tokenRow.TokenDecimals))))).String()
+		// 待插入数据
+		var sendRows []*model.DBTSend
+		var sendTxIDs []int64
 		for rowIndex, txID := range orgInfo.TxIDs {
 			if rowIndex == 0 {
 				sendRows = append(sendRows, &model.DBTSend{
@@ -2056,6 +2041,30 @@ func CheckErc20TxOrg() {
 					HandleTime:   now,
 				})
 			}
+			sendTxIDs = append(sendTxIDs, txID)
+		}
+		_, err = model.SQLCreateIgnoreManyTSend(
+			context.Background(),
+			app.DbCon,
+			sendRows,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
+		}
+		_, err = app.SQLUpdateTTxErc20OrgStatusByAddresses(
+			context.Background(),
+			app.DbCon,
+			sendTxIDs,
+			model.DBTTxErc20{
+				OrgStatus: app.TxOrgStatusHex,
+				OrgMsg:    "hex",
+				OrgTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
 		}
 	}
 	// 生成eth转账
