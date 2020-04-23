@@ -1,0 +1,53 @@
+package app
+
+// 交易状态
+const (
+	TxStatusInit   = 0
+	TxStatusNotify = 1
+)
+
+// 零钱整理状态
+const (
+	TxOrgStatusInit       = 0
+	TxOrgStatusHex        = 1
+	TxOrgStatusSend       = 2
+	TxOrgStatusConfirm    = 3
+	TxOrgStatusFeeHex     = 4
+	TxOrgStatusFeeSend    = 5
+	TxOrgStatusFeeConfirm = 6
+)
+
+// 发送状态
+const (
+	SendStatusInit    = 0
+	SendStatusSend    = 1
+	SendStatusConfirm = 2
+)
+
+// 发送类型
+const (
+	SendRelationTypeTx       = 1
+	SendRelationTypeWithdraw = 2
+)
+
+// 通知状态
+const (
+	NotifyStatusInit = 0
+	NotifyStatusFail = 1
+	NotifyStatusPass = 2
+)
+
+// 通知类型
+const (
+	NotifyTypeTx              = 1
+	NotifyTypeWithdrawSend    = 2
+	NotifyTypeWithdrawConfirm = 3
+)
+
+// 提币状态
+const (
+	WithdrawStatusInit    = 0
+	WithdrawStatusHex     = 1
+	WithdrawStatusSend    = 2
+	WithdrawStatusConfirm = 3
+)

@@ -283,9 +283,12 @@ func CheckBlockSeek() {
 						Balance:      tx.Value().Int64(),
 						BalanceReal:  balanceReal.String(),
 						CreateTime:   now,
-						HandleStatus: 0,
+						HandleStatus: app.TxStatusInit,
 						HandleMsg:    "",
 						HandleTime:   now,
+						OrgStatus:    app.TxOrgStatusInit,
+						OrgMsg:       "",
+						OrgTime:      now,
 					})
 				}
 			}
@@ -373,6 +376,7 @@ func CheckAddressOrg() {
 			model.DBColTTxToAddress,
 			model.DBColTTxBalance,
 		},
+		app.TxOrgStatusInit,
 	)
 	if err != nil {
 		hcommon.Log.Warnf("SQLSelectTTxColByOrg err: [%T] %s", err, err.Error())
@@ -504,7 +508,7 @@ func CheckAddressOrg() {
 					Nonce:        nonce,
 					Hex:          rawTxHex,
 					CreateTime:   now,
-					HandleStatus: 0,
+					HandleStatus: app.SendStatusInit,
 					HandleMsg:    "",
 					HandleTime:   now,
 				})
@@ -522,7 +526,7 @@ func CheckAddressOrg() {
 					Nonce:        -1,
 					Hex:          "",
 					CreateTime:   now,
-					HandleStatus: 0,
+					HandleStatus: app.SendStatusInit,
 					HandleMsg:    "",
 					HandleTime:   now,
 				})
@@ -548,7 +552,7 @@ func CheckAddressOrg() {
 			tx,
 			addresses,
 			model.DBTTx{
-				OrgStatus: 1,
+				OrgStatus: app.TxOrgStatusHex,
 				OrgMsg:    "gen raw tx",
 				OrgTime:   now,
 			},
@@ -609,7 +613,7 @@ func CheckRawTxSend() {
 			model.DBColTSendRelatedType,
 			model.DBColTSendRelatedID,
 		},
-		0,
+		app.SendStatusInit,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -619,7 +623,7 @@ func CheckRawTxSend() {
 	var withdrawIDs []int64
 	withdrawMap := make(map[int64]*model.DBTWithdraw)
 	for _, sendRow := range sendRows {
-		if sendRow.RelatedType == 2 {
+		if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 			// 提币
 			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
 				withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
@@ -696,7 +700,7 @@ func CheckRawTxSend() {
 				return
 			}
 		}
-		if sendRow.RelatedType == 2 {
+		if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 			// 通知
 			withdrawRow := withdrawMap[sendRow.RelatedID]
 			productRow := productMap[withdrawRow.ProductID]
@@ -708,7 +712,7 @@ func CheckRawTxSend() {
 				"out_serial":  withdrawRow.OutSerial,
 				"address":     withdrawRow.ToAddress,
 				"symbol":      "eth",
-				"notify_type": 2,
+				"notify_type": app.NotifyTypeWithdrawSend,
 			}
 			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
 			req, err := json.Marshal(reqObj)
@@ -719,12 +723,12 @@ func CheckRawTxSend() {
 			notifyRows = append(notifyRows, &model.DBTProductNotify{
 				Nonce:        nonce,
 				ProductID:    withdrawRow.ProductID,
-				ItemType:     2,
+				ItemType:     app.SendRelationTypeWithdraw,
 				ItemID:       withdrawRow.ID,
-				NotifyType:   2,
+				NotifyType:   app.NotifyTypeWithdrawSend,
 				URL:          productRow.CbURL,
 				Msg:          string(req),
-				HandleStatus: 0,
+				HandleStatus: app.NotifyStatusInit,
 				HandleMsg:    "",
 				CreateTime:   now,
 				UpdateTime:   now,
@@ -746,7 +750,7 @@ func CheckRawTxSend() {
 		app.DbCon,
 		txIDs,
 		model.DBTWithdraw{
-			HandleStatus: 1,
+			HandleStatus: app.WithdrawStatusSend,
 			HandleMsg:    "send",
 			HandleTime:   now,
 		},
@@ -760,7 +764,7 @@ func CheckRawTxSend() {
 		app.DbCon,
 		txIDs,
 		model.DBTSend{
-			HandleStatus: 1,
+			HandleStatus: app.TxOrgStatusSend,
 			HandleMsg:    "send",
 			HandleTime:   now,
 		},
@@ -807,7 +811,7 @@ func CheckRawTxConfirm() {
 			model.DBColTSendID,
 			model.DBColTSendTxID,
 		},
-		1,
+		app.SendStatusSend,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -898,7 +902,7 @@ func CheckRawTxConfirm() {
 				"out_serial":  withdrawRow.OutSerial,
 				"address":     withdrawRow.ToAddress,
 				"symbol":      "eth",
-				"notify_type": 3,
+				"notify_type": app.NotifyTypeWithdrawConfirm,
 			}
 			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
 			req, err := json.Marshal(reqObj)
@@ -909,9 +913,9 @@ func CheckRawTxConfirm() {
 			notifyRows = append(notifyRows, &model.DBTProductNotify{
 				Nonce:        nonce,
 				ProductID:    withdrawRow.ProductID,
-				ItemType:     2,
+				ItemType:     app.SendRelationTypeWithdraw,
 				ItemID:       withdrawRow.ID,
-				NotifyType:   3,
+				NotifyType:   app.NotifyTypeWithdrawConfirm,
 				URL:          productRow.CbURL,
 				Msg:          string(req),
 				HandleStatus: 0,
@@ -926,7 +930,7 @@ func CheckRawTxConfirm() {
 				&model.DBTWithdraw{
 					ID:           sendRow.RelatedID,
 					TxHash:       sendRow.TxID,
-					HandleStatus: 2,
+					HandleStatus: app.WithdrawStatusConfirm,
 					HandleMsg:    "confirmed",
 					HandleTime:   now,
 				},
@@ -951,7 +955,7 @@ func CheckRawTxConfirm() {
 		app.DbCon,
 		sendIDs,
 		model.DBTSend{
-			HandleStatus: 2,
+			HandleStatus: app.TxOrgStatusConfirm,
 			HandleMsg:    "confirmed",
 			HandleTime:   now,
 		},
@@ -1043,7 +1047,7 @@ func CheckWithdraw() {
 		[]string{
 			model.DBColTWithdrawID,
 		},
-		0,
+		app.WithdrawStatusInit,
 	)
 	if err != nil {
 		hcommon.Log.Warnf("SQLSelectTWithdrawColByStatus err: [%T] %s", err, err.Error())
@@ -1124,7 +1128,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 			model.DBColTWithdrawToAddress,
 		},
 		withdrawID,
-		0,
+		app.WithdrawStatusInit,
 	)
 	if err != nil {
 		return err
@@ -1176,7 +1180,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 		&model.DBTWithdraw{
 			ID:           withdrawID,
 			TxHash:       txHash,
-			HandleStatus: 1,
+			HandleStatus: app.WithdrawStatusHex,
 			HandleMsg:    "gen tx hex",
 			HandleTime:   now,
 		},
@@ -1188,7 +1192,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 		context.Background(),
 		dbTx,
 		&model.DBTSend{
-			RelatedType:  2,
+			RelatedType:  app.SendRelationTypeWithdraw,
 			RelatedID:    withdrawID,
 			TxID:         txHash,
 			FromAddress:  hotAddress,
@@ -1199,7 +1203,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 			GasPrice:     gasPrice,
 			Nonce:        nonce,
 			Hex:          rawTxHex,
-			HandleStatus: 0,
+			HandleStatus: app.SendStatusInit,
 			HandleMsg:    "init",
 			HandleTime:   now,
 		},
@@ -1252,7 +1256,7 @@ func CheckTxNotify() {
 			model.DBColTTxToAddress,
 			model.DBColTTxBalanceReal,
 		},
-		0,
+		app.TxStatusInit,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1298,7 +1302,7 @@ func CheckTxNotify() {
 			"address":     txRow.ToAddress,
 			"balance":     txRow.BalanceReal,
 			"symbol":      "eth",
-			"notify_type": 1,
+			"notify_type": app.NotifyTypeTx,
 		}
 		reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
 		req, err := json.Marshal(reqObj)
@@ -1309,12 +1313,12 @@ func CheckTxNotify() {
 		notifyRows = append(notifyRows, &model.DBTProductNotify{
 			Nonce:        nonce,
 			ProductID:    txRow.ProductID,
-			ItemType:     1,
+			ItemType:     app.SendRelationTypeTx,
 			ItemID:       txRow.ID,
-			NotifyType:   1,
+			NotifyType:   app.NotifyTypeTx,
 			URL:          productRow.CbURL,
 			Msg:          string(req),
-			HandleStatus: 0,
+			HandleStatus: app.NotifyStatusInit,
 			HandleMsg:    "",
 			CreateTime:   now,
 			UpdateTime:   now,
@@ -1335,7 +1339,7 @@ func CheckTxNotify() {
 		app.DbCon,
 		notifyTxIDs,
 		model.DBTTx{
-			HandleStatus: 1,
+			HandleStatus: app.TxStatusNotify,
 			HandleMsg:    "notify",
 			HandleTime:   now,
 		},
@@ -1564,12 +1568,12 @@ func CheckErc20BlockSeek() {
 							Balance:      transferEvent.Tokens.Int64(),
 							BalanceReal:  balanceReal,
 							CreateTime:   now,
-							HandleStatus: 0,
+							HandleStatus: app.TxStatusInit,
 							HandleMsg:    "",
 							HandleTime:   now,
-							OrgStatus:    0,
+							OrgStatus:    app.TxOrgStatusInit,
 							OrgMsg:       "",
-							OrgTime:      0,
+							OrgTime:      now,
 						})
 					}
 				}
@@ -1637,7 +1641,7 @@ func CheckErc20TxNotify() {
 			model.DBColTTxErc20ToAddress,
 			model.DBColTTxErc20BalanceReal,
 		},
-		0,
+		app.TxStatusInit,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1704,7 +1708,7 @@ func CheckErc20TxNotify() {
 			"address":     txRow.ToAddress,
 			"balance":     txRow.BalanceReal,
 			"symbol":      tokenRow.TokenSymbol,
-			"notify_type": 1,
+			"notify_type": app.NotifyTypeTx,
 		}
 		reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
 		req, err := json.Marshal(reqObj)
@@ -1715,12 +1719,12 @@ func CheckErc20TxNotify() {
 		notifyRows = append(notifyRows, &model.DBTProductNotify{
 			Nonce:        nonce,
 			ProductID:    txRow.ProductID,
-			ItemType:     1,
+			ItemType:     app.SendRelationTypeTx,
 			ItemID:       txRow.ID,
-			NotifyType:   1,
+			NotifyType:   app.NotifyTypeTx,
 			URL:          productRow.CbURL,
 			Msg:          string(req),
-			HandleStatus: 0,
+			HandleStatus: app.NotifyStatusInit,
 			HandleMsg:    "",
 			CreateTime:   now,
 			UpdateTime:   now,
@@ -1741,7 +1745,7 @@ func CheckErc20TxNotify() {
 		app.DbCon,
 		notifyTxIDs,
 		model.DBTTxErc20{
-			HandleStatus: 1,
+			HandleStatus: app.TxStatusNotify,
 			HandleMsg:    "notify",
 			HandleTime:   now,
 		},
