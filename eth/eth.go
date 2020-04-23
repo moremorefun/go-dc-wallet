@@ -234,6 +234,7 @@ func CheckBlockSeek() {
 					msg, err := rpcTx.AsMessage(types.NewEIP155Signer(rpcTx.ChainId()))
 					if err != nil {
 						hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
+						return
 					}
 					if hcommon.IsStringInSlice(feeAddresses, strings.ToLower(msg.From().Hex())) {
 						// 如果打币地址在手续费热钱包地址则不处理
@@ -275,6 +276,7 @@ func CheckBlockSeek() {
 					msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()))
 					if err != nil {
 						hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
+						return
 					}
 					toAddress := strings.ToLower(tx.To().Hex())
 					balanceReal := decimal.NewFromInt(tx.Value().Int64()).Div(decimal.NewFromInt(1e18))
