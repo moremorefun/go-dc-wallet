@@ -820,7 +820,7 @@ func CheckRawTxConfirm() {
 	var withdrawIDs []int64
 	withdrawMap := make(map[int64]*model.DBTWithdraw)
 	for _, sendRow := range sendRows {
-		if sendRow.RelatedType == 2 {
+		if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 			// 提币
 			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
 				withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
@@ -890,7 +890,7 @@ func CheckRawTxConfirm() {
 		}
 		// 完成
 		sendIDs = append(sendIDs, sendRow.ID)
-		if sendRow.RelatedType == 2 {
+		if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 			// 通知
 			withdrawRow := withdrawMap[sendRow.RelatedID]
 			productRow := productMap[withdrawRow.ProductID]
@@ -918,7 +918,7 @@ func CheckRawTxConfirm() {
 				NotifyType:   app.NotifyTypeWithdrawConfirm,
 				URL:          productRow.CbURL,
 				Msg:          string(req),
-				HandleStatus: 0,
+				HandleStatus: app.NotifyStatusInit,
 				HandleMsg:    "",
 				CreateTime:   now,
 				UpdateTime:   now,
