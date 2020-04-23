@@ -1755,3 +1755,30 @@ func CheckErc20TxNotify() {
 		return
 	}
 }
+
+func CheckErc20TxOrg() {
+	lockKey := "CheckErc20TxOrg"
+	ok, err := app.GetLock(
+		context.Background(),
+		app.DbCon,
+		lockKey,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := app.ReleaseLock(
+			context.Background(),
+			app.DbCon,
+			lockKey,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+}

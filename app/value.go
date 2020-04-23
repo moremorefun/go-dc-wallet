@@ -28,6 +28,7 @@ const (
 const (
 	SendRelationTypeTx       = 1
 	SendRelationTypeWithdraw = 2
+	SendRelationTypeTxErc20  = 3
 )
 
 // 通知状态

@@ -228,8 +228,9 @@ type DBTProductNotify struct {
 // const TSend
 const (
 	DBColTSendID           = "t_send.id"
-	DBColTSendRelatedType  = "t_send.related_type"  // 关联类型 1 零钱整理 2 提币
-	DBColTSendRelatedID    = "t_send.related_id"    // 关联id
+	DBColTSendRelatedType  = "t_send.related_type" // 关联类型 1 零钱整理 2 提币
+	DBColTSendRelatedID    = "t_send.related_id"   // 关联id
+	DBColTSendTokenID      = "t_send.token_id"
 	DBColTSendTxID         = "t_send.tx_id"         // tx hash
 	DBColTSendFromAddress  = "t_send.from_address"  // 打币地址
 	DBColTSendToAddress    = "t_send.to_address"    // 收币地址
@@ -250,6 +251,7 @@ const (
    id,
    related_type,
    related_id,
+   token_id,
    tx_id,
    from_address,
    to_address,
@@ -266,8 +268,9 @@ const (
 */
 type DBTSend struct {
 	ID           int64  `db:"id" json:"id"`
-	RelatedType  int64  `db:"related_type" json:"related_type"`   // 关联类型 1 零钱整理 2 提币
-	RelatedID    int64  `db:"related_id" json:"related_id"`       // 关联id
+	RelatedType  int64  `db:"related_type" json:"related_type"` // 关联类型 1 零钱整理 2 提币
+	RelatedID    int64  `db:"related_id" json:"related_id"`     // 关联id
+	TokenID      int64  `db:"token_id" json:"token_id"`
 	TxID         string `db:"tx_id" json:"tx_id"`                 // tx hash
 	FromAddress  string `db:"from_address" json:"from_address"`   // 打币地址
 	ToAddress    string `db:"to_address" json:"to_address"`       // 收币地址
