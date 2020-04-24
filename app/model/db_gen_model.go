@@ -396,9 +396,10 @@ type DBTTxErc20 struct {
 // const TWithdraw
 const (
 	DBColTWithdrawID           = "t_withdraw.id"
-	DBColTWithdrawProductID    = "t_withdraw.product_id"    // 产品id
-	DBColTWithdrawOutSerial    = "t_withdraw.out_serial"    // 提币唯一标示
-	DBColTWithdrawToAddress    = "t_withdraw.to_address"    // 提币地址
+	DBColTWithdrawProductID    = "t_withdraw.product_id" // 产品id
+	DBColTWithdrawOutSerial    = "t_withdraw.out_serial" // 提币唯一标示
+	DBColTWithdrawToAddress    = "t_withdraw.to_address" // 提币地址
+	DBColTWithdrawSymbol       = "t_withdraw.symbol"
 	DBColTWithdrawBalanceReal  = "t_withdraw.balance_real"  // 提币金额
 	DBColTWithdrawTxHash       = "t_withdraw.tx_hash"       // 提币tx hash
 	DBColTWithdrawCreateTime   = "t_withdraw.create_time"   // 创建时间
@@ -413,6 +414,7 @@ const (
    product_id,
    out_serial,
    to_address,
+   symbol,
    balance_real,
    tx_hash,
    create_time,
@@ -422,9 +424,10 @@ const (
 */
 type DBTWithdraw struct {
 	ID           int64  `db:"id" json:"id"`
-	ProductID    int64  `db:"product_id" json:"product_id"`       // 产品id
-	OutSerial    string `db:"out_serial" json:"out_serial"`       // 提币唯一标示
-	ToAddress    string `db:"to_address" json:"to_address"`       // 提币地址
+	ProductID    int64  `db:"product_id" json:"product_id"` // 产品id
+	OutSerial    string `db:"out_serial" json:"out_serial"` // 提币唯一标示
+	ToAddress    string `db:"to_address" json:"to_address"` // 提币地址
+	Symbol       string `db:"symbol" json:"symbol"`
 	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 提币金额
 	TxHash       string `db:"tx_hash" json:"tx_hash"`             // 提币tx hash
 	CreateTime   int64  `db:"create_time" json:"create_time"`     // 创建时间

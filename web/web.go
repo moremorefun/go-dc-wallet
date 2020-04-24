@@ -252,7 +252,7 @@ func postAddress(c *gin.Context) {
 
 func postWithdraw(c *gin.Context) {
 	var req struct {
-		Symbol    string `json:"symbol" binding:"required" validate:"oneof=eth"`
+		Symbol    string `json:"symbol" binding:"required"`
 		OutSerial string `json:"out_serial" binding:"required" validate:"max=40"`
 		Address   string `json:"address" binding:"required"`
 		Balance   string `json:"balance" binding:"required"`
@@ -263,11 +263,39 @@ func postWithdraw(c *gin.Context) {
 		hcommon.GinFillBindError(c, err)
 		return
 	}
+	req.Symbol = strings.ToLower(req.Symbol)
+
 	productID := c.GetInt64("product_id")
 	if productID == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"error":   hcommon.ErrorInternal,
 			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	symbols := []string{"eth"}
+	tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
+		c,
+		app.DbCon,
+		[]string{
+			model.DBColTAppConfigTokenTokenSymbol,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	for _, tokenRow := range tokenRows {
+		symbols = append(symbols, tokenRow.TokenSymbol)
+	}
+	if !hcommon.IsStringInSlice(symbols, req.Symbol) {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorSymbolNotSupport,
+			"err_msg": hcommon.ErrorSymbolNotSupportMsg,
 		})
 		return
 	}
@@ -330,6 +358,7 @@ func postWithdraw(c *gin.Context) {
 			ProductID:    productID,
 			OutSerial:    req.OutSerial,
 			ToAddress:    req.Address,
+			Symbol:       req.Symbol,
 			BalanceReal:  req.Balance,
 			TxHash:       "",
 			CreateTime:   now,

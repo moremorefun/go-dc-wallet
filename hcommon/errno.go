@@ -36,4 +36,7 @@ const (
 
 	ErrorBalanceFormat    = -9
 	ErrorBalanceFormatMsg = "balance format error"
+
+	ErrorSymbolNotSupport    = -10
+	ErrorSymbolNotSupportMsg = "symbol not support"
 )
