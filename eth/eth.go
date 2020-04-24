@@ -2506,11 +2506,13 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 	tokenRow, ok := (*tokenMap)[withdrawRow.Symbol]
 	if !ok {
 		hcommon.Log.Errorf("no tokenMap: %s", withdrawRow.Symbol)
+		return nil
 	}
 	hotAddress := tokenRow.HotAddress
 	key, ok := (*addressKeyMap)[hotAddress]
 	if !ok {
 		hcommon.Log.Errorf("no addressKeyMap: %s", hotAddress)
+		return nil
 	}
 	(*addressEthBalanceMap)[hotAddress] -= feeValue
 	if (*addressEthBalanceMap)[hotAddress] < 0 {
@@ -2531,7 +2533,6 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 	// 获取nonce值
 	nonce, err := GetNonce(dbTx, hotAddress)
 	if err != nil {
-		hcommon.Log.Warnf("GetNonce err: [%T] %s", err, err.Error())
 		return err
 	}
 	rpcTx, err := ethclient.RpcGenTokenTransfer(
@@ -2546,12 +2547,10 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 		tokenBalance,
 	)
 	if err != nil {
-		hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 		return nil
 	}
 	signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), key)
 	if err != nil {
-		hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
 		return err
 	}
 	ts := types.Transactions{signedTx}
