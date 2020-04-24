@@ -131,7 +131,7 @@ func CheckAddressCheck() {
 
 // CheckBlockSeek 检测到账
 func CheckBlockSeek() {
-	lockKey := "CheckBlockSeek"
+	lockKey := "EthCheckBlockSeek"
 	ok, err := app.GetLock(
 		context.Background(),
 		app.DbCon,
@@ -1237,7 +1237,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 }
 
 func CheckTxNotify() {
-	lockKey := "CheckTxNotify"
+	lockKey := "EthCheckTxNotify"
 	ok, err := app.GetLock(
 		context.Background(),
 		app.DbCon,
@@ -1324,7 +1324,7 @@ func CheckTxNotify() {
 		req, err := json.Marshal(reqObj)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		notifyRows = append(notifyRows, &model.DBTProductNotify{
 			Nonce:        nonce,
@@ -1367,7 +1367,7 @@ func CheckTxNotify() {
 }
 
 func CheckErc20BlockSeek() {
-	lockKey := "CheckErc20BlockSeek"
+	lockKey := "Erc20CheckBlockSeek"
 	ok, err := app.GetLock(
 		context.Background(),
 		app.DbCon,
@@ -1621,7 +1621,7 @@ func CheckErc20BlockSeek() {
 }
 
 func CheckErc20TxNotify() {
-	lockKey := "CheckErc20TxNotify"
+	lockKey := "Erc20CheckTxNotify"
 	ok, err := app.GetLock(
 		context.Background(),
 		app.DbCon,
@@ -1773,7 +1773,7 @@ func CheckErc20TxNotify() {
 }
 
 func CheckErc20TxOrg() {
-	lockKey := "CheckErc20TxOrg"
+	lockKey := "Erc20CheckTxOrg"
 	ok, err := app.GetLock(
 		context.Background(),
 		app.DbCon,
