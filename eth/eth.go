@@ -1062,8 +1062,10 @@ func CheckWithdraw() {
 		app.DbCon,
 		[]string{
 			model.DBColTWithdrawID,
+			model.DBColTWithdrawSymbol,
 		},
 		app.WithdrawStatusInit,
+		[]string{"eth"},
 	)
 	if err != nil {
 		hcommon.Log.Warnf("SQLSelectTWithdrawColByStatus err: [%T] %s", err, err.Error())

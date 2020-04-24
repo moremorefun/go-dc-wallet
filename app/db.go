@@ -516,7 +516,7 @@ WHERE
 }
 
 // SQLSelectTWithdrawColByStatus 根据ids获取
-func SQLSelectTWithdrawColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTWithdraw, error) {
+func SQLSelectTWithdrawColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64, symbols []string) ([]*model.DBTWithdraw, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -524,7 +524,8 @@ func SQLSelectTWithdrawColByStatus(ctx context.Context, tx hcommon.DbExeAble, co
 FROM
 	t_withdraw
 WHERE
-	handle_status=:handle_status`)
+	handle_status=:handle_status
+	AND symbol IN (:symbols)`)
 
 	var rows []*model.DBTWithdraw
 	err := hcommon.DbSelectNamedContent(
@@ -534,6 +535,7 @@ WHERE
 		query.String(),
 		gin.H{
 			"handle_status": status,
+			"symbols":       symbols,
 		},
 	)
 	if err != nil {
