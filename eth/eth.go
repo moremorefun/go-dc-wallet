@@ -1829,7 +1829,6 @@ func CheckErc20TxOrg() {
 	orgMap := make(map[string]*StOrgInfo)
 
 	var tokenIDs []int64
-	var productIDs []int64
 	var toAddresses []string
 	tokenMap := make(map[int64]*model.DBTAppConfigToken)
 	productMap := make(map[int64]*model.DBTProduct)
@@ -1869,9 +1868,6 @@ func CheckErc20TxOrg() {
 		if hcommon.IsIntInSlice(tokenIDs, txRow.TokenID) {
 			tokenIDs = append(tokenIDs, txRow.TokenID)
 		}
-		if hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
-			productIDs = append(productIDs, txRow.ProductID)
-		}
 		if hcommon.IsStringInSlice(toAddresses, txRow.ToAddress) {
 			toAddresses = append(toAddresses, txRow.ToAddress)
 		}
@@ -1895,21 +1891,6 @@ func CheckErc20TxOrg() {
 	}
 	for _, tokenRow := range tokenRows {
 		tokenMap[tokenRow.ID] = tokenRow
-	}
-	productRows, err := model.SQLSelectTProductCol(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTProductID,
-		},
-		productIDs,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	for _, productRow := range productRows {
-		productMap[productRow.ID] = productRow
 	}
 	addressRows, err := app.SQLSelectTAddressKeyColByAddress(
 		context.Background(),
@@ -1961,8 +1942,8 @@ func CheckErc20TxOrg() {
 		return
 	}
 	erc20Fee := erc20GasRow.V * gasPriceRow.V
+	// 需要手续费的整理信息
 	needEthFeeMap := make(map[string]*StOrgInfo)
-
 	for k, orgInfo := range orgMap {
 		toAddress := orgInfo.ToAddress
 		addressEthBalanceMap[toAddress] -= erc20Fee
@@ -1975,17 +1956,18 @@ func CheckErc20TxOrg() {
 		tokenRow, ok := tokenMap[orgInfo.TokenID]
 		if !ok {
 			hcommon.Log.Errorf("no tokenMap: %d", orgInfo.TokenID)
+			continue
 		}
 		// 处理token转账
 		addressRow, ok := addressMap[toAddress]
 		if !ok {
 			hcommon.Log.Errorf("addressMap no: %s", toAddress)
-			return
+			continue
 		}
 		key := hcommon.AesDecrypt(addressRow.Pwd, app.Cfg.AESKey)
 		if len(key) == 0 {
 			hcommon.Log.Errorf("error key of: %s", toAddress)
-			return
+			continue
 		}
 		if strings.HasPrefix(key, "0x") {
 			key = key[2:]
@@ -1993,13 +1975,13 @@ func CheckErc20TxOrg() {
 		privateKey, err := crypto.HexToECDSA(key)
 		if err != nil {
 			hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		// 获取nonce值
 		nonce, err := GetNonce(app.DbCon, toAddress)
 		if err != nil {
 			hcommon.Log.Warnf("GetNonce err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		rpcTx, err := ethclient.RpcGenTokenTransfer(
 			context.Background(),
@@ -2014,12 +1996,12 @@ func CheckErc20TxOrg() {
 		)
 		if err != nil {
 			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
 		if err != nil {
 			hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		ts := types.Transactions{signedTx}
 		rawTxBytes := ts.GetRlp(0)
@@ -2030,7 +2012,6 @@ func CheckErc20TxOrg() {
 		balanceReal := decimal.NewFromInt(orgInfo.TokenBalance).Div(decimal.NewFromInt(int64(math.Pow10(int(tokenRow.TokenDecimals))))).String()
 		// 待插入数据
 		var sendRows []*model.DBTSend
-		var sendTxIDs []int64
 		for rowIndex, txID := range orgInfo.TxIDs {
 			if rowIndex == 0 {
 				sendRows = append(sendRows, &model.DBTSend{
@@ -2071,8 +2052,8 @@ func CheckErc20TxOrg() {
 					HandleTime:   now,
 				})
 			}
-			sendTxIDs = append(sendTxIDs, txID)
 		}
+		// 插入发送队列
 		_, err = model.SQLCreateIgnoreManyTSend(
 			context.Background(),
 			app.DbCon,
@@ -2082,10 +2063,11 @@ func CheckErc20TxOrg() {
 			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 更新整理状态
 		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
-			sendTxIDs,
+			orgInfo.TxIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusHex,
 				OrgMsg:    "hex",
@@ -2230,7 +2212,6 @@ func CheckErc20TxOrg() {
 			balanceReal := decimal.NewFromInt(tokenFee).Div(decimal.NewFromInt(int64(math.Pow10(18)))).String()
 			// 待插入数据
 			var sendRows []*model.DBTSend
-			var sendTxIDs []int64
 			for rowIndex, txID := range orgInfo.TxIDs {
 				if rowIndex == 0 {
 					sendRows = append(sendRows, &model.DBTSend{
@@ -2271,7 +2252,6 @@ func CheckErc20TxOrg() {
 						HandleTime:   now,
 					})
 				}
-				sendTxIDs = append(sendTxIDs, txID)
 			}
 			_, err = model.SQLCreateIgnoreManyTSend(
 				context.Background(),
@@ -2285,7 +2265,7 @@ func CheckErc20TxOrg() {
 			_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 				context.Background(),
 				app.DbCon,
-				sendTxIDs,
+				orgInfo.TxIDs,
 				model.DBTTxErc20{
 					OrgStatus: app.TxOrgStatusFeeHex,
 					OrgMsg:    "fee hex",
