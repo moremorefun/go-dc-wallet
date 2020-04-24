@@ -829,6 +829,7 @@ func CheckRawTxConfirm() {
 			model.DBColTWithdrawOutSerial,
 			model.DBColTWithdrawToAddress,
 			model.DBColTWithdrawBalanceReal,
+			model.DBColTWithdrawSymbol,
 		},
 		withdrawIDs,
 	)
@@ -892,7 +893,7 @@ func CheckRawTxConfirm() {
 				"app_name":    productRow.AppName,
 				"out_serial":  withdrawRow.OutSerial,
 				"address":     withdrawRow.ToAddress,
-				"symbol":      "eth",
+				"symbol":      withdrawRow.Symbol,
 				"notify_type": app.NotifyTypeWithdrawConfirm,
 			}
 			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
