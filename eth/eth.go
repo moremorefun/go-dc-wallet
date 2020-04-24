@@ -1831,7 +1831,6 @@ func CheckErc20TxOrg() {
 	var tokenIDs []int64
 	var toAddresses []string
 	tokenMap := make(map[int64]*model.DBTAppConfigToken)
-	productMap := make(map[int64]*model.DBTProduct)
 	addressMap := make(map[string]*model.DBTAddressKey)
 
 	for _, txRow := range txRows {
