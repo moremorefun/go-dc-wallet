@@ -663,7 +663,6 @@ func CheckRawTxSend() {
 	for _, productRow := range productRows {
 		productMap[productRow.ID] = productRow
 	}
-
 	// 执行发送
 	var txHashes []string
 	var notifyRows []*model.DBTProductNotify
@@ -726,6 +725,7 @@ func CheckRawTxSend() {
 		}
 		txHashes = append(txHashes, strings.ToLower(tx.Hash().Hex()))
 	}
+	// 插入通知
 	_, err = model.SQLCreateIgnoreManyTProductNotify(
 		context.Background(),
 		app.DbCon,
@@ -735,6 +735,7 @@ func CheckRawTxSend() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
+	// 更新提币状态
 	_, err = app.SQLUpdateTWithdrawStatusByTxIDs(
 		context.Background(),
 		app.DbCon,
@@ -749,6 +750,7 @@ func CheckRawTxSend() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
+	// 更新发送状态
 	_, err = app.SQLUpdateTSendStatusByTxIDs(
 		context.Background(),
 		app.DbCon,
@@ -916,6 +918,7 @@ func CheckRawTxConfirm() {
 		// 完成
 		sendIDs = append(sendIDs, sendRow.ID)
 	}
+	// 通知信息
 	_, err = model.SQLCreateIgnoreManyTProductNotify(
 		context.Background(),
 		app.DbCon,
@@ -925,6 +928,7 @@ func CheckRawTxConfirm() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
+	// 更新提币状态
 	_, err = app.SQLUpdateTWithdrawStatusByIDs(
 		context.Background(),
 		app.DbCon,
@@ -939,12 +943,13 @@ func CheckRawTxConfirm() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
+	// 更新发送状态
 	_, err = app.SQLUpdateTSendStatusByIDs(
 		context.Background(),
 		app.DbCon,
 		sendIDs,
 		model.DBTSend{
-			HandleStatus: app.TxOrgStatusConfirm,
+			HandleStatus: app.SendStatusConfirm,
 			HandleMsg:    "confirmed",
 			HandleTime:   now,
 		},
