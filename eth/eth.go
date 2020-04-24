@@ -756,7 +756,7 @@ func CheckRawTxSend() {
 		app.DbCon,
 		txHashes,
 		model.DBTSend{
-			HandleStatus: app.TxOrgStatusSend,
+			HandleStatus: app.SendStatusSend,
 			HandleMsg:    "send",
 			HandleTime:   now,
 		},
