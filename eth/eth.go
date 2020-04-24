@@ -868,6 +868,7 @@ func CheckRawTxConfirm() {
 	var notifyRows []*model.DBTProductNotify
 	var sendIDs []int64
 	var withdrawUpdateIDs []int64
+	var erc20FeeTxHashes []string
 	for _, sendRow := range sendRows {
 		rpcTx, err := ethclient.RpcTransactionByHash(
 			context.Background(),
@@ -915,6 +916,12 @@ func CheckRawTxConfirm() {
 			})
 			withdrawUpdateIDs = append(withdrawUpdateIDs, sendRow.RelatedID)
 		}
+		if sendRow.RelatedType == app.SendRelationTypeTxErc20Fee {
+			// 零钱整理erc20的eth手续费
+			if !hcommon.IsStringInSlice(erc20FeeTxHashes, sendRow.TxID) {
+				erc20FeeTxHashes = append(erc20FeeTxHashes, sendRow.TxID)
+			}
+		}
 		// 完成
 		sendIDs = append(sendIDs, sendRow.ID)
 	}
@@ -937,6 +944,21 @@ func CheckRawTxConfirm() {
 			HandleStatus: app.WithdrawStatusConfirm,
 			HandleMsg:    "confirmed",
 			HandleTime:   now,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	// 更新erc20零钱整理eth手续费状态
+	_, err = app.SQLUpdateTTxErc20OrgStatusByTxHashed(
+		context.Background(),
+		app.DbCon,
+		erc20FeeTxHashes,
+		model.DBTTxErc20{
+			OrgStatus: app.TxOrgStatusFeeConfirm,
+			OrgMsg:    "eth fee confirmed",
+			OrgTime:   now,
 		},
 	)
 	if err != nil {
@@ -1096,7 +1118,7 @@ func CheckWithdraw() {
 		err = handleWithdraw(withdrawRow.ID, chainID, hotRow.V, privateKey, &hotAddressBalance, gasLimit, gasPrice, feeValue)
 		if err != nil {
 			hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 	}
 }
@@ -2060,7 +2082,7 @@ func CheckErc20TxOrg() {
 			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 			return
 		}
-		_, err = app.SQLUpdateTTxErc20OrgStatusByAddresses(
+		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
 			sendTxIDs,
@@ -2260,7 +2282,7 @@ func CheckErc20TxOrg() {
 				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 				return
 			}
-			_, err = app.SQLUpdateTTxErc20OrgStatusByAddresses(
+			_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 				context.Background(),
 				app.DbCon,
 				sendTxIDs,

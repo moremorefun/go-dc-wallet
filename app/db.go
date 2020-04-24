@@ -985,8 +985,8 @@ WHERE
 	return rows, nil
 }
 
-// SQLUpdateTTxErc20OrgStatusByAddresses 更新
-func SQLUpdateTTxErc20OrgStatusByAddresses(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxErc20) (int64, error) {
+// SQLUpdateTTxErc20OrgStatusByIDs 更新
+func SQLUpdateTTxErc20OrgStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxErc20) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
@@ -1003,6 +1003,35 @@ WHERE
 	id IN (:ids)`,
 		gin.H{
 			"ids":        ids,
+			"org_status": row.OrgStatus,
+			"org_msg":    row.OrgMsg,
+			"org_time":   row.OrgTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLUpdateTTxErc20OrgStatusByTxHashed 更新
+func SQLUpdateTTxErc20OrgStatusByTxHashed(ctx context.Context, tx hcommon.DbExeAble, txHashes []string, row model.DBTTxErc20) (int64, error) {
+	if len(txHashes) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_erc20
+SET
+    org_status=:org_status,
+    org_msg=:org_msg,
+    org_time=:org_time
+WHERE
+	tx_id IN (:tx_ids)`,
+		gin.H{
+			"tx_id":      txHashes,
 			"org_status": row.OrgStatus,
 			"org_msg":    row.OrgMsg,
 			"org_time":   row.OrgTime,
