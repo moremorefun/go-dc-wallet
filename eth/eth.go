@@ -2491,6 +2491,7 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 			model.DBColTWithdrawID,
 			model.DBColTWithdrawBalanceReal,
 			model.DBColTWithdrawToAddress,
+			model.DBColTWithdrawSymbol,
 		},
 		withdrawID,
 		app.WithdrawStatusInit,
@@ -2500,6 +2501,99 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 	}
 	if withdrawRow == nil {
 		return nil
+	}
+	tokenRow, ok := (*tokenMap)[withdrawRow.Symbol]
+	if !ok {
+		hcommon.Log.Errorf("no tokenMap: %s", withdrawRow.Symbol)
+	}
+	hotAddress := tokenRow.HotAddress
+	key, ok := (*addressKeyMap)[hotAddress]
+	if !ok {
+		hcommon.Log.Errorf("no addressKeyMap: %s", hotAddress)
+	}
+	(*addressEthBalanceMap)[hotAddress] -= feeValue
+	if (*addressEthBalanceMap)[hotAddress] < 0 {
+		hcommon.Log.Errorf("%s eth limit", hotAddress)
+		return nil
+	}
+	tokenBalanceKey := fmt.Sprintf("%s-%s", tokenRow.HotAddress, tokenRow.TokenSymbol)
+	tokenBalanceObj, err := decimal.NewFromString(withdrawRow.BalanceReal)
+	if err != nil {
+		return err
+	}
+	tokenBalance := tokenBalanceObj.Mul(decimal.NewFromInt(int64(math.Pow10(int(tokenRow.TokenDecimals))))).IntPart()
+	(*addressTokenBalanceMap)[tokenBalanceKey] -= tokenBalance
+	if (*addressTokenBalanceMap)[tokenBalanceKey] < 0 {
+		hcommon.Log.Errorf("%s token limit", tokenBalanceKey)
+		return nil
+	}
+	// 获取nonce值
+	nonce, err := GetNonce(dbTx, hotAddress)
+	if err != nil {
+		hcommon.Log.Warnf("GetNonce err: [%T] %s", err, err.Error())
+		return err
+	}
+	rpcTx, err := ethclient.RpcGenTokenTransfer(
+		context.Background(),
+		tokenRow.TokenAddress,
+		&bind.TransactOpts{
+			Nonce:    big.NewInt(nonce),
+			GasPrice: big.NewInt(gasPrice),
+			GasLimit: uint64(gasLimit),
+		},
+		withdrawRow.ToAddress,
+		tokenBalance,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+		return nil
+	}
+	signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), key)
+	if err != nil {
+		hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+		return err
+	}
+	ts := types.Transactions{signedTx}
+	rawTxBytes := ts.GetRlp(0)
+	rawTxHex := hex.EncodeToString(rawTxBytes)
+	txHash := strings.ToLower(signedTx.Hash().Hex())
+	now := time.Now().Unix()
+	_, err = app.SQLUpdateTWithdrawGenTx(
+		context.Background(),
+		dbTx,
+		&model.DBTWithdraw{
+			ID:           withdrawID,
+			TxHash:       txHash,
+			HandleStatus: app.WithdrawStatusHex,
+			HandleMsg:    "gen tx hex",
+			HandleTime:   now,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	_, err = model.SQLCreateTSend(
+		context.Background(),
+		dbTx,
+		&model.DBTSend{
+			RelatedType:  app.SendRelationTypeWithdraw,
+			RelatedID:    withdrawID,
+			TxID:         txHash,
+			FromAddress:  hotAddress,
+			ToAddress:    withdrawRow.ToAddress,
+			Balance:      tokenBalance,
+			BalanceReal:  withdrawRow.BalanceReal,
+			Gas:          gasLimit,
+			GasPrice:     gasPrice,
+			Nonce:        nonce,
+			Hex:          rawTxHex,
+			HandleStatus: app.SendStatusInit,
+			HandleMsg:    "init",
+			HandleTime:   now,
+		},
+	)
+	if err != nil {
+		return err
 	}
 	// 处理完成
 	err = dbTx.Commit()
