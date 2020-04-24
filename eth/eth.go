@@ -796,6 +796,7 @@ func CheckRawTxConfirm() {
 		context.Background(),
 		app.DbCon,
 		[]string{
+			model.DBColTSendID,
 			model.DBColTSendRelatedType,
 			model.DBColTSendRelatedID,
 			model.DBColTSendID,
@@ -815,7 +816,6 @@ func CheckRawTxConfirm() {
 			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
 				withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
 			}
-
 		}
 	}
 	withdrawRows, err := model.SQLSelectTWithdrawCol(
@@ -835,10 +835,9 @@ func CheckRawTxConfirm() {
 		return
 	}
 	var productIDs []int64
-	sendRowProductMap := make(map[int64]int64)
 	for _, withdrawRow := range withdrawRows {
 		withdrawMap[withdrawRow.ID] = withdrawRow
-		sendRowProductMap[withdrawRow.ID] = withdrawRow.ProductID
+
 		if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
 			productIDs = append(productIDs, withdrawRow.ProductID)
 		}
@@ -862,10 +861,11 @@ func CheckRawTxConfirm() {
 	for _, productRow := range productRows {
 		productMap[productRow.ID] = productRow
 	}
-	var notifyRows []*model.DBTProductNotify
-	now := time.Now().Unix()
 
+	now := time.Now().Unix()
+	var notifyRows []*model.DBTProductNotify
 	var sendIDs []int64
+	var withdrawUpdateIDs []int64
 	for _, sendRow := range sendRows {
 		rpcTx, err := ethclient.RpcTransactionByHash(
 			context.Background(),
@@ -873,15 +873,13 @@ func CheckRawTxConfirm() {
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		if rpcTx == nil {
-			return
+			continue
 		}
-		// 完成
-		sendIDs = append(sendIDs, sendRow.ID)
 		if sendRow.RelatedType == app.SendRelationTypeWithdraw {
-			// 通知
+			// 提币
 			withdrawRow := withdrawMap[sendRow.RelatedID]
 			productRow := productMap[withdrawRow.ProductID]
 			nonce := hcommon.GetUUIDStr()
@@ -898,7 +896,7 @@ func CheckRawTxConfirm() {
 			req, err := json.Marshal(reqObj)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
+				continue
 			}
 			notifyRows = append(notifyRows, &model.DBTProductNotify{
 				Nonce:        nonce,
@@ -913,28 +911,29 @@ func CheckRawTxConfirm() {
 				CreateTime:   now,
 				UpdateTime:   now,
 			})
-			// 提币
-			_, err = app.SQLUpdateTWithdrawGenTx(
-				context.Background(),
-				app.DbCon,
-				&model.DBTWithdraw{
-					ID:           sendRow.RelatedID,
-					TxHash:       sendRow.TxID,
-					HandleStatus: app.WithdrawStatusConfirm,
-					HandleMsg:    "confirmed",
-					HandleTime:   now,
-				},
-			)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
+			withdrawUpdateIDs = append(withdrawUpdateIDs, sendRow.RelatedID)
 		}
+		// 完成
+		sendIDs = append(sendIDs, sendRow.ID)
 	}
 	_, err = model.SQLCreateIgnoreManyTProductNotify(
 		context.Background(),
 		app.DbCon,
 		notifyRows,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	_, err = app.SQLUpdateTWithdrawStatusByIDs(
+		context.Background(),
+		app.DbCon,
+		withdrawUpdateIDs,
+		&model.DBTWithdraw{
+			HandleStatus: app.WithdrawStatusConfirm,
+			HandleMsg:    "confirmed",
+			HandleTime:   now,
+		},
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())

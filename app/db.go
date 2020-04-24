@@ -603,6 +603,35 @@ WHERE
 	return count, nil
 }
 
+// SQLUpdateTWithdrawStatusByIDs 更新
+func SQLUpdateTWithdrawStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row *model.DBTWithdraw) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_withdraw
+SET
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids":           ids,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLGetTAppLockColByK 根据id查询
 func SQLGetTAppLockColByK(ctx context.Context, tx hcommon.DbExeAble, cols []string, k string) (*model.DBTAppLock, error) {
 	query := strings.Builder{}
