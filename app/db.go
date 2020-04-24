@@ -314,6 +314,35 @@ WHERE
 	return count, nil
 }
 
+// SQLUpdateTTxOrgStatusByIDs 更新
+func SQLUpdateTTxOrgStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTx) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx
+SET
+    org_status=:org_status,
+    org_msg=:org_msg,
+    org_time=:org_time
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids":        ids,
+			"org_status": row.OrgStatus,
+			"org_msg":    row.OrgMsg,
+			"org_time":   row.OrgTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLUpdateTTxStatusByIDs 更新
 func SQLUpdateTTxStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTx) (int64, error) {
 	if len(ids) == 0 {

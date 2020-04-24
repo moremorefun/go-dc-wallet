@@ -425,8 +425,9 @@ func CheckAddressOrg() {
 		}
 		info.RowIDs = append(info.RowIDs, txRow.ID)
 		info.Balance += txRow.Balance
-
-		addresses = append(addresses, txRow.ToAddress)
+		if !hcommon.IsStringInSlice(addresses, txRow.ToAddress) {
+			addresses = append(addresses, txRow.ToAddress)
+		}
 	}
 	now := time.Now().Unix()
 	for address, info := range addressMap {
@@ -445,12 +446,12 @@ func CheckAddressOrg() {
 		}
 		if keyRow == nil {
 			hcommon.Log.Errorf("no key of: %s", address)
-			return
+			continue
 		}
 		key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
 		if len(key) == 0 {
 			hcommon.Log.Errorf("error key of: %s", address)
-			return
+			continue
 		}
 		if strings.HasPrefix(key, "0x") {
 			key = key[2:]
@@ -458,7 +459,7 @@ func CheckAddressOrg() {
 		privateKey, err := crypto.HexToECDSA(key)
 		if err != nil {
 			hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		// 获取nonce值
 		nonce, err := GetNonce(app.DbCon, address)
@@ -501,7 +502,7 @@ func CheckAddressOrg() {
 		for rowIndex, rowID := range info.RowIDs {
 			if rowIndex == 0 {
 				sendRows = append(sendRows, &model.DBTSend{
-					RelatedType:  1,
+					RelatedType:  app.SendRelationTypeTx,
 					RelatedID:    rowID,
 					TxID:         txHash,
 					FromAddress:  address,
@@ -547,20 +548,21 @@ func CheckAddressOrg() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-	}
-	// 用事物处理数据
-	if len(addresses) > 0 {
 		// 更改状态
-		_, err = app.SQLUpdateTTxOrgStatusByAddresses(
+		_, err = app.SQLUpdateTTxOrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
-			addresses,
+			info.RowIDs,
 			model.DBTTx{
 				OrgStatus: app.TxOrgStatusHex,
 				OrgMsg:    "gen raw tx",
 				OrgTime:   now,
 			},
 		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 	}
 }
 
@@ -590,7 +592,7 @@ func CheckRawTxSend() {
 			return
 		}
 	}()
-
+	// 获取待发送的数据
 	sendRows, err := app.SQLSelectTSendColByStatus(
 		context.Background(),
 		app.DbCon,
@@ -607,7 +609,7 @@ func CheckRawTxSend() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
-
+	// 提币
 	var withdrawIDs []int64
 	withdrawMap := make(map[int64]*model.DBTWithdraw)
 	for _, sendRow := range sendRows {
@@ -616,7 +618,6 @@ func CheckRawTxSend() {
 			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
 				withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
 			}
-
 		}
 	}
 	withdrawRows, err := model.SQLSelectTWithdrawCol(
