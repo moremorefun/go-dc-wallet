@@ -637,10 +637,9 @@ func CheckRawTxSend() {
 		return
 	}
 	var productIDs []int64
-	sendRowProductMap := make(map[int64]int64)
 	for _, withdrawRow := range withdrawRows {
 		withdrawMap[withdrawRow.ID] = withdrawRow
-		sendRowProductMap[withdrawRow.ID] = withdrawRow.ProductID
+
 		if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
 			productIDs = append(productIDs, withdrawRow.ProductID)
 		}
@@ -664,20 +663,22 @@ func CheckRawTxSend() {
 	for _, productRow := range productRows {
 		productMap[productRow.ID] = productRow
 	}
-	var txIDs []string
+
+	// 执行发送
+	var txHashes []string
 	var notifyRows []*model.DBTProductNotify
 	now := time.Now().Unix()
 	for _, sendRow := range sendRows {
 		rawTxBytes, err := hex.DecodeString(sendRow.Hex)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		tx := new(types.Transaction)
 		err = rlp.DecodeBytes(rawTxBytes, &tx)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
+			continue
 		}
 		err = ethclient.RpcSendTransaction(
 			context.Background(),
@@ -686,11 +687,11 @@ func CheckRawTxSend() {
 		if err != nil {
 			if !strings.Contains(err.Error(), "known transaction") {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
+				continue
 			}
 		}
 		if sendRow.RelatedType == app.SendRelationTypeWithdraw {
-			// 通知
+			// 提币
 			withdrawRow := withdrawMap[sendRow.RelatedID]
 			productRow := productMap[withdrawRow.ProductID]
 			nonce := hcommon.GetUUIDStr()
@@ -723,7 +724,7 @@ func CheckRawTxSend() {
 				UpdateTime:   now,
 			})
 		}
-		txIDs = append(txIDs, strings.ToLower(tx.Hash().Hex()))
+		txHashes = append(txHashes, strings.ToLower(tx.Hash().Hex()))
 	}
 	_, err = model.SQLCreateIgnoreManyTProductNotify(
 		context.Background(),
@@ -737,7 +738,7 @@ func CheckRawTxSend() {
 	_, err = app.SQLUpdateTWithdrawStatusByTxIDs(
 		context.Background(),
 		app.DbCon,
-		txIDs,
+		txHashes,
 		model.DBTWithdraw{
 			HandleStatus: app.WithdrawStatusSend,
 			HandleMsg:    "send",
@@ -751,7 +752,7 @@ func CheckRawTxSend() {
 	_, err = app.SQLUpdateTSendStatusByTxIDs(
 		context.Background(),
 		app.DbCon,
-		txIDs,
+		txHashes,
 		model.DBTSend{
 			HandleStatus: app.TxOrgStatusSend,
 			HandleMsg:    "send",
