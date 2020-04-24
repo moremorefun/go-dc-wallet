@@ -145,3 +145,17 @@ func RpcGenTokenTransfer(ctx context.Context, tokenAddress string, opts *bind.Tr
 	}
 	return tx, nil
 }
+
+// RpcTokenBalance 获取token余额
+func RpcTokenBalance(ctx context.Context, tokenAddress string, address string) (int64, error) {
+	tokenAddressHash := common.HexToAddress(tokenAddress)
+	instance, err := NewEth(tokenAddressHash, client)
+	if err != nil {
+		return 0, err
+	}
+	balance, err := instance.BalanceOf(&bind.CallOpts{}, common.HexToAddress(address))
+	if err != nil {
+		return 0, err
+	}
+	return balance.Int64(), nil
+}
