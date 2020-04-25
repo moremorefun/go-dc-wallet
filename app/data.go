@@ -69,3 +69,31 @@ func ReleaseLock(ctx context.Context, tx hcommon.DbExeAble, k string) error {
 	}
 	return nil
 }
+
+// LockWrap 包装被lock的函数
+func LockWrap(name string, f func()) {
+	ok, err := GetLock(
+		context.Background(),
+		DbCon,
+		name,
+	)
+	if err != nil {
+		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		return
+	}
+	if !ok {
+		return
+	}
+	defer func() {
+		err := ReleaseLock(
+			context.Background(),
+			DbCon,
+			name,
+		)
+		if err != nil {
+			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			return
+		}
+	}()
+	f()
+}
