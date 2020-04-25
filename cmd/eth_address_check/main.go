@@ -11,5 +11,5 @@ func main() {
 	app.EnvCreate()
 	defer app.EnvDestroy()
 
-	eth.CheckAddressCheck()
+	eth.CheckAddressFree()
 }

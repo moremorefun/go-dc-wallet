@@ -21,7 +21,7 @@ func main() {
 	)
 	var err error
 	// 检测 eth 生成地址
-	_, err = c.AddFunc("@every 1m", eth.CheckAddressCheck)
+	_, err = c.AddFunc("@every 1m", eth.CheckAddressFree)
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}

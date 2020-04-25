@@ -35,9 +35,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// CheckAddressCheck 检测是否有充足的备用地址
-func CheckAddressCheck() {
-	lockKey := "EthCheckAddressCheck"
+// CheckAddressFree 检测是否有充足的备用地址
+func CheckAddressFree() {
+	lockKey := "EthCheckAddressFree"
 	app.LockWrap(lockKey, func() {
 		// 获取配置 允许的最小剩余地址数
 		minFreeRow, err := app.SQLGetTAppConfigIntByK(
