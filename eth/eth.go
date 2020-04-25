@@ -59,7 +59,7 @@ func CheckAddressCheck() {
 			app.DbCon,
 		)
 		if err != nil {
-			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 如果数据库中剩余可用地址小于最小允许可用地址
@@ -213,7 +213,7 @@ func CheckBlockSeek() {
 					toAddresses,
 				)
 				if err != nil {
-					hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 待插入数据
@@ -262,7 +262,7 @@ func CheckBlockSeek() {
 					dbTxRows,
 				)
 				if err != nil {
-					hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 更新检查到的最新区块数
@@ -275,7 +275,7 @@ func CheckBlockSeek() {
 					},
 				)
 				if err != nil {
-					hcommon.Log.Warnf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
+					hcommon.Log.Errorf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
 					return
 				}
 			}
