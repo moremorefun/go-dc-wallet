@@ -110,196 +110,177 @@ func CheckAddressCheck() {
 // CheckBlockSeek 检测到账
 func CheckBlockSeek() {
 	lockKey := "EthCheckBlockSeek"
-	ok, err := app.GetLock(
-		context.Background(),
-		app.DbCon,
-		lockKey,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
-		return
-	}
-	if !ok {
-		return
-	}
-	defer func() {
-		err := app.ReleaseLock(
+	app.LockWrap(lockKey, func() {
+		// 获取配置 延迟确认数
+		confirmRow, err := app.SQLGetTAppConfigIntByK(
 			context.Background(),
 			app.DbCon,
-			lockKey,
+			"block_confirm_num",
 		)
 		if err != nil {
-			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-	}()
-
-	// 获取配置 延迟确认数
-	confirmRow, err := app.SQLGetTAppConfigIntByK(
-		context.Background(),
-		app.DbCon,
-		"block_confirm_num",
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
-		return
-	}
-	if confirmRow == nil {
-		hcommon.Log.Errorf("no config int of min_free_address")
-		return
-	}
-	// 获取状态 当前处理完成的最新的block number
-	seekRow, err := app.SQLGetTAppStatusIntByK(
-		context.Background(),
-		app.DbCon,
-		"seek_num",
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
-		return
-	}
-	if seekRow == nil {
-		hcommon.Log.Errorf("no config int of seek_num")
-		return
-	}
-	// rpc 获取当前最新区块数
-	rpcBlockNum, err := ethclient.RpcBlockNumber(context.Background())
-	if err != nil {
-		hcommon.Log.Warnf("RpcBlockNumber err: [%T] %s", err, err.Error())
-		return
-	}
-	startI := seekRow.V + 1
-	endI := rpcBlockNum - confirmRow.V
-	if startI < endI {
-		// 手续费钱包列表
-		feeRow, err := app.SQLGetTAppConfigStrByK(
+		if confirmRow == nil {
+			hcommon.Log.Errorf("no config int of min_free_address")
+			return
+		}
+		// 获取状态 当前处理完成的最新的block number
+		seekRow, err := app.SQLGetTAppStatusIntByK(
 			context.Background(),
 			app.DbCon,
-			"fee_wallet_address_list",
+			"seek_num",
 		)
 		if err != nil {
-			hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if feeRow == nil {
-			hcommon.Log.Errorf("no config int of fee_wallet_address_list")
+		if seekRow == nil {
+			hcommon.Log.Errorf("no config int of seek_num")
 			return
 		}
-		addresses := strings.Split(feeRow.V, ",")
-		var feeAddresses []string
-		for _, address := range addresses {
-			if address == "" {
-				continue
-			}
-			feeAddresses = append(feeAddresses, address)
+		// rpc 获取当前最新区块数
+		rpcBlockNum, err := ethclient.RpcBlockNumber(context.Background())
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
 		}
-		// 遍历获取需要查询的block信息
-		for i := startI; i < endI; i++ {
-			// rpc获取block信息
-			rpcBlock, err := ethclient.RpcBlockByNum(context.Background(), i)
+		startI := seekRow.V + 1
+		endI := rpcBlockNum - confirmRow.V
+		if startI < endI {
+			// 手续费钱包列表
+			feeRow, err := app.SQLGetTAppConfigStrByK(
+				context.Background(),
+				app.DbCon,
+				"fee_wallet_address_list",
+			)
 			if err != nil {
-				hcommon.Log.Warnf("EthRpcBlockByNum err: [%T] %s", err, err.Error())
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			// 接收地址列表
-			var toAddresses []string
-			// map[接收地址] => []交易信息
-			toAddressTxMap := make(map[string][]*types.Transaction)
-			// 遍历block中的tx
-			for _, rpcTx := range rpcBlock.Transactions() {
-				// 转账数额大于0 and 不是创建合约交易
-				if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
-					msg, err := rpcTx.AsMessage(types.NewEIP155Signer(rpcTx.ChainId()))
-					if err != nil {
-						hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
-						return
+			if feeRow == nil {
+				hcommon.Log.Errorf("no config int of fee_wallet_address_list")
+				return
+			}
+			addresses := strings.Split(feeRow.V, ",")
+			var feeAddresses []string
+			for _, address := range addresses {
+				if address == "" {
+					continue
+				}
+				feeAddresses = append(feeAddresses, address)
+			}
+			// 遍历获取需要查询的block信息
+			for i := startI; i < endI; i++ {
+				// rpc获取block信息
+				rpcBlock, err := ethclient.RpcBlockByNum(context.Background(), i)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 接收地址列表
+				var toAddresses []string
+				// map[接收地址] => []交易信息
+				toAddressTxMap := make(map[string][]*types.Transaction)
+				// 遍历block中的tx
+				for _, rpcTx := range rpcBlock.Transactions() {
+					// 转账数额大于0 and 不是创建合约交易
+					if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
+						msg, err := rpcTx.AsMessage(types.NewEIP155Signer(rpcTx.ChainId()))
+						if err != nil {
+							hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
+							return
+						}
+						if hcommon.IsStringInSlice(feeAddresses, AddressBytesToStr(msg.From())) {
+							// 如果打币地址在手续费热钱包地址则不处理
+							continue
+						}
+						toAddress := AddressBytesToStr(*(rpcTx.To()))
+						toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], rpcTx)
+						if !hcommon.IsStringInSlice(toAddresses, toAddress) {
+							toAddresses = append(toAddresses, toAddress)
+						}
 					}
-					if hcommon.IsStringInSlice(feeAddresses, strings.ToLower(msg.From().Hex())) {
-						// 如果打币地址在手续费热钱包地址则不处理
-						continue
+				}
+				// 从db中查询这些地址是否是冲币地址中的地址
+				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
+					context.Background(),
+					app.DbCon,
+					[]string{
+						model.DBColTAddressKeyAddress,
+						model.DBColTAddressKeyUseTag,
+					},
+					toAddresses,
+				)
+				if err != nil {
+					hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 待插入数据
+				var dbTxRows []*model.DBTTx
+				// map[接收地址] => 产品id
+				addressProductMap := make(map[string]int64)
+				for _, dbAddressRow := range dbAddressRows {
+					addressProductMap[dbAddressRow.Address] = dbAddressRow.UseTag
+				}
+				// 时间
+				now := time.Now().Unix()
+				// 遍历数据库中有交易的地址
+				for _, dbAddressRow := range dbAddressRows {
+					// 获取地址对应的交易列表
+					txes := toAddressTxMap[dbAddressRow.Address]
+					for _, tx := range txes {
+						msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()))
+						if err != nil {
+							hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
+							return
+						}
+						fromAddress := AddressBytesToStr(msg.From())
+						toAddress := AddressBytesToStr(*(tx.To()))
+						balanceReal := decimal.NewFromInt(tx.Value().Int64()).Div(decimal.NewFromInt(1e18))
+						dbTxRows = append(dbTxRows, &model.DBTTx{
+							ProductID:    addressProductMap[toAddress],
+							TxID:         tx.Hash().String(),
+							FromAddress:  fromAddress,
+							ToAddress:    toAddress,
+							Balance:      tx.Value().Int64(),
+							BalanceReal:  balanceReal.String(),
+							CreateTime:   now,
+							HandleStatus: app.TxStatusInit,
+							HandleMsg:    "",
+							HandleTime:   now,
+							OrgStatus:    app.TxOrgStatusInit,
+							OrgMsg:       "",
+							OrgTime:      now,
+						})
 					}
-					toAddress := strings.ToLower(rpcTx.To().Hex())
-					toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], rpcTx)
-					toAddresses = append(toAddresses, toAddress)
+				}
+				// 插入交易数据
+				_, err = model.SQLCreateIgnoreManyTTx(
+					context.Background(),
+					app.DbCon,
+					dbTxRows,
+				)
+				if err != nil {
+					hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 更新检查到的最新区块数
+				_, err = app.SQLUpdateTAppStatusIntByK(
+					context.Background(),
+					app.DbCon,
+					&model.DBTAppStatusInt{
+						K: "seek_num",
+						V: i,
+					},
+				)
+				if err != nil {
+					hcommon.Log.Warnf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
+					return
 				}
 			}
-			// 从db中查询这些地址是否是冲币地址中的地址
-			dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
-				context.Background(),
-				app.DbCon,
-				[]string{
-					model.DBColTAddressKeyAddress,
-					model.DBColTAddressKeyUseTag,
-				},
-				toAddresses,
-			)
-			if err != nil {
-				hcommon.Log.Warnf("dbAddressRows err: [%T] %s", err, err.Error())
-				return
-			}
-			// 待插入数据
-			var dbTxRows []*model.DBTTx
-			// map[接收地址] => 产品id
-			addressProductMap := make(map[string]int64)
-			for _, dbAddressRow := range dbAddressRows {
-				addressProductMap[dbAddressRow.Address] = dbAddressRow.UseTag
-			}
-			// 时间
-			now := time.Now().Unix()
-			// 遍历数据库中有交易的地址
-			for _, dbAddressRow := range dbAddressRows {
-				// 获取地址对应的交易列表
-				txes := toAddressTxMap[dbAddressRow.Address]
-				for _, tx := range txes {
-					msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()))
-					if err != nil {
-						hcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
-						return
-					}
-					toAddress := strings.ToLower(tx.To().Hex())
-					balanceReal := decimal.NewFromInt(tx.Value().Int64()).Div(decimal.NewFromInt(1e18))
-					dbTxRows = append(dbTxRows, &model.DBTTx{
-						ProductID:    addressProductMap[toAddress],
-						TxID:         tx.Hash().String(),
-						FromAddress:  strings.ToLower(msg.From().Hex()),
-						ToAddress:    toAddress,
-						Balance:      tx.Value().Int64(),
-						BalanceReal:  balanceReal.String(),
-						CreateTime:   now,
-						HandleStatus: app.TxStatusInit,
-						HandleMsg:    "",
-						HandleTime:   now,
-						OrgStatus:    app.TxOrgStatusInit,
-						OrgMsg:       "",
-						OrgTime:      now,
-					})
-				}
-			}
-			// 插入交易数据
-			_, err = model.SQLCreateIgnoreManyTTx(
-				context.Background(),
-				app.DbCon,
-				dbTxRows,
-			)
-			if err != nil {
-				hcommon.Log.Warnf("SQLCreateIgnoreManyTTx err: [%T] %s", err, err.Error())
-				return
-			}
-			// 更新检查到的最新区块数
-			_, err = app.SQLUpdateTAppStatusIntByK(
-				context.Background(),
-				app.DbCon,
-				&model.DBTAppStatusInt{
-					K: "seek_num",
-					V: i,
-				},
-			)
-			if err != nil {
-				hcommon.Log.Warnf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
-				return
-			}
 		}
-	}
+	})
 }
 
 // CheckAddressOrg 零钱整理到冷钱包
@@ -1845,10 +1826,10 @@ func CheckErc20TxOrg() {
 		orgInfo.TokenBalance += txRow.Balance
 
 		// 待查询id
-		if hcommon.IsIntInSlice(tokenIDs, txRow.TokenID) {
+		if !hcommon.IsIntInSlice(tokenIDs, txRow.TokenID) {
 			tokenIDs = append(tokenIDs, txRow.TokenID)
 		}
-		if hcommon.IsStringInSlice(toAddresses, txRow.ToAddress) {
+		if !hcommon.IsStringInSlice(toAddresses, txRow.ToAddress) {
 			toAddresses = append(toAddresses, txRow.ToAddress)
 		}
 	}
