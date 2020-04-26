@@ -683,213 +683,193 @@ func CheckRawTxSend() {
 // CheckRawTxConfirm 确认tx是否打包完成
 func CheckRawTxConfirm() {
 	lockKey := "EthCheckRawTxConfirm"
-	ok, err := app.GetLock(
-		context.Background(),
-		app.DbCon,
-		lockKey,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
-		return
-	}
-	if !ok {
-		return
-	}
-	defer func() {
-		err := app.ReleaseLock(
+	app.LockWrap(lockKey, func() {
+		sendRows, err := app.SQLSelectTSendColByStatus(
 			context.Background(),
 			app.DbCon,
-			lockKey,
-		)
-		if err != nil {
-			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
-			return
-		}
-	}()
-
-	sendRows, err := app.SQLSelectTSendColByStatus(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTSendID,
-			model.DBColTSendRelatedType,
-			model.DBColTSendRelatedID,
-			model.DBColTSendID,
-			model.DBColTSendTxID,
-		},
-		app.SendStatusSend,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	var withdrawIDs []int64
-	withdrawMap := make(map[int64]*model.DBTWithdraw)
-	for _, sendRow := range sendRows {
-		if sendRow.RelatedType == app.SendRelationTypeWithdraw {
-			// 提币
-			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
-				withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
-			}
-		}
-	}
-	withdrawRows, err := model.SQLSelectTWithdrawCol(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTWithdrawID,
-			model.DBColTWithdrawProductID,
-			model.DBColTWithdrawOutSerial,
-			model.DBColTWithdrawToAddress,
-			model.DBColTWithdrawBalanceReal,
-			model.DBColTWithdrawSymbol,
-		},
-		withdrawIDs,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	var productIDs []int64
-	for _, withdrawRow := range withdrawRows {
-		withdrawMap[withdrawRow.ID] = withdrawRow
-
-		if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
-			productIDs = append(productIDs, withdrawRow.ProductID)
-		}
-	}
-	productRows, err := model.SQLSelectTProductCol(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTProductID,
-			model.DBColTProductAppName,
-			model.DBColTProductCbURL,
-			model.DBColTProductAppSk,
-		},
-		productIDs,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	productMap := make(map[int64]*model.DBTProduct)
-	for _, productRow := range productRows {
-		productMap[productRow.ID] = productRow
-	}
-
-	now := time.Now().Unix()
-	var notifyRows []*model.DBTProductNotify
-	var sendIDs []int64
-	var withdrawUpdateIDs []int64
-	var erc20FeeTxHashes []string
-	for _, sendRow := range sendRows {
-		rpcTx, err := ethclient.RpcTransactionByHash(
-			context.Background(),
-			sendRow.TxID,
+			[]string{
+				model.DBColTSendID,
+				model.DBColTSendRelatedType,
+				model.DBColTSendRelatedID,
+				model.DBColTSendID,
+				model.DBColTSendTxID,
+			},
+			app.SendStatusSend,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			continue
+			return
 		}
-		if rpcTx == nil {
-			continue
-		}
-		if sendRow.RelatedType == app.SendRelationTypeWithdraw {
-			// 提币
-			withdrawRow := withdrawMap[sendRow.RelatedID]
-			productRow := productMap[withdrawRow.ProductID]
-			nonce := hcommon.GetUUIDStr()
-			reqObj := gin.H{
-				"tx_hash":     sendRow.TxID,
-				"balance":     withdrawRow.BalanceReal,
-				"app_name":    productRow.AppName,
-				"out_serial":  withdrawRow.OutSerial,
-				"address":     withdrawRow.ToAddress,
-				"symbol":      withdrawRow.Symbol,
-				"notify_type": app.NotifyTypeWithdrawConfirm,
+		var withdrawIDs []int64
+		for _, sendRow := range sendRows {
+			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
+				// 提币
+				if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
+					withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
+				}
 			}
-			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
-			req, err := json.Marshal(reqObj)
+		}
+		withdrawMap, err := app.SQLGetWithdrawMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+				model.DBColTWithdrawProductID,
+				model.DBColTWithdrawOutSerial,
+				model.DBColTWithdrawToAddress,
+				model.DBColTWithdrawBalanceReal,
+				model.DBColTWithdrawSymbol,
+			},
+			withdrawIDs,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+
+		var productIDs []int64
+		for _, withdrawRow := range withdrawMap {
+			if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
+				productIDs = append(productIDs, withdrawRow.ProductID)
+			}
+		}
+		productMap, err := app.SQLGetProductMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTProductID,
+				model.DBColTProductAppName,
+				model.DBColTProductCbURL,
+				model.DBColTProductAppSk,
+			},
+			productIDs,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+
+		now := time.Now().Unix()
+		var notifyRows []*model.DBTProductNotify
+		var sendIDs []int64
+		var withdrawUpdateIDs []int64
+		var erc20FeeTxHashes []string
+		for _, sendRow := range sendRows {
+			rpcTx, err := ethclient.RpcTransactionByHash(
+				context.Background(),
+				sendRow.TxID,
+			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
 			}
-			notifyRows = append(notifyRows, &model.DBTProductNotify{
-				Nonce:        nonce,
-				ProductID:    withdrawRow.ProductID,
-				ItemType:     app.SendRelationTypeWithdraw,
-				ItemID:       withdrawRow.ID,
-				NotifyType:   app.NotifyTypeWithdrawConfirm,
-				URL:          productRow.CbURL,
-				Msg:          string(req),
-				HandleStatus: app.NotifyStatusInit,
-				HandleMsg:    "",
-				CreateTime:   now,
-				UpdateTime:   now,
-			})
-			withdrawUpdateIDs = append(withdrawUpdateIDs, sendRow.RelatedID)
-		}
-		if sendRow.RelatedType == app.SendRelationTypeTxErc20Fee {
-			// 零钱整理erc20的eth手续费
-			if !hcommon.IsStringInSlice(erc20FeeTxHashes, sendRow.TxID) {
-				erc20FeeTxHashes = append(erc20FeeTxHashes, sendRow.TxID)
+			if rpcTx == nil {
+				continue
 			}
+			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
+				// 提币
+				withdrawRow, ok := withdrawMap[sendRow.RelatedID]
+				if !ok {
+					hcommon.Log.Errorf("no withdrawMap: %d", sendRow.RelatedID)
+					return
+				}
+				productRow, ok := productMap[withdrawRow.ProductID]
+				if !ok {
+					hcommon.Log.Errorf("no productMap: %d", withdrawRow.ProductID)
+					return
+				}
+				nonce := hcommon.GetUUIDStr()
+				reqObj := gin.H{
+					"tx_hash":     sendRow.TxID,
+					"balance":     withdrawRow.BalanceReal,
+					"app_name":    productRow.AppName,
+					"out_serial":  withdrawRow.OutSerial,
+					"address":     withdrawRow.ToAddress,
+					"symbol":      withdrawRow.Symbol,
+					"notify_type": app.NotifyTypeWithdrawConfirm,
+				}
+				reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+				req, err := json.Marshal(reqObj)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				notifyRows = append(notifyRows, &model.DBTProductNotify{
+					Nonce:        nonce,
+					ProductID:    withdrawRow.ProductID,
+					ItemType:     app.SendRelationTypeWithdraw,
+					ItemID:       withdrawRow.ID,
+					NotifyType:   app.NotifyTypeWithdrawConfirm,
+					URL:          productRow.CbURL,
+					Msg:          string(req),
+					HandleStatus: app.NotifyStatusInit,
+					HandleMsg:    "",
+					CreateTime:   now,
+					UpdateTime:   now,
+				})
+				withdrawUpdateIDs = append(withdrawUpdateIDs, sendRow.RelatedID)
+			}
+			if sendRow.RelatedType == app.SendRelationTypeTxErc20Fee {
+				// 零钱整理erc20的eth手续费
+				if !hcommon.IsStringInSlice(erc20FeeTxHashes, sendRow.TxID) {
+					erc20FeeTxHashes = append(erc20FeeTxHashes, sendRow.TxID)
+				}
+			}
+			// 完成
+			sendIDs = append(sendIDs, sendRow.ID)
 		}
-		// 完成
-		sendIDs = append(sendIDs, sendRow.ID)
-	}
-	// 通知信息
-	_, err = model.SQLCreateIgnoreManyTProductNotify(
-		context.Background(),
-		app.DbCon,
-		notifyRows,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	// 更新提币状态
-	_, err = app.SQLUpdateTWithdrawStatusByIDs(
-		context.Background(),
-		app.DbCon,
-		withdrawUpdateIDs,
-		&model.DBTWithdraw{
-			HandleStatus: app.WithdrawStatusConfirm,
-			HandleMsg:    "confirmed",
-			HandleTime:   now,
-		},
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	// 更新erc20零钱整理eth手续费状态
-	_, err = app.SQLUpdateTTxErc20OrgStatusByTxHashed(
-		context.Background(),
-		app.DbCon,
-		erc20FeeTxHashes,
-		model.DBTTxErc20{
-			OrgStatus: app.TxOrgStatusFeeConfirm,
-			OrgMsg:    "eth fee confirmed",
-			OrgTime:   now,
-		},
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	// 更新发送状态
-	_, err = app.SQLUpdateTSendStatusByIDs(
-		context.Background(),
-		app.DbCon,
-		sendIDs,
-		model.DBTSend{
-			HandleStatus: app.SendStatusConfirm,
-			HandleMsg:    "confirmed",
-			HandleTime:   now,
-		},
-	)
+		// 通知信息
+		_, err = model.SQLCreateIgnoreManyTProductNotify(
+			context.Background(),
+			app.DbCon,
+			notifyRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新提币状态
+		_, err = app.SQLUpdateTWithdrawStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			withdrawUpdateIDs,
+			&model.DBTWithdraw{
+				HandleStatus: app.WithdrawStatusConfirm,
+				HandleMsg:    "confirmed",
+				HandleTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新erc20零钱整理eth手续费状态
+		_, err = app.SQLUpdateTTxErc20OrgStatusByTxHashed(
+			context.Background(),
+			app.DbCon,
+			erc20FeeTxHashes,
+			model.DBTTxErc20{
+				OrgStatus: app.TxOrgStatusFeeConfirm,
+				OrgMsg:    "eth fee confirmed",
+				OrgTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新发送状态
+		_, err = app.SQLUpdateTSendStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			sendIDs,
+			model.DBTSend{
+				HandleStatus: app.SendStatusConfirm,
+				HandleMsg:    "confirmed",
+				HandleTime:   now,
+			},
+		)
+	})
 }
 
 // CheckWithdraw 检测提现
