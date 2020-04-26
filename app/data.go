@@ -166,7 +166,7 @@ func SQLGetAddressKeyMap(ctx context.Context, tx hcommon.DbExeAble, cols []strin
 	if !hcommon.IsStringInSlice(cols, model.DBColTAddressKeyAddress) {
 		cols = append(cols, model.DBColTAddressKeyAddress)
 	}
-	itemMap := make(map[int64]*model.DBTAddressKey)
+	itemMap := make(map[string]*model.DBTAddressKey)
 	itemRows, err := SQLSelectTAddressKeyColByAddress(
 		ctx,
 		tx,
