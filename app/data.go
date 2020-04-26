@@ -97,3 +97,45 @@ func LockWrap(name string, f func()) {
 	}()
 	f()
 }
+
+// SQLGetWithdrawMap 获取提币map
+func SQLGetWithdrawMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTWithdraw, error) {
+	if !hcommon.IsStringInSlice(cols, model.DBColTWithdrawID) {
+		cols = append(cols, model.DBColTWithdrawID)
+	}
+	itemMap := make(map[int64]*model.DBTWithdraw)
+	itemRows, err := model.SQLSelectTWithdrawCol(
+		ctx,
+		tx,
+		cols,
+		ids,
+	)
+	if err != nil {
+		return nil, err
+	}
+	for _, itemRow := range itemRows {
+		itemMap[itemRow.ID] = itemRow
+	}
+	return itemMap, nil
+}
+
+// SQLGetProductMap 获取产品map
+func SQLGetProductMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTProduct, error) {
+	if !hcommon.IsStringInSlice(cols, model.DBColTProductID) {
+		cols = append(cols, model.DBColTProductID)
+	}
+	itemMap := make(map[int64]*model.DBTProduct)
+	itemRows, err := model.SQLSelectTProductCol(
+		ctx,
+		tx,
+		cols,
+		ids,
+	)
+	if err != nil {
+		return nil, err
+	}
+	for _, itemRow := range itemRows {
+		itemMap[itemRow.ID] = itemRow
+	}
+	return itemMap, nil
+}

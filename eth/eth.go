@@ -526,7 +526,6 @@ func CheckRawTxSend() {
 		}
 		// 提币
 		var withdrawIDs []int64
-		withdrawMap := make(map[int64]*model.DBTWithdraw)
 		for _, sendRow := range sendRows {
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 				// 提币
@@ -535,7 +534,7 @@ func CheckRawTxSend() {
 				}
 			}
 		}
-		withdrawRows, err := model.SQLSelectTWithdrawCol(
+		withdrawMap, err := app.SQLGetWithdrawMap(
 			context.Background(),
 			app.DbCon,
 			[]string{
@@ -547,19 +546,14 @@ func CheckRawTxSend() {
 			},
 			withdrawIDs,
 		)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
+		// 产品
 		var productIDs []int64
-		for _, withdrawRow := range withdrawRows {
-			withdrawMap[withdrawRow.ID] = withdrawRow
-
+		for _, withdrawRow := range withdrawMap {
 			if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
 				productIDs = append(productIDs, withdrawRow.ProductID)
 			}
 		}
-		productRows, err := model.SQLSelectTProductCol(
+		productMap, err := app.SQLGetProductMap(
 			context.Background(),
 			app.DbCon,
 			[]string{
@@ -570,14 +564,6 @@ func CheckRawTxSend() {
 			},
 			productIDs,
 		)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		productMap := make(map[int64]*model.DBTProduct)
-		for _, productRow := range productRows {
-			productMap[productRow.ID] = productRow
-		}
 		// 执行发送
 		var txHashes []string
 		var notifyRows []*model.DBTProductNotify
@@ -606,8 +592,16 @@ func CheckRawTxSend() {
 			}
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 				// 提币
-				withdrawRow := withdrawMap[sendRow.RelatedID]
-				productRow := productMap[withdrawRow.ProductID]
+				withdrawRow, ok := withdrawMap[sendRow.RelatedID]
+				if !ok {
+					hcommon.Log.Errorf("withdrawMap no: %d", sendRow.RelatedID)
+					continue
+				}
+				productRow, ok := productMap[withdrawRow.ProductID]
+				if !ok {
+					hcommon.Log.Errorf("productMap no: %d", withdrawRow.ProductID)
+					continue
+				}
 				nonce := hcommon.GetUUIDStr()
 				reqObj := gin.H{
 					"tx_hash":     sendRow.TxID,
@@ -638,7 +632,10 @@ func CheckRawTxSend() {
 					UpdateTime:   now,
 				})
 			}
-			txHashes = append(txHashes, strings.ToLower(tx.Hash().Hex()))
+			txHash := strings.ToLower(tx.Hash().Hex())
+			if !hcommon.IsStringInSlice(txHashes, txHash) {
+				txHashes = append(txHashes, txHash)
+			}
 		}
 		// 插入通知
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
