@@ -875,148 +875,120 @@ func CheckRawTxConfirm() {
 // CheckWithdraw 检测提现
 func CheckWithdraw() {
 	lockKey := "EthCheckWithdraw"
-	ok, err := app.GetLock(
-		context.Background(),
-		app.DbCon,
-		lockKey,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
-		return
-	}
-	if !ok {
-		return
-	}
-	defer func() {
-		err := app.ReleaseLock(
+	app.LockWrap(lockKey, func() {
+		// 获取热钱包地址
+		hotRow, err := app.SQLGetTAppConfigStrByK(
 			context.Background(),
 			app.DbCon,
-			lockKey,
+			"hot_wallet_address",
 		)
 		if err != nil {
-			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-	}()
-
-	// 获取热钱包地址
-	hotRow, err := app.SQLGetTAppConfigStrByK(
-		context.Background(),
-		app.DbCon,
-		"hot_wallet_address",
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
-		return
-	}
-	if hotRow == nil {
-		hcommon.Log.Errorf("no config int of hot_wallet_address")
-		return
-	}
-	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	if !re.MatchString(hotRow.V) {
-		hcommon.Log.Errorf("config int hot_wallet_address err: %s", hotRow.V)
-		return
-	}
-	hotAddress := common.HexToAddress(hotRow.V)
-	hcommon.Log.Debugf("hotAddress: %s", hotAddress)
-	// 获取私钥
-	keyRow, err := app.SQLGetTAddressKeyColByAddress(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTAddressKeyPwd,
-		},
-		hotRow.V,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAddressKeyColByAddress err: [%T] %s", err, err.Error())
-		return
-	}
-	if keyRow == nil {
-		hcommon.Log.Errorf("no key of: %s", hotRow.V)
-		return
-	}
-	key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
-	if len(key) == 0 {
-		hcommon.Log.Errorf("error key of: %s", hotRow.V)
-		return
-	}
-	if strings.HasPrefix(key, "0x") {
-		key = key[2:]
-	}
-	privateKey, err := crypto.HexToECDSA(key)
-	if err != nil {
-		hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
-		return
-	}
-	hcommon.Log.Debugf("privateKey: %v", privateKey)
-	withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTWithdrawID,
-			model.DBColTWithdrawSymbol,
-		},
-		app.WithdrawStatusInit,
-		[]string{"eth"},
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLSelectTWithdrawColByStatus err: [%T] %s", err, err.Error())
-		return
-	}
-	if len(withdrawRows) == 0 {
-		return
-	}
-	hotAddressBalance, err := ethclient.RpcBalanceAt(
-		context.Background(),
-		hotRow.V,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
-		return
-	}
-	pendingBalance, err := app.SQLGetTSendPendingBalance(
-		context.Background(),
-		app.DbCon,
-		hotRow.V,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTSendPendingBalance err: [%T] %s", err, err.Error())
-		return
-	}
-	hotAddressBalance -= pendingBalance
-	hcommon.Log.Debugf("hotAddressBalance: %d", hotAddressBalance)
-	// 获取gap price
-	gasRow, err := app.SQLGetTAppStatusIntByK(
-		context.Background(),
-		app.DbCon,
-		"to_user_gas_price",
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
-		return
-	}
-	if gasRow == nil {
-		hcommon.Log.Errorf("no config int of to_user_gas_price")
-		return
-	}
-	gasPrice := gasRow.V
-	gasLimit := int64(21000)
-	feeValue := gasLimit * gasPrice
-	chainID, err := ethclient.RpcNetworkID(context.Background())
-	if err != nil {
-		hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
-		return
-	}
-
-	for _, withdrawRow := range withdrawRows {
-		err = handleWithdraw(withdrawRow.ID, chainID, hotRow.V, privateKey, &hotAddressBalance, gasLimit, gasPrice, feeValue)
-		if err != nil {
-			hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
-			continue
+		if hotRow == nil {
+			hcommon.Log.Errorf("no config int of hot_wallet_address")
+			return
 		}
-	}
+		_, err = StrToAddressBytes(hotRow.V)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 获取私钥
+		keyRow, err := app.SQLGetTAddressKeyColByAddress(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTAddressKeyPwd,
+			},
+			hotRow.V,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if keyRow == nil {
+			hcommon.Log.Errorf("no key of: %s", hotRow.V)
+			return
+		}
+		key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+		if len(key) == 0 {
+			hcommon.Log.Errorf("error key of: %s", hotRow.V)
+			return
+		}
+		if strings.HasPrefix(key, "0x") {
+			key = key[2:]
+		}
+		privateKey, err := crypto.HexToECDSA(key)
+		if err != nil {
+			hcommon.Log.Errorf("HexToECDSA err: [%T] %s", err, err.Error())
+			return
+		}
+		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+			},
+			app.WithdrawStatusInit,
+			[]string{"eth"},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if len(withdrawRows) == 0 {
+			return
+		}
+		hotAddressBalance, err := ethclient.RpcBalanceAt(
+			context.Background(),
+			hotRow.V,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		pendingBalance, err := app.SQLGetTSendPendingBalance(
+			context.Background(),
+			app.DbCon,
+			hotRow.V,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		hotAddressBalance -= pendingBalance
+		// 获取gap price
+		gasRow, err := app.SQLGetTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			"to_user_gas_price",
+		)
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if gasRow == nil {
+			hcommon.Log.Errorf("no config int of to_user_gas_price")
+			return
+		}
+		gasPrice := gasRow.V
+		gasLimit := int64(21000)
+		feeValue := gasLimit * gasPrice
+		chainID, err := ethclient.RpcNetworkID(context.Background())
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
+		}
+		for _, withdrawRow := range withdrawRows {
+			err = handleWithdraw(withdrawRow.ID, chainID, hotRow.V, privateKey, &hotAddressBalance, gasLimit, gasPrice, feeValue)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+		}
+	})
 }
 
 func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateKey *ecdsa.PrivateKey, hotAddressBalance *int64, gasLimit, gasPrice, feeValue int64) error {
@@ -1053,10 +1025,9 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 		return err
 	}
 	balance := balanceObj.Mul(decimal.NewFromInt(1e18)).IntPart()
-	hcommon.Log.Debugf("balance: %d", balance)
 	*hotAddressBalance -= balance + feeValue
 	if *hotAddressBalance < 0 {
-		hcommon.Log.Warnf("hot balance limit")
+		hcommon.Log.Errorf("hot balance limit")
 		return nil
 	}
 	// nonce
@@ -1069,9 +1040,13 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 	}
 	// 创建交易
 	var data []byte
+	toAddress, err := StrToAddressBytes(withdrawRow.ToAddress)
+	if err != nil {
+		return err
+	}
 	tx := types.NewTransaction(
 		uint64(nonce),
-		common.HexToAddress(withdrawRow.ToAddress),
+		toAddress,
 		big.NewInt(balance),
 		uint64(gasLimit),
 		big.NewInt(gasPrice),
