@@ -286,243 +286,221 @@ func CheckBlockSeek() {
 // CheckAddressOrg 零钱整理到冷钱包
 func CheckAddressOrg() {
 	lockKey := "EthCheckAddressOrg"
-	ok, err := app.GetLock(
-		context.Background(),
-		app.DbCon,
-		lockKey,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
-		return
-	}
-	if !ok {
-		return
-	}
-	defer func() {
-		err := app.ReleaseLock(
+	app.LockWrap(lockKey, func() {
+		// 获取冷钱包地址
+		coldRow, err := app.SQLGetTAppConfigStrByK(
 			context.Background(),
 			app.DbCon,
-			lockKey,
+			"cold_wallet_address",
 		)
 		if err != nil {
-			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
 			return
 		}
-	}()
-
-	// 获取冷钱包地址
-	coldRow, err := app.SQLGetTAppConfigStrByK(
-		context.Background(),
-		app.DbCon,
-		"cold_wallet_address",
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
-		return
-	}
-	if coldRow == nil {
-		hcommon.Log.Errorf("no config int of cold_wallet_address")
-		return
-	}
-	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	if !re.MatchString(coldRow.V) {
-		hcommon.Log.Errorf("config int cold_wallet_address err: %s", coldRow.V)
-		return
-	}
-	coldAddress := common.HexToAddress(coldRow.V)
-	// 获取待整理的地址列表
-	txRows, err := app.SQLSelectTTxColByOrg(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTTxID,
-			model.DBColTTxToAddress,
-			model.DBColTTxBalance,
-		},
-		app.TxOrgStatusInit,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLSelectTTxColByOrg err: [%T] %s", err, err.Error())
-		return
-	}
-	if len(txRows) <= 0 {
-		// 没有要处理的信息
-		return
-	}
-	// 将待整理地址按地址做归并处理
-	type OrgInfo struct {
-		RowIDs  []int64
-		Balance int64
-	}
-	addressMap := make(map[string]*OrgInfo)
-	// 获取gap price
-	gasRow, err := app.SQLGetTAppStatusIntByK(
-		context.Background(),
-		app.DbCon,
-		"to_cold_gas_price",
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
-		return
-	}
-	if gasRow == nil {
-		hcommon.Log.Errorf("no config int of to_cold_gas_price")
-		return
-	}
-	gasPrice := gasRow.V
-	gasLimit := int64(21000)
-	feeValue := gasLimit * gasPrice
-	var addresses []string
-	for _, txRow := range txRows {
-		info := addressMap[txRow.ToAddress]
-		if info == nil {
-			info = &OrgInfo{
-				RowIDs:  []int64{},
-				Balance: 0,
-			}
-			addressMap[txRow.ToAddress] = info
+		if coldRow == nil {
+			hcommon.Log.Errorf("no config int of cold_wallet_address")
+			return
 		}
-		info.RowIDs = append(info.RowIDs, txRow.ID)
-		info.Balance += txRow.Balance
-		if !hcommon.IsStringInSlice(addresses, txRow.ToAddress) {
-			addresses = append(addresses, txRow.ToAddress)
+		coldAddress, err := StrToAddressBytes(coldRow.V)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
 		}
-	}
-	now := time.Now().Unix()
-	for address, info := range addressMap {
-		// 获取私钥
-		keyRow, err := app.SQLGetTAddressKeyColByAddress(
+		// 获取待整理的地址列表
+		txRows, err := app.SQLSelectTTxColByOrg(
 			context.Background(),
 			app.DbCon,
 			[]string{
-				model.DBColTAddressKeyPwd,
+				model.DBColTTxID,
+				model.DBColTTxToAddress,
+				model.DBColTTxBalance,
 			},
-			address,
+			app.TxOrgStatusInit,
 		)
 		if err != nil {
-			hcommon.Log.Warnf("SQLGetTAddressKeyColByAddress err: [%T] %s", err, err.Error())
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if keyRow == nil {
-			hcommon.Log.Errorf("no key of: %s", address)
-			continue
-		}
-		key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
-		if len(key) == 0 {
-			hcommon.Log.Errorf("error key of: %s", address)
-			continue
-		}
-		if strings.HasPrefix(key, "0x") {
-			key = key[2:]
-		}
-		privateKey, err := crypto.HexToECDSA(key)
-		if err != nil {
-			hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
-			continue
-		}
-		// 获取nonce值
-		nonce, err := GetNonce(app.DbCon, address)
-		if err != nil {
-			hcommon.Log.Warnf("GetNonce err: [%T] %s", err, err.Error())
+		if len(txRows) <= 0 {
+			// 没有要处理的信息
 			return
 		}
-		// 发送数量
-		sendBalance := info.Balance - feeValue
-		if sendBalance <= 0 {
-			continue
+		// 将待整理地址按地址做归并处理
+		type OrgInfo struct {
+			RowIDs  []int64
+			Balance int64
 		}
-		sendBalanceReal := decimal.NewFromInt(sendBalance).Div(decimal.NewFromInt(1e18))
-		// 生成tx
-		var data []byte
-		tx := types.NewTransaction(
-			uint64(nonce),
-			coldAddress,
-			big.NewInt(sendBalance),
-			uint64(gasLimit),
-			big.NewInt(gasPrice),
-			data,
+		addressMap := make(map[string]*OrgInfo)
+		// 获取gap price
+		gasRow, err := app.SQLGetTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			"to_cold_gas_price",
 		)
-		chainID, err := ethclient.RpcNetworkID(context.Background())
 		if err != nil {
-			hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
-		if err != nil {
-			hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+		if gasRow == nil {
+			hcommon.Log.Errorf("no config int of to_cold_gas_price")
 			return
 		}
-		ts := types.Transactions{signedTx}
-		rawTxBytes := ts.GetRlp(0)
-		rawTxHex := hex.EncodeToString(rawTxBytes)
-		txHash := strings.ToLower(signedTx.Hash().Hex())
-		// 创建存入数据
-		var sendRows []*model.DBTSend
-		for rowIndex, rowID := range info.RowIDs {
-			if rowIndex == 0 {
-				sendRows = append(sendRows, &model.DBTSend{
-					RelatedType:  app.SendRelationTypeTx,
-					RelatedID:    rowID,
-					TxID:         txHash,
-					FromAddress:  address,
-					ToAddress:    coldRow.V,
-					Balance:      sendBalance,
-					BalanceReal:  sendBalanceReal.String(),
-					Gas:          gasLimit,
-					GasPrice:     gasPrice,
-					Nonce:        nonce,
-					Hex:          rawTxHex,
-					CreateTime:   now,
-					HandleStatus: app.SendStatusInit,
-					HandleMsg:    "",
-					HandleTime:   now,
-				})
-			} else {
-				sendRows = append(sendRows, &model.DBTSend{
-					RelatedType:  1,
-					RelatedID:    rowID,
-					TxID:         txHash,
-					FromAddress:  address,
-					ToAddress:    coldRow.V,
-					Balance:      0,
-					BalanceReal:  "",
-					Gas:          0,
-					GasPrice:     0,
-					Nonce:        -1,
-					Hex:          "",
-					CreateTime:   now,
-					HandleStatus: app.SendStatusInit,
-					HandleMsg:    "",
-					HandleTime:   now,
-				})
+		gasPrice := gasRow.V
+		gasLimit := int64(21000)
+		feeValue := gasLimit * gasPrice
+		var addresses []string
+		for _, txRow := range txRows {
+			info := addressMap[txRow.ToAddress]
+			if info == nil {
+				info = &OrgInfo{
+					RowIDs:  []int64{},
+					Balance: 0,
+				}
+				addressMap[txRow.ToAddress] = info
+			}
+			info.RowIDs = append(info.RowIDs, txRow.ID)
+			info.Balance += txRow.Balance
+			if !hcommon.IsStringInSlice(addresses, txRow.ToAddress) {
+				addresses = append(addresses, txRow.ToAddress)
 			}
 		}
-		// 插入数据
-		_, err = model.SQLCreateManyTSend(
-			context.Background(),
-			app.DbCon,
-			sendRows,
-		)
+		chainID, err := ethclient.RpcNetworkID(context.Background())
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		// 更改状态
-		_, err = app.SQLUpdateTTxOrgStatusByIDs(
-			context.Background(),
-			app.DbCon,
-			info.RowIDs,
-			model.DBTTx{
-				OrgStatus: app.TxOrgStatusHex,
-				OrgMsg:    "gen raw tx",
-				OrgTime:   now,
-			},
-		)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
+		now := time.Now().Unix()
+		for address, info := range addressMap {
+			// 获取私钥
+			keyRow, err := app.SQLGetTAddressKeyColByAddress(
+				context.Background(),
+				app.DbCon,
+				[]string{
+					model.DBColTAddressKeyPwd,
+				},
+				address,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			if keyRow == nil {
+				hcommon.Log.Errorf("no key of: %s", address)
+				continue
+			}
+			key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+			if len(key) == 0 {
+				hcommon.Log.Errorf("error key of: %s", address)
+				continue
+			}
+			if strings.HasPrefix(key, "0x") {
+				key = key[2:]
+			}
+			privateKey, err := crypto.HexToECDSA(key)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+			// 获取nonce值
+			nonce, err := GetNonce(app.DbCon, address)
+			if err != nil {
+				hcommon.Log.Errorf("GetNonce err: [%T] %s", err, err.Error())
+				return
+			}
+			// 发送数量
+			sendBalance := info.Balance - feeValue
+			if sendBalance <= 0 {
+				continue
+			}
+			sendBalanceReal := decimal.NewFromInt(sendBalance).Div(decimal.NewFromInt(1e18))
+			// 生成tx
+			var data []byte
+			tx := types.NewTransaction(
+				uint64(nonce),
+				coldAddress,
+				big.NewInt(sendBalance),
+				uint64(gasLimit),
+				big.NewInt(gasPrice),
+				data,
+			)
+
+			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
+			if err != nil {
+				hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
+				return
+			}
+			ts := types.Transactions{signedTx}
+			rawTxBytes := ts.GetRlp(0)
+			rawTxHex := hex.EncodeToString(rawTxBytes)
+			txHash := strings.ToLower(signedTx.Hash().Hex())
+			// 创建存入数据
+			var sendRows []*model.DBTSend
+			for rowIndex, rowID := range info.RowIDs {
+				if rowIndex == 0 {
+					sendRows = append(sendRows, &model.DBTSend{
+						RelatedType:  app.SendRelationTypeTx,
+						RelatedID:    rowID,
+						TxID:         txHash,
+						FromAddress:  address,
+						ToAddress:    coldRow.V,
+						Balance:      sendBalance,
+						BalanceReal:  sendBalanceReal.String(),
+						Gas:          gasLimit,
+						GasPrice:     gasPrice,
+						Nonce:        nonce,
+						Hex:          rawTxHex,
+						CreateTime:   now,
+						HandleStatus: app.SendStatusInit,
+						HandleMsg:    "",
+						HandleTime:   now,
+					})
+				} else {
+					sendRows = append(sendRows, &model.DBTSend{
+						RelatedType:  app.SendRelationTypeTx,
+						RelatedID:    rowID,
+						TxID:         txHash,
+						FromAddress:  address,
+						ToAddress:    coldRow.V,
+						Balance:      0,
+						BalanceReal:  "",
+						Gas:          0,
+						GasPrice:     0,
+						Nonce:        -1,
+						Hex:          "",
+						CreateTime:   now,
+						HandleStatus: app.SendStatusInit,
+						HandleMsg:    "",
+						HandleTime:   now,
+					})
+				}
+			}
+			// 插入数据
+			_, err = model.SQLCreateIgnoreManyTSend(
+				context.Background(),
+				app.DbCon,
+				sendRows,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			// 更改状态
+			_, err = app.SQLUpdateTTxOrgStatusByIDs(
+				context.Background(),
+				app.DbCon,
+				info.RowIDs,
+				model.DBTTx{
+					OrgStatus: app.TxOrgStatusHex,
+					OrgMsg:    "gen raw tx",
+					OrgTime:   now,
+				},
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
 		}
-	}
+	})
 }
 
 // CheckRawTxSend 发送交易
