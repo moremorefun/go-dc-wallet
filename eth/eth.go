@@ -1109,132 +1109,109 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 
 func CheckTxNotify() {
 	lockKey := "EthCheckTxNotify"
-	ok, err := app.GetLock(
-		context.Background(),
-		app.DbCon,
-		lockKey,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
-		return
-	}
-	if !ok {
-		return
-	}
-	defer func() {
-		err := app.ReleaseLock(
+	app.LockWrap(lockKey, func() {
+		txRows, err := app.SQLSelectTTxColByStatus(
 			context.Background(),
 			app.DbCon,
-			lockKey,
+			[]string{
+				model.DBColTTxID,
+				model.DBColTTxProductID,
+				model.DBColTTxTxID,
+				model.DBColTTxToAddress,
+				model.DBColTTxBalanceReal,
+			},
+			app.TxStatusInit,
 		)
 		if err != nil {
-			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-	}()
-
-	txRows, err := app.SQLSelectTTxColByStatus(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTTxID,
-			model.DBColTTxProductID,
-			model.DBColTTxTxID,
-			model.DBColTTxToAddress,
-			model.DBColTTxBalanceReal,
-		},
-		app.TxStatusInit,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	var productIDs []int64
-	for _, txRow := range txRows {
-		if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
-			productIDs = append(productIDs, txRow.ProductID)
+		var productIDs []int64
+		for _, txRow := range txRows {
+			if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+				productIDs = append(productIDs, txRow.ProductID)
+			}
 		}
-	}
-	productRows, err := model.SQLSelectTProductCol(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTProductID,
-			model.DBColTProductAppName,
-			model.DBColTProductCbURL,
-			model.DBColTProductAppSk,
-		},
-		productIDs,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	productMap := make(map[int64]*model.DBTProduct)
-	for _, productRow := range productRows {
-		productMap[productRow.ID] = productRow
-	}
-	var notifyTxIDs []int64
-	var notifyRows []*model.DBTProductNotify
-	now := time.Now().Unix()
-	for _, txRow := range txRows {
-		productRow, ok := productMap[txRow.ProductID]
-		if !ok {
-			continue
-		}
-		nonce := hcommon.GetUUIDStr()
-		reqObj := gin.H{
-			"tx_hash":     txRow.TxID,
-			"app_name":    productRow.AppName,
-			"address":     txRow.ToAddress,
-			"balance":     txRow.BalanceReal,
-			"symbol":      "eth",
-			"notify_type": app.NotifyTypeTx,
-		}
-		reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
-		req, err := json.Marshal(reqObj)
+		productMap, err := app.SQLGetProductMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTProductID,
+				model.DBColTProductAppName,
+				model.DBColTProductCbURL,
+				model.DBColTProductAppSk,
+			},
+			productIDs,
+		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			continue
+			return
 		}
-		notifyRows = append(notifyRows, &model.DBTProductNotify{
-			Nonce:        nonce,
-			ProductID:    txRow.ProductID,
-			ItemType:     app.SendRelationTypeTx,
-			ItemID:       txRow.ID,
-			NotifyType:   app.NotifyTypeTx,
-			URL:          productRow.CbURL,
-			Msg:          string(req),
-			HandleStatus: app.NotifyStatusInit,
-			HandleMsg:    "",
-			CreateTime:   now,
-			UpdateTime:   now,
-		})
-		notifyTxIDs = append(notifyTxIDs, txRow.ID)
-	}
-	_, err = model.SQLCreateIgnoreManyTProductNotify(
-		context.Background(),
-		app.DbCon,
-		notifyRows,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
-	_, err = app.SQLUpdateTTxStatusByIDs(
-		context.Background(),
-		app.DbCon,
-		notifyTxIDs,
-		model.DBTTx{
-			HandleStatus: app.TxStatusNotify,
-			HandleMsg:    "notify",
-			HandleTime:   now,
-		},
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
-	}
+
+		var notifyTxIDs []int64
+		var notifyRows []*model.DBTProductNotify
+		now := time.Now().Unix()
+		for _, txRow := range txRows {
+			productRow, ok := productMap[txRow.ProductID]
+			if !ok {
+				hcommon.Log.Errorf("no productMap: %d", txRow.ProductID)
+				continue
+			}
+			nonce := hcommon.GetUUIDStr()
+			reqObj := gin.H{
+				"tx_hash":     txRow.TxID,
+				"app_name":    productRow.AppName,
+				"address":     txRow.ToAddress,
+				"balance":     txRow.BalanceReal,
+				"symbol":      "eth",
+				"notify_type": app.NotifyTypeTx,
+			}
+			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			req, err := json.Marshal(reqObj)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+			notifyRows = append(notifyRows, &model.DBTProductNotify{
+				Nonce:        nonce,
+				ProductID:    txRow.ProductID,
+				ItemType:     app.SendRelationTypeTx,
+				ItemID:       txRow.ID,
+				NotifyType:   app.NotifyTypeTx,
+				URL:          productRow.CbURL,
+				Msg:          string(req),
+				HandleStatus: app.NotifyStatusInit,
+				HandleMsg:    "",
+				CreateTime:   now,
+				UpdateTime:   now,
+			})
+			notifyTxIDs = append(notifyTxIDs, txRow.ID)
+		}
+		_, err = model.SQLCreateIgnoreManyTProductNotify(
+			context.Background(),
+			app.DbCon,
+			notifyRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		_, err = app.SQLUpdateTTxStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			notifyTxIDs,
+			model.DBTTx{
+				HandleStatus: app.TxStatusNotify,
+				HandleMsg:    "notify",
+				HandleTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
+
 }
 
 func CheckErc20BlockSeek() {
