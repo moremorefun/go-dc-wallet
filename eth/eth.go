@@ -12,7 +12,6 @@ import (
 	"go-dc-wallet/hcommon"
 	"math"
 	"math/big"
-	"regexp"
 	"strings"
 	"time"
 
@@ -2044,193 +2043,171 @@ func CheckErc20TxOrg() {
 
 func CheckErc20Withdraw() {
 	lockKey := "Erc20CheckWithdraw"
-	ok, err := app.GetLock(
-		context.Background(),
-		app.DbCon,
-		lockKey,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
-		return
-	}
-	if !ok {
-		return
-	}
-	defer func() {
-		err := app.ReleaseLock(
+	app.LockWrap(lockKey, func() {
+		var tokenSymbols []string
+		tokenMap := make(map[string]*model.DBTAppConfigToken)
+		addressKeyMap := make(map[string]*ecdsa.PrivateKey)
+		addressEthBalanceMap := make(map[string]int64)
+		addressTokenBalanceMap := make(map[string]int64)
+		tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 			context.Background(),
 			app.DbCon,
-			lockKey,
+			[]string{
+				model.DBColTAppConfigTokenID,
+				model.DBColTAppConfigTokenTokenAddress,
+				model.DBColTAppConfigTokenTokenDecimals,
+				model.DBColTAppConfigTokenTokenSymbol,
+				model.DBColTAppConfigTokenHotAddress,
+			},
 		)
 		if err != nil {
-			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-	}()
-	var tokenSymbols []string
-	tokenMap := make(map[string]*model.DBTAppConfigToken)
-	addressKeyMap := make(map[string]*ecdsa.PrivateKey)
-	addressEthBalanceMap := make(map[string]int64)
-	addressTokenBalanceMap := make(map[string]int64)
-	tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTAppConfigTokenID,
-			model.DBColTAppConfigTokenTokenAddress,
-			model.DBColTAppConfigTokenTokenDecimals,
-			model.DBColTAppConfigTokenTokenSymbol,
-			model.DBColTAppConfigTokenHotAddress,
-		},
-	)
-	if err != nil {
-		hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-		return
-	}
-	for _, tokenRow := range tokenRows {
-		if !hcommon.IsStringInSlice(tokenSymbols, tokenRow.TokenSymbol) {
-			tokenSymbols = append(tokenSymbols, tokenRow.TokenSymbol)
-		}
-		tokenMap[tokenRow.TokenSymbol] = tokenRow
-		// 获取私钥
-		hotAddress := tokenRow.HotAddress
-		re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-		if !re.MatchString(hotAddress) {
-			hcommon.Log.Errorf("config int hot_wallet_address err: %s", hotAddress)
-			return
-		}
-		_, ok := addressKeyMap[hotAddress]
-		if !ok {
+		for _, tokenRow := range tokenRows {
+			tokenMap[tokenRow.TokenSymbol] = tokenRow
+			if !hcommon.IsStringInSlice(tokenSymbols, tokenRow.TokenSymbol) {
+				tokenSymbols = append(tokenSymbols, tokenRow.TokenSymbol)
+			}
 			// 获取私钥
-			keyRow, err := app.SQLGetTAddressKeyColByAddress(
-				context.Background(),
-				app.DbCon,
-				[]string{
-					model.DBColTAddressKeyPwd,
-				},
-				hotAddress,
-			)
+			_, err = StrToAddressBytes(tokenRow.HotAddress)
 			if err != nil {
-				hcommon.Log.Warnf("SQLGetTAddressKeyColByAddress err: [%T] %s", err, err.Error())
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			if keyRow == nil {
-				hcommon.Log.Errorf("no key of: %s", hotAddress)
-				return
+			hotAddress := tokenRow.HotAddress
+			_, ok := addressKeyMap[hotAddress]
+			if !ok {
+				// 获取私钥
+				keyRow, err := app.SQLGetTAddressKeyColByAddress(
+					context.Background(),
+					app.DbCon,
+					[]string{
+						model.DBColTAddressKeyPwd,
+					},
+					hotAddress,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				if keyRow == nil {
+					hcommon.Log.Errorf("no key of: %s", hotAddress)
+					return
+				}
+				key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+				if len(key) == 0 {
+					hcommon.Log.Errorf("error key of: %s", hotAddress)
+					return
+				}
+				if strings.HasPrefix(key, "0x") {
+					key = key[2:]
+				}
+				privateKey, err := crypto.HexToECDSA(key)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				addressKeyMap[hotAddress] = privateKey
 			}
-			key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
-			if len(key) == 0 {
-				hcommon.Log.Errorf("error key of: %s", hotAddress)
-				return
+			_, ok = addressEthBalanceMap[hotAddress]
+			if !ok {
+				hotAddressBalance, err := ethclient.RpcBalanceAt(
+					context.Background(),
+					hotAddress,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				pendingBalance, err := app.SQLGetTSendPendingBalance(
+					context.Background(),
+					app.DbCon,
+					hotAddress,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				hotAddressBalance -= pendingBalance
+				addressEthBalanceMap[hotAddress] = hotAddressBalance
 			}
-			if strings.HasPrefix(key, "0x") {
-				key = key[2:]
+			tokenBalanceKey := fmt.Sprintf("%s-%s", tokenRow.HotAddress, tokenRow.TokenSymbol)
+			_, ok = addressTokenBalanceMap[tokenBalanceKey]
+			if !ok {
+				tokenBalance, err := ethclient.RpcTokenBalance(
+					context.Background(),
+					tokenRow.TokenAddress,
+					tokenRow.HotAddress,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				addressTokenBalanceMap[tokenBalanceKey] = tokenBalance
 			}
-			privateKey, err := crypto.HexToECDSA(key)
-			if err != nil {
-				hcommon.Log.Warnf("HexToECDSA err: [%T] %s", err, err.Error())
-				return
-			}
-			addressKeyMap[hotAddress] = privateKey
 		}
-		_, ok = addressEthBalanceMap[hotAddress]
-		if !ok {
-			hotAddressBalance, err := ethclient.RpcBalanceAt(
-				context.Background(),
-				hotAddress,
-			)
-			if err != nil {
-				hcommon.Log.Warnf("RpcBalanceAt err: [%T] %s", err, err.Error())
-				return
-			}
-			pendingBalance, err := app.SQLGetTSendPendingBalance(
-				context.Background(),
-				app.DbCon,
-				hotAddress,
-			)
-			if err != nil {
-				hcommon.Log.Warnf("SQLGetTSendPendingBalance err: [%T] %s", err, err.Error())
-				return
-			}
-			hotAddressBalance -= pendingBalance
-			addressEthBalanceMap[hotAddress] = hotAddressBalance
-		}
-		tokenBalanceKey := fmt.Sprintf("%s-%s", tokenRow.HotAddress, tokenRow.TokenSymbol)
-		_, ok = addressTokenBalanceMap[tokenBalanceKey]
-		if !ok {
-			tokenBalance, err := ethclient.RpcTokenBalance(
-				context.Background(),
-				tokenRow.TokenAddress,
-				tokenRow.HotAddress,
-			)
-			if err != nil {
-				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-				return
-			}
-			addressTokenBalanceMap[tokenBalanceKey] = tokenBalance
-		}
-	}
-	withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
-		context.Background(),
-		app.DbCon,
-		[]string{
-			model.DBColTWithdrawID,
-			model.DBColTWithdrawSymbol,
-		},
-		app.WithdrawStatusInit,
-		tokenSymbols,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLSelectTWithdrawColByStatus err: [%T] %s", err, err.Error())
-		return
-	}
-	if len(withdrawRows) == 0 {
-		return
-	}
-	// 获取gap price
-	gasRow, err := app.SQLGetTAppStatusIntByK(
-		context.Background(),
-		app.DbCon,
-		"to_user_gas_price",
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppStatusIntByK err: [%T] %s", err, err.Error())
-		return
-	}
-	if gasRow == nil {
-		hcommon.Log.Errorf("no config int of to_user_gas_price")
-		return
-	}
-	gasPrice := gasRow.V
-	erc20GasRow, err := app.SQLGetTAppConfigIntByK(
-		context.Background(),
-		app.DbCon,
-		"erc20_gas_use",
-	)
-	if err != nil {
-		hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
-		return
-	}
-	if erc20GasRow == nil {
-		hcommon.Log.Errorf("no config int of erc20_gas_use")
-		return
-	}
-	gasLimit := erc20GasRow.V
-	// eth fee
-	feeValue := gasLimit * gasPrice
-	_ = feeValue
-	chainID, err := ethclient.RpcNetworkID(context.Background())
-	if err != nil {
-		hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
-		return
-	}
-	for _, withdrawRow := range withdrawRows {
-		err = handleErc20Withdraw(withdrawRow.ID, chainID, &tokenMap, &addressKeyMap, &addressEthBalanceMap, &addressTokenBalanceMap, gasLimit, gasPrice, feeValue)
+		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+				model.DBColTWithdrawSymbol,
+			},
+			app.WithdrawStatusInit,
+			tokenSymbols,
+		)
 		if err != nil {
-			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-			continue
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
 		}
-	}
+		if len(withdrawRows) == 0 {
+			return
+		}
+		// 获取gap price
+		gasRow, err := app.SQLGetTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			"to_user_gas_price",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if gasRow == nil {
+			hcommon.Log.Errorf("no config int of to_user_gas_price")
+			return
+		}
+		gasPrice := gasRow.V
+		erc20GasRow, err := app.SQLGetTAppConfigIntByK(
+			context.Background(),
+			app.DbCon,
+			"erc20_gas_use",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if erc20GasRow == nil {
+			hcommon.Log.Errorf("no config int of erc20_gas_use")
+			return
+		}
+		gasLimit := erc20GasRow.V
+		// eth fee
+		feeValue := gasLimit * gasPrice
+		chainID, err := ethclient.RpcNetworkID(context.Background())
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		for _, withdrawRow := range withdrawRows {
+			err = handleErc20Withdraw(withdrawRow.ID, chainID, &tokenMap, &addressKeyMap, &addressEthBalanceMap, &addressTokenBalanceMap, gasLimit, gasPrice, feeValue)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+		}
+	})
 }
 
 func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*model.DBTAppConfigToken, addressKeyMap *map[string]*ecdsa.PrivateKey, addressEthBalanceMap *map[string]int64, addressTokenBalanceMap *map[string]int64, gasLimit, gasPrice, feeValue int64) error {
@@ -2307,7 +2284,7 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 		tokenBalance,
 	)
 	if err != nil {
-		return nil
+		return err
 	}
 	signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), key)
 	if err != nil {
