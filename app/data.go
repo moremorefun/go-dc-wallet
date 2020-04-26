@@ -160,3 +160,24 @@ func SQLGetAppConfigTokenMap(ctx context.Context, tx hcommon.DbExeAble, cols []s
 	}
 	return itemMap, nil
 }
+
+// SQLGetAddressKeyMap 获取地址map
+func SQLGetAddressKeyMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, addresses []string) (map[string]*model.DBTAddressKey, error) {
+	if !hcommon.IsStringInSlice(cols, model.DBColTAddressKeyAddress) {
+		cols = append(cols, model.DBColTAddressKeyAddress)
+	}
+	itemMap := make(map[int64]*model.DBTAddressKey)
+	itemRows, err := SQLSelectTAddressKeyColByAddress(
+		ctx,
+		tx,
+		cols,
+		addresses,
+	)
+	if err != nil {
+		return nil, err
+	}
+	for _, itemRow := range itemRows {
+		itemMap[itemRow.Address] = itemRow
+	}
+	return itemMap, nil
+}
