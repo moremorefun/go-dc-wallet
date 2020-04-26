@@ -139,3 +139,24 @@ func SQLGetProductMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, 
 	}
 	return itemMap, nil
 }
+
+// SQLGetAppConfigTokenMap 获取代币map
+func SQLGetAppConfigTokenMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTAppConfigToken, error) {
+	if !hcommon.IsStringInSlice(cols, model.DBColTAppConfigTokenID) {
+		cols = append(cols, model.DBColTAppConfigTokenID)
+	}
+	itemMap := make(map[int64]*model.DBTAppConfigToken)
+	itemRows, err := model.SQLSelectTAppConfigTokenCol(
+		ctx,
+		tx,
+		cols,
+		ids,
+	)
+	if err != nil {
+		return nil, err
+	}
+	for _, itemRow := range itemRows {
+		itemMap[itemRow.ID] = itemRow
+	}
+	return itemMap, nil
+}
