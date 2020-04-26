@@ -1726,6 +1726,16 @@ func CheckErc20TxOrg() {
 				hcommon.Log.Errorf("no tokenMap: %d", orgInfo.TokenID)
 				continue
 			}
+			orgMinBalanceObj, err := decimal.NewFromString(tokenRow.OrgMinBalance)
+			if err != nil {
+				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+				continue
+			}
+			orgMinBalance := orgMinBalanceObj.Mul(decimal.NewFromInt(int64(math.Pow10(int(tokenRow.TokenDecimals))))).IntPart()
+			if orgInfo.TokenBalance < orgMinBalance {
+				hcommon.Log.Errorf("token balance < org min balance")
+				continue
+			}
 			// 处理token转账
 			addressRow, ok := addressMap[toAddress]
 			if !ok {
