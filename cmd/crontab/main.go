@@ -70,8 +70,8 @@ func main() {
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
-	// 检测 erc20 通知到账
-	_, err = c.AddFunc("@every 5s", eth.CheckErc20TxNotify)
+	// 检测 erc20 零钱整理
+	_, err = c.AddFunc("@every 10m", eth.CheckErc20TxOrg)
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
