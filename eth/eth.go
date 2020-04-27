@@ -12,8 +12,11 @@ import (
 	"go-dc-wallet/hcommon"
 	"math"
 	"math/big"
+	"net/http"
 	"strings"
 	"time"
+
+	"github.com/parnurzeal/gorequest"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
@@ -2349,4 +2352,68 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 	}
 	isComment = true
 	return nil
+}
+
+func CheckGasPrice() {
+	lockKey := "EthCheckGasPrice"
+	app.LockWrap(lockKey, func() {
+		type StRespGasPrice struct {
+			Fast        int64   `json:"fast"`
+			Fastest     int64   `json:"fastest"`
+			SafeLow     int64   `json:"safeLow"`
+			Average     int64   `json:"average"`
+			BlockTime   float64 `json:"block_time"`
+			BlockNum    int64   `json:"blockNum"`
+			Speed       float64 `json:"speed"`
+			SafeLowWait float64 `json:"safeLowWait"`
+			AvgWait     float64 `json:"avgWait"`
+			FastWait    float64 `json:"fastWait"`
+			FastestWait float64 `json:"fastestWait"`
+		}
+		gresp, body, errs := gorequest.New().
+			Get("https://ethgasstation.info/api/ethgasAPI.json").
+			Timeout(time.Second * 120).
+			End()
+		if errs != nil {
+			hcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
+			return
+		}
+		if gresp.StatusCode != http.StatusOK {
+			// 状态错误
+			hcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
+			return
+		}
+		var resp StRespGasPrice
+		err := json.Unmarshal([]byte(body), &resp)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		toUserGasPrice := resp.Fast * int64(math.Pow10(8))
+		toColdGasPrice := resp.Average * int64(math.Pow10(8))
+		_, err = app.SQLUpdateTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			&model.DBTAppStatusInt{
+				K: "to_user_gas_price",
+				V: toUserGasPrice,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		_, err = app.SQLUpdateTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			&model.DBTAppStatusInt{
+				K: "to_cold_gas_price",
+				V: toColdGasPrice,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
 }

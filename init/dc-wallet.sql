@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-23 13:40:26.5690
+-- Generation Time: 2020-04-27 09:45:32.7380
 -- -------------------------------------------------------------
 
 
@@ -26,15 +26,15 @@ CREATE TABLE `t_address_key` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `t_address_key_address_idx` (`address`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=103 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=107 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `k` varchar(64) NOT NULL DEFAULT '' COMMENT '配置键名',
-  `v` int(11) NOT NULL COMMENT '配置键值',
+  `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_str` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -65,12 +65,12 @@ CREATE TABLE `t_app_lock` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `k_2` (`k`),
   KEY `k` (`k`,`create_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `k` varchar(64) NOT NULL DEFAULT '' COMMENT '配置键名',
-  `v` int(11) NOT NULL COMMENT '配置键值',
+  `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
@@ -178,6 +178,7 @@ CREATE TABLE `t_withdraw` (
   `product_id` int(11) unsigned NOT NULL COMMENT '产品id',
   `out_serial` varchar(64) NOT NULL DEFAULT '' COMMENT '提币唯一标示',
   `to_address` varchar(128) NOT NULL DEFAULT '' COMMENT '提币地址',
+  `symbol` varchar(128) NOT NULL,
   `balance_real` varchar(128) NOT NULL DEFAULT '' COMMENT '提币金额',
   `tx_hash` varchar(128) NOT NULL DEFAULT '' COMMENT '提币tx hash',
   `create_time` bigint(20) unsigned NOT NULL COMMENT '创建时间',

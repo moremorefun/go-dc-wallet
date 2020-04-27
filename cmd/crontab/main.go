@@ -80,6 +80,11 @@ func main() {
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
+	// 检测 eth gas price
+	_, err = c.AddFunc("@every 2m", eth.CheckGasPrice)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
 
 	c.Start()
 	select {}
