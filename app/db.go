@@ -777,7 +777,7 @@ WHERE
 }
 
 // SQLGetTAddressKeyColFreeForUpdate 根据id查询
-func SQLGetTAddressKeyColFreeForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string) (*model.DBTAddressKey, error) {
+func SQLGetTAddressKeyColFreeForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, symbol string) (*model.DBTAddressKey, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -786,6 +786,7 @@ FROM
 	t_address_key
 WHERE
 	use_tag=0
+	AND symbol=:symbol
 LIMIT 1
 FOR UPDATE`)
 
@@ -795,7 +796,9 @@ FOR UPDATE`)
 		tx,
 		&row,
 		query.String(),
-		gin.H{},
+		gin.H{
+			"symbol": symbol,
+		},
 	)
 	if err != nil {
 		return nil, err

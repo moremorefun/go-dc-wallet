@@ -3,6 +3,7 @@ package model
 // const TAddressKey
 const (
 	DBColTAddressKeyID      = "t_address_key.id"
+	DBColTAddressKeySymbol  = "t_address_key.symbol"  // 币种
 	DBColTAddressKeyAddress = "t_address_key.address" // 地址
 	DBColTAddressKeyPwd     = "t_address_key.pwd"     // 加密私钥
 	DBColTAddressKeyUseTag  = "t_address_key.use_tag" // 占用标志 -1 作为热钱包占用-0 未占用->0 作为用户冲币地址占用
@@ -11,12 +12,14 @@ const (
 // DBTAddressKey t_address_key 数据表
 /*
    id,
+   symbol,
    address,
    pwd,
    use_tag
 */
 type DBTAddressKey struct {
 	ID      int64  `db:"id" json:"id"`
+	Symbol  string `db:"symbol" json:"symbol"`   // 币种
 	Address string `db:"address" json:"address"` // 地址
 	Pwd     string `db:"pwd" json:"pwd"`         // 加密私钥
 	UseTag  int64  `db:"use_tag" json:"use_tag"` // 占用标志 -1 作为热钱包占用-0 未占用->0 作为用户冲币地址占用

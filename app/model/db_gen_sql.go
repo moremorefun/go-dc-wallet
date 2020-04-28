@@ -18,17 +18,20 @@ func SQLCreateTAddressKey(ctx context.Context, tx hcommon.DbExeAble, row *DBTAdd
 			tx,
 			`INSERT INTO t_address_key (
     id,
+    symbol,
     address,
     pwd,
     use_tag
 ) VALUES (
     :id,
+    :symbol,
     :address,
     :pwd,
     :use_tag
 )`,
 			gin.H{
 				"id":      row.ID,
+				"symbol":  row.Symbol,
 				"address": row.Address,
 				"pwd":     row.Pwd,
 				"use_tag": row.UseTag,
@@ -39,15 +42,18 @@ func SQLCreateTAddressKey(ctx context.Context, tx hcommon.DbExeAble, row *DBTAdd
 			ctx,
 			tx,
 			`INSERT INTO t_address_key (
+    symbol,
     address,
     pwd,
     use_tag
 ) VALUES (
+    :symbol,
     :address,
     :pwd,
     :use_tag
 )`,
 			gin.H{
+				"symbol":  row.Symbol,
 				"address": row.Address,
 				"pwd":     row.Pwd,
 				"use_tag": row.UseTag,
@@ -70,17 +76,20 @@ func SQLCreateIgnoreTAddressKey(ctx context.Context, tx hcommon.DbExeAble, row *
 			tx,
 			`INSERT IGNORE INTO t_address_key (
     id,
+    symbol,
     address,
     pwd,
     use_tag
 ) VALUES (
     :id,
+    :symbol,
     :address,
     :pwd,
     :use_tag
 )`,
 			gin.H{
 				"id":      row.ID,
+				"symbol":  row.Symbol,
 				"address": row.Address,
 				"pwd":     row.Pwd,
 				"use_tag": row.UseTag,
@@ -91,15 +100,18 @@ func SQLCreateIgnoreTAddressKey(ctx context.Context, tx hcommon.DbExeAble, row *
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_address_key (
+    symbol,
     address,
     pwd,
     use_tag
 ) VALUES (
+    :symbol,
     :address,
     :pwd,
     :use_tag
 )`,
 			gin.H{
+				"symbol":  row.Symbol,
 				"address": row.Address,
 				"pwd":     row.Pwd,
 				"use_tag": row.UseTag,
@@ -124,6 +136,7 @@ func SQLCreateManyTAddressKey(ctx context.Context, tx hcommon.DbExeAble, rows []
 				args,
 				[]interface{}{
 					row.ID,
+					row.Symbol,
 					row.Address,
 					row.Pwd,
 					row.UseTag,
@@ -135,6 +148,7 @@ func SQLCreateManyTAddressKey(ctx context.Context, tx hcommon.DbExeAble, rows []
 			args = append(
 				args,
 				[]interface{}{
+					row.Symbol,
 					row.Address,
 					row.Pwd,
 					row.UseTag,
@@ -150,6 +164,7 @@ func SQLCreateManyTAddressKey(ctx context.Context, tx hcommon.DbExeAble, rows []
 			tx,
 			`INSERT INTO t_address_key (
     id,
+    symbol,
     address,
     pwd,
     use_tag
@@ -163,6 +178,7 @@ func SQLCreateManyTAddressKey(ctx context.Context, tx hcommon.DbExeAble, rows []
 			ctx,
 			tx,
 			`INSERT INTO t_address_key (
+    symbol,
     address,
     pwd,
     use_tag
@@ -190,6 +206,7 @@ func SQLCreateIgnoreManyTAddressKey(ctx context.Context, tx hcommon.DbExeAble, r
 				args,
 				[]interface{}{
 					row.ID,
+					row.Symbol,
 					row.Address,
 					row.Pwd,
 					row.UseTag,
@@ -201,6 +218,7 @@ func SQLCreateIgnoreManyTAddressKey(ctx context.Context, tx hcommon.DbExeAble, r
 			args = append(
 				args,
 				[]interface{}{
+					row.Symbol,
 					row.Address,
 					row.Pwd,
 					row.UseTag,
@@ -216,6 +234,7 @@ func SQLCreateIgnoreManyTAddressKey(ctx context.Context, tx hcommon.DbExeAble, r
 			tx,
 			`INSERT IGNORE INTO t_address_key (
     id,
+    symbol,
     address,
     pwd,
     use_tag
@@ -229,6 +248,7 @@ func SQLCreateIgnoreManyTAddressKey(ctx context.Context, tx hcommon.DbExeAble, r
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_address_key (
+    symbol,
     address,
     pwd,
     use_tag
@@ -253,6 +273,7 @@ func SQLGetTAddressKey(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DB
 		&row,
 		`SELECT
     id,
+    symbol,
     address,
     pwd,
     use_tag
@@ -315,6 +336,7 @@ func SQLSelectTAddressKey(ctx context.Context, tx hcommon.DbExeAble, ids []int64
 		&rows,
 		`SELECT
     id,
+    symbol,
     address,
     pwd,
     use_tag
@@ -370,6 +392,7 @@ func SQLUpdateTAddressKey(ctx context.Context, tx hcommon.DbExeAble, row *DBTAdd
 		`UPDATE
 	t_address_key
 SET
+    symbol=:symbol,
     address=:address,
     pwd=:pwd,
     use_tag=:use_tag
@@ -377,6 +400,7 @@ WHERE
 	id=:id`,
 		gin.H{
 			"id":      row.ID,
+			"symbol":  row.Symbol,
 			"address": row.Address,
 			"pwd":     row.Pwd,
 			"use_tag": row.UseTag,

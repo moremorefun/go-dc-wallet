@@ -193,6 +193,7 @@ func postAddress(c *gin.Context) {
 			model.DBColTAddressKeyID,
 			model.DBColTAddressKeyAddress,
 		},
+		req.Symbol,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())

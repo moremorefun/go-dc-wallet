@@ -90,6 +90,7 @@ func CheckAddressFree() {
 				address := AddressBytesToStr(crypto.PubkeyToAddress(*publicKeyECDSA))
 				// 存入待添加队列
 				rows = append(rows, &model.DBTAddressKey{
+					Symbol:  "eth",
 					Address: address,
 					Pwd:     privateKeyStrEn,
 					UseTag:  0,
