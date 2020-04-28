@@ -3,6 +3,8 @@ module go-dc-wallet
 go 1.14
 
 require (
+	github.com/btcsuite/btcd v0.20.1-beta
+	github.com/btcsuite/btcutil v1.0.2
 	github.com/elazarl/goproxy v0.0.0-20200315184450-1f3cb6622dad // indirect
 	github.com/ethereum/go-ethereum v1.9.13
 	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6

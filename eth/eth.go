@@ -59,6 +59,7 @@ func CheckAddressFree() {
 		freeCount, err := app.SQLGetTAddressKeyFreeCount(
 			context.Background(),
 			app.DbCon,
+			"eth",
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())

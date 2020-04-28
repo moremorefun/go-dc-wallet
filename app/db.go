@@ -97,7 +97,7 @@ LIMIT 1`,
 }
 
 // SQLGetTAddressKeyFreeCount 获取剩余可用地址数
-func SQLGetTAddressKeyFreeCount(ctx context.Context, tx hcommon.DbExeAble) (int64, error) {
+func SQLGetTAddressKeyFreeCount(ctx context.Context, tx hcommon.DbExeAble, symbol string) (int64, error) {
 	var count int64
 	ok, err := hcommon.DbGetNamedContent(
 		ctx,
@@ -108,8 +108,11 @@ func SQLGetTAddressKeyFreeCount(ctx context.Context, tx hcommon.DbExeAble) (int6
 FROM
 	t_address_key
 WHERE
-	use_tag=0`,
-		gin.H{},
+	use_tag=0
+	AND symbol=:symbol`,
+		gin.H{
+			"symbol": symbol,
+		},
 	)
 	if err != nil {
 		return 0, err

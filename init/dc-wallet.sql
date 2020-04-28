@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-27 09:45:32.7380
+-- Generation Time: 2020-04-28 14:41:28.6630
 -- -------------------------------------------------------------
 
 
@@ -20,13 +20,14 @@
 
 CREATE TABLE `t_address_key` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `symbol` varchar(128) NOT NULL COMMENT '币种',
   `address` varchar(64) NOT NULL COMMENT '地址',
   `pwd` varchar(512) NOT NULL COMMENT '加密私钥',
   `use_tag` int(11) NOT NULL DEFAULT '0' COMMENT '占用标志 -1 作为热钱包占用\n0 未占用\n>0 作为用户冲币地址占用',
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
-  UNIQUE KEY `t_address_key_address_idx` (`address`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=107 DEFAULT CHARSET=utf8mb4;
+  UNIQUE KEY `t_address_key_address_idx` (`address`,`symbol`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=307 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -65,7 +66,7 @@ CREATE TABLE `t_app_lock` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `k_2` (`k`),
   KEY `k` (`k`,`create_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
