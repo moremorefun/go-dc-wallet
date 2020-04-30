@@ -4,12 +4,12 @@ package main
 
 import (
 	"go-dc-wallet/app"
-	"go-dc-wallet/eth"
+	"go-dc-wallet/heth"
 )
 
 func main() {
 	app.EnvCreate()
 	defer app.EnvDestroy()
 
-	eth.CheckAddressFree()
+	heth.CheckAddressFree()
 }
