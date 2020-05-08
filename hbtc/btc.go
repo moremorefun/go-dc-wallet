@@ -2,12 +2,13 @@ package hbtc
 
 import (
 	"context"
-	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/omniclient"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 func CheckAddressFree() {
@@ -175,7 +176,6 @@ func CheckBlockSeek() {
 					toAddress := dbAddressRow.Address
 					rpcTxWithIndexes := toAddressTxMap[toAddress]
 					for _, rpcTxWithIndex := range rpcTxWithIndexes {
-						hcommon.Log.Debugf("rpcTxWithIndex: %#v", rpcTxWithIndex)
 						rpcTx := rpcTxWithIndex.RpcTx
 						voutIndex := rpcTxWithIndex.Index
 						checkVout := rpcTx.Vout[voutIndex]
@@ -203,6 +203,7 @@ func CheckBlockSeek() {
 						}
 						if !isVoutAddressInVin {
 							// 记录数据
+							value := decimal.NewFromFloat(checkVout.Value).String()
 							txBtcRows = append(
 								txBtcRows,
 								&model.DBTTxBtc{
@@ -210,7 +211,7 @@ func CheckBlockSeek() {
 									TxID:         rpcTx.Txid,
 									VoutN:        voutIndex,
 									VoutAddress:  voutAddress,
-									VoutValue:    fmt.Sprintf("%f", checkVout.Value),
+									VoutValue:    value,
 									CreateTime:   now,
 									HandleStatus: 0,
 									HandleMsg:    "",
@@ -224,7 +225,7 @@ func CheckBlockSeek() {
 									TxID:         rpcTx.Txid,
 									VoutN:        voutIndex,
 									VoutAddress:  voutAddress,
-									VoutValue:    fmt.Sprintf("%f", checkVout.Value),
+									VoutValue:    value,
 									CreateTime:   now,
 									SpendTxID:    "",
 									SpendN:       0,
