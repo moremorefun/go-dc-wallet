@@ -341,6 +341,92 @@ type DBTTx struct {
 	OrgTime      int64  `db:"org_time" json:"org_time"`           // 零钱整理时间
 }
 
+// const TTxBtc
+const (
+	DBColTTxBtcID           = "t_tx_btc.id"
+	DBColTTxBtcBlockHash    = "t_tx_btc.block_hash"
+	DBColTTxBtcTxID         = "t_tx_btc.tx_id"
+	DBColTTxBtcVoutN        = "t_tx_btc.vout_n"
+	DBColTTxBtcVoutAddress  = "t_tx_btc.vout_address"
+	DBColTTxBtcVoutValue    = "t_tx_btc.vout_value"
+	DBColTTxBtcCreateTime   = "t_tx_btc.create_time"
+	DBColTTxBtcHandleStatus = "t_tx_btc.handle_status"
+	DBColTTxBtcHandleMsg    = "t_tx_btc.handle_msg"
+	DBColTTxBtcHandleTime   = "t_tx_btc.handle_time"
+)
+
+// DBTTxBtc t_tx_btc 数据表
+/*
+   id,
+   block_hash,
+   tx_id,
+   vout_n,
+   vout_address,
+   vout_value,
+   create_time,
+   handle_status,
+   handle_msg,
+   handle_time
+*/
+type DBTTxBtc struct {
+	ID           int64  `db:"id" json:"id"`
+	BlockHash    string `db:"block_hash" json:"block_hash"`
+	TxID         string `db:"tx_id" json:"tx_id"`
+	VoutN        int64  `db:"vout_n" json:"vout_n"`
+	VoutAddress  string `db:"vout_address" json:"vout_address"`
+	VoutValue    string `db:"vout_value" json:"vout_value"`
+	CreateTime   int64  `db:"create_time" json:"create_time"`
+	HandleStatus int64  `db:"handle_status" json:"handle_status"`
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
+	HandleTime   int64  `db:"handle_time" json:"handle_time"`
+}
+
+// const TTxBtcUxto
+const (
+	DBColTTxBtcUxtoID           = "t_tx_btc_uxto.id"
+	DBColTTxBtcUxtoBlockHash    = "t_tx_btc_uxto.block_hash"
+	DBColTTxBtcUxtoTxID         = "t_tx_btc_uxto.tx_id"
+	DBColTTxBtcUxtoVoutN        = "t_tx_btc_uxto.vout_n"
+	DBColTTxBtcUxtoVoutAddress  = "t_tx_btc_uxto.vout_address"
+	DBColTTxBtcUxtoVoutValue    = "t_tx_btc_uxto.vout_value"
+	DBColTTxBtcUxtoCreateTime   = "t_tx_btc_uxto.create_time"
+	DBColTTxBtcUxtoSpendTxID    = "t_tx_btc_uxto.spend_tx_id"
+	DBColTTxBtcUxtoSpendN       = "t_tx_btc_uxto.spend_n"
+	DBColTTxBtcUxtoHandleStatus = "t_tx_btc_uxto.handle_status"
+	DBColTTxBtcUxtoHandleMsg    = "t_tx_btc_uxto.handle_msg"
+	DBColTTxBtcUxtoHandleTime   = "t_tx_btc_uxto.handle_time"
+)
+
+// DBTTxBtcUxto t_tx_btc_uxto 数据表
+/*
+   id,
+   block_hash,
+   tx_id,
+   vout_n,
+   vout_address,
+   vout_value,
+   create_time,
+   spend_tx_id,
+   spend_n,
+   handle_status,
+   handle_msg,
+   handle_time
+*/
+type DBTTxBtcUxto struct {
+	ID           int64  `db:"id" json:"id"`
+	BlockHash    string `db:"block_hash" json:"block_hash"`
+	TxID         string `db:"tx_id" json:"tx_id"`
+	VoutN        int64  `db:"vout_n" json:"vout_n"`
+	VoutAddress  string `db:"vout_address" json:"vout_address"`
+	VoutValue    string `db:"vout_value" json:"vout_value"`
+	CreateTime   int64  `db:"create_time" json:"create_time"`
+	SpendTxID    string `db:"spend_tx_id" json:"spend_tx_id"`
+	SpendN       int64  `db:"spend_n" json:"spend_n"`
+	HandleStatus int64  `db:"handle_status" json:"handle_status"`
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
+	HandleTime   int64  `db:"handle_time" json:"handle_time"`
+}
+
 // const TTxErc20
 const (
 	DBColTTxErc20ID           = "t_tx_erc20.id"

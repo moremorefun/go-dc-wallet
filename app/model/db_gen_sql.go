@@ -5200,6 +5200,1142 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTTxBtc 创建
+func SQLCreateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc (
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :id,
+    :block_hash,
+    :tx_id,
+    :vout_n,
+    :vout_address,
+    :vout_value,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"vout_n":        row.VoutN,
+				"vout_address":  row.VoutAddress,
+				"vout_value":    row.VoutValue,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc (
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :block_hash,
+    :tx_id,
+    :vout_n,
+    :vout_address,
+    :vout_value,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"vout_n":        row.VoutN,
+				"vout_address":  row.VoutAddress,
+				"vout_value":    row.VoutValue,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTTxBtc 创建
+func SQLCreateIgnoreTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc (
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :id,
+    :block_hash,
+    :tx_id,
+    :vout_n,
+    :vout_address,
+    :vout_value,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"vout_n":        row.VoutN,
+				"vout_address":  row.VoutAddress,
+				"vout_value":    row.VoutValue,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc (
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :block_hash,
+    :tx_id,
+    :vout_n,
+    :vout_address,
+    :vout_value,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"vout_n":        row.VoutN,
+				"vout_address":  row.VoutAddress,
+				"vout_value":    row.VoutValue,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTTxBtc 创建多个
+func SQLCreateManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxBtc) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.BlockHash,
+					row.TxID,
+					row.VoutN,
+					row.VoutAddress,
+					row.VoutValue,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.BlockHash,
+					row.TxID,
+					row.VoutN,
+					row.VoutAddress,
+					row.VoutValue,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc (
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc (
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTTxBtc 创建多个
+func SQLCreateIgnoreManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxBtc) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.BlockHash,
+					row.TxID,
+					row.VoutN,
+					row.VoutAddress,
+					row.VoutValue,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.BlockHash,
+					row.TxID,
+					row.VoutN,
+					row.VoutAddress,
+					row.VoutValue,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc (
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc (
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTTxBtc 根据id查询
+func SQLGetTTxBtc(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTxBtc, error) {
+	var row DBTTxBtc
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+FROM
+	t_tx_btc
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTTxBtcCol 根据id查询
+func SQLGetTTxBtcCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTTxBtc, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc
+WHERE
+	id=:id`)
+
+	var row DBTTxBtc
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTTxBtc 根据ids获取
+func SQLSelectTTxBtc(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTTxBtc, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTTxBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+FROM
+	t_tx_btc
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTTxBtcCol 根据ids获取
+func SQLSelectTTxBtcCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTTxBtc, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTTxBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTTxBtc 更新
+func SQLUpdateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_btc
+SET
+    block_hash=:block_hash,
+    tx_id=:tx_id,
+    vout_n=:vout_n,
+    vout_address=:vout_address,
+    vout_value=:vout_value,
+    create_time=:create_time,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"block_hash":    row.BlockHash,
+			"tx_id":         row.TxID,
+			"vout_n":        row.VoutN,
+			"vout_address":  row.VoutAddress,
+			"vout_value":    row.VoutValue,
+			"create_time":   row.CreateTime,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTTxBtc 删除
+func SQLDeleteTTxBtc(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_tx_btc
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateTTxBtcUxto 创建
+func SQLCreateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtcUxto) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc_uxto (
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :id,
+    :block_hash,
+    :tx_id,
+    :vout_n,
+    :vout_address,
+    :vout_value,
+    :create_time,
+    :spend_tx_id,
+    :spend_n,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"vout_n":        row.VoutN,
+				"vout_address":  row.VoutAddress,
+				"vout_value":    row.VoutValue,
+				"create_time":   row.CreateTime,
+				"spend_tx_id":   row.SpendTxID,
+				"spend_n":       row.SpendN,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc_uxto (
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :block_hash,
+    :tx_id,
+    :vout_n,
+    :vout_address,
+    :vout_value,
+    :create_time,
+    :spend_tx_id,
+    :spend_n,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"vout_n":        row.VoutN,
+				"vout_address":  row.VoutAddress,
+				"vout_value":    row.VoutValue,
+				"create_time":   row.CreateTime,
+				"spend_tx_id":   row.SpendTxID,
+				"spend_n":       row.SpendN,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTTxBtcUxto 创建
+func SQLCreateIgnoreTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtcUxto) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc_uxto (
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :id,
+    :block_hash,
+    :tx_id,
+    :vout_n,
+    :vout_address,
+    :vout_value,
+    :create_time,
+    :spend_tx_id,
+    :spend_n,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"vout_n":        row.VoutN,
+				"vout_address":  row.VoutAddress,
+				"vout_value":    row.VoutValue,
+				"create_time":   row.CreateTime,
+				"spend_tx_id":   row.SpendTxID,
+				"spend_n":       row.SpendN,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc_uxto (
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :block_hash,
+    :tx_id,
+    :vout_n,
+    :vout_address,
+    :vout_value,
+    :create_time,
+    :spend_tx_id,
+    :spend_n,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"vout_n":        row.VoutN,
+				"vout_address":  row.VoutAddress,
+				"vout_value":    row.VoutValue,
+				"create_time":   row.CreateTime,
+				"spend_tx_id":   row.SpendTxID,
+				"spend_n":       row.SpendN,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTTxBtcUxto 创建多个
+func SQLCreateManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxBtcUxto) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.BlockHash,
+					row.TxID,
+					row.VoutN,
+					row.VoutAddress,
+					row.VoutValue,
+					row.CreateTime,
+					row.SpendTxID,
+					row.SpendN,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.BlockHash,
+					row.TxID,
+					row.VoutN,
+					row.VoutAddress,
+					row.VoutValue,
+					row.CreateTime,
+					row.SpendTxID,
+					row.SpendN,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc_uxto (
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc_uxto (
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTTxBtcUxto 创建多个
+func SQLCreateIgnoreManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxBtcUxto) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.BlockHash,
+					row.TxID,
+					row.VoutN,
+					row.VoutAddress,
+					row.VoutValue,
+					row.CreateTime,
+					row.SpendTxID,
+					row.SpendN,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.BlockHash,
+					row.TxID,
+					row.VoutN,
+					row.VoutAddress,
+					row.VoutValue,
+					row.CreateTime,
+					row.SpendTxID,
+					row.SpendN,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc_uxto (
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc_uxto (
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTTxBtcUxto 根据id查询
+func SQLGetTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTxBtcUxto, error) {
+	var row DBTTxBtcUxto
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+FROM
+	t_tx_btc_uxto
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTTxBtcUxtoCol 根据id查询
+func SQLGetTTxBtcUxtoCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTTxBtcUxto, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_uxto
+WHERE
+	id=:id`)
+
+	var row DBTTxBtcUxto
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTTxBtcUxto 根据ids获取
+func SQLSelectTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTTxBtcUxto, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTTxBtcUxto
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+FROM
+	t_tx_btc_uxto
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTTxBtcUxtoCol 根据ids获取
+func SQLSelectTTxBtcUxtoCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTTxBtcUxto, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_uxto
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTTxBtcUxto
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTTxBtcUxto 更新
+func SQLUpdateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtcUxto) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_btc_uxto
+SET
+    block_hash=:block_hash,
+    tx_id=:tx_id,
+    vout_n=:vout_n,
+    vout_address=:vout_address,
+    vout_value=:vout_value,
+    create_time=:create_time,
+    spend_tx_id=:spend_tx_id,
+    spend_n=:spend_n,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"block_hash":    row.BlockHash,
+			"tx_id":         row.TxID,
+			"vout_n":        row.VoutN,
+			"vout_address":  row.VoutAddress,
+			"vout_value":    row.VoutValue,
+			"create_time":   row.CreateTime,
+			"spend_tx_id":   row.SpendTxID,
+			"spend_n":       row.SpendN,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTTxBtcUxto 删除
+func SQLDeleteTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_tx_btc_uxto
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTTxErc20 创建
 func SQLCreateTTxErc20(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxErc20) (int64, error) {
 	var lastID int64

@@ -3,6 +3,7 @@ package app
 import (
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/omniclient"
 	"math/rand"
 	"time"
 
@@ -24,6 +25,10 @@ type config struct {
 	AESKey string `env:"AES-KEY"`
 
 	EthRPC string `env:"ETH_RPC"`
+
+	OmniRPCHost string `env:"OMNI_RPC_HOST"`
+	OmniRPCUser string `env:"OMNI_RPC_USER"`
+	OmniRPCPwd  string `env:"OMNI_RPC_PWD"`
 }
 
 // Cfg
@@ -52,6 +57,8 @@ func EnvCreate() {
 	DbCon = hcommon.DbCreate(Cfg.MySqlDataSourceName, Cfg.MySqlIsShowSQL)
 	// 初始化eth rpc
 	ethclient.InitClient(Cfg.EthRPC)
+	// 初始化omni rpc
+	omniclient.InitClient(Cfg.OmniRPCHost, Cfg.OmniRPCUser, Cfg.OmniRPCPwd)
 }
 
 // EnvDestroy 销毁运行环境
