@@ -1,10 +1,10 @@
 -- -------------------------------------------------------------
--- TablePlus 3.4.0(305)
+-- TablePlus 3.5.0(309)
 --
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-19 15:37:23.0420
+-- Generation Time: 2020-05-08 14:23:13.8040
 -- -------------------------------------------------------------
 
 
@@ -20,7 +20,9 @@
 
 INSERT INTO `t_app_config_int` (`id`, `k`, `v`) VALUES
 ('1', 'min_free_address', '100'),
-('2', 'block_confirm_num', '15');
+('2', 'block_confirm_num', '12'),
+('3', 'erc20_gas_use', '90000'),
+('4', 'btc_block_confirm_num', '2');
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

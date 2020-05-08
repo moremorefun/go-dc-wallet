@@ -1,10 +1,10 @@
 -- -------------------------------------------------------------
--- TablePlus 3.4.0(305)
+-- TablePlus 3.5.0(309)
 --
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-22 13:53:05.0250
+-- Generation Time: 2020-05-08 14:23:37.8170
 -- -------------------------------------------------------------
 
 
@@ -20,7 +20,8 @@
 
 INSERT INTO `t_app_config_token` (`id`, `token_address`, `token_decimals`, `token_symbol`, `cold_address`, `hot_address`, `org_min_balance`, `create_time`) VALUES
 ('2', '0x25fe9c458eb3f74c2c6b5398cf1ae0d302c84768', '10', 'cpu', '', '', '0', '0'),
-('3', '0xa6714a2e5f0b1bdb97b895b0913b4fcd3a775e4d', '5', 'pc', '', '', '0', '0');
+('3', '0xa6714a2e5f0b1bdb97b895b0913b4fcd3a775e4d', '5', 'pc', '', '', '0', '0'),
+('16', '0xdac17f958d2ee523a2206206994597c13d831ec7', '6', 'usdt', '', '', '0', '0');
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

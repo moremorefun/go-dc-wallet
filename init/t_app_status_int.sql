@@ -1,10 +1,10 @@
 -- -------------------------------------------------------------
--- TablePlus 3.4.0(305)
+-- TablePlus 3.5.0(309)
 --
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-04-19 15:37:41.8850
+-- Generation Time: 2020-05-08 14:23:50.5880
 -- -------------------------------------------------------------
 
 
@@ -19,9 +19,11 @@
 
 
 INSERT INTO `t_app_status_int` (`id`, `k`, `v`) VALUES
-('1', 'seek_num', '9893903'),
-('2', 'to_cold_gap_price', '1000000000'),
-('3', 'to_user_gap_price', '1000000000');
+('1', 'seek_num', '9939946'),
+('2', 'to_cold_gas_price', '5000000000'),
+('3', 'to_user_gas_price', '7000000000'),
+('4', 'erc20_seek_num', '9921265'),
+('5', 'btc_seek_num', '629401');
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

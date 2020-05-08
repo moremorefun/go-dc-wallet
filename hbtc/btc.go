@@ -148,11 +148,12 @@ func CheckBlockSeek() {
 							}
 							toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], &StTxWithIndex{
 								RpcTx: rpcTx,
-								Index: int64(vout.N),
+								Index: vout.N,
 							})
 						}
 					}
 				}
+				hcommon.Log.Debugf("rpc get block: %d to addresses: %d", i, len(toAddresses))
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
 					context.Background(),
@@ -191,6 +192,7 @@ func CheckBlockSeek() {
 									return
 								}
 								vinTxMap[vin.Txid] = rpcVinTx
+								hcommon.Log.Debugf("get tx: %s", vin.Txid)
 							}
 							if int64(len(rpcVinTx.Vout)) > vin.Vout {
 								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
