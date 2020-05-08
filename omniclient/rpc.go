@@ -12,7 +12,7 @@ var client *gorequest.SuperAgent
 var rpcURI string
 
 type StRpcRespError struct {
-	Code    int    `json:"code"`
+	Code    int64  `json:"code"`
 	Message string `json:"message"`
 }
 
@@ -35,15 +35,15 @@ type StRpcResp struct {
 type StTxResult struct {
 	Txid     string `json:"txid"`
 	Hash     string `json:"hash"`
-	Version  int    `json:"version"`
-	Size     int    `json:"size"`
-	Vsize    int    `json:"vsize"`
-	Weight   int    `json:"weight"`
-	Locktime int    `json:"locktime"`
+	Version  int64  `json:"version"`
+	Size     int64  `json:"size"`
+	Vsize    int64  `json:"vsize"`
+	Weight   int64  `json:"weight"`
+	Locktime int64  `json:"locktime"`
 	Vin      []struct {
 		Coinbase  string `json:"coinbase"`
 		Txid      string `json:"txid"`
-		Vout      int    `json:"vout"`
+		Vout      int64  `json:"vout"`
 		ScriptSig struct {
 			Asm string `json:"asm"`
 			Hex string `json:"hex"`
@@ -52,40 +52,40 @@ type StTxResult struct {
 	} `json:"vin"`
 	Vout []struct {
 		Value        float64 `json:"value"`
-		N            int     `json:"n"`
+		N            int64   `json:"n"`
 		ScriptPubKey struct {
 			Asm       string   `json:"asm"`
 			Hex       string   `json:"hex"`
-			ReqSigs   int      `json:"reqSigs"`
+			ReqSigs   int64    `json:"reqSigs"`
 			Type      string   `json:"type"`
 			Addresses []string `json:"addresses"`
 		} `json:"scriptPubKey,omitempty"`
 	} `json:"vout"`
 	Hex           string `json:"hex"`
 	Blockhash     string `json:"blockhash"`
-	Confirmations int    `json:"confirmations"`
-	Time          int    `json:"time"`
-	Blocktime     int    `json:"blocktime"`
+	Confirmations int64  `json:"confirmations"`
+	Time          int64  `json:"time"`
+	Blocktime     int64  `json:"blocktime"`
 }
 
 type StBlockResult struct {
 	Hash              string        `json:"hash"`
-	Confirmations     int           `json:"confirmations"`
-	Strippedsize      int           `json:"strippedsize"`
-	Size              int           `json:"size"`
-	Weight            int           `json:"weight"`
-	Height            int           `json:"height"`
-	Version           int           `json:"version"`
+	Confirmations     int64         `json:"confirmations"`
+	Strippedsize      int64         `json:"strippedsize"`
+	Size              int64         `json:"size"`
+	Weight            int64         `json:"weight"`
+	Height            int64         `json:"height"`
+	Version           int64         `json:"version"`
 	VersionHex        string        `json:"versionHex"`
 	Merkleroot        string        `json:"merkleroot"`
 	Tx                []*StTxResult `json:"tx"`
-	Time              int           `json:"time"`
-	Mediantime        int           `json:"mediantime"`
+	Time              int64         `json:"time"`
+	Mediantime        int64         `json:"mediantime"`
 	Nonce             int64         `json:"nonce"`
 	Bits              string        `json:"bits"`
 	Difficulty        float64       `json:"difficulty"`
 	Chainwork         string        `json:"chainwork"`
-	NTx               int           `json:"nTx"`
+	NTx               int64         `json:"nTx"`
 	Previousblockhash string        `json:"previousblockhash"`
 	Nextblockhash     string        `json:"nextblockhash"`
 }

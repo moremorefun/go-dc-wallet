@@ -192,7 +192,7 @@ func CheckBlockSeek() {
 								}
 								vinTxMap[vin.Txid] = rpcVinTx
 							}
-							if len(rpcVinTx.Vout) > vin.Vout {
+							if int64(len(rpcVinTx.Vout)) > vin.Vout {
 								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
 									if rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses[0] == voutAddress {
 										isVoutAddressInVin = true
