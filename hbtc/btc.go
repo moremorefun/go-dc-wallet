@@ -207,7 +207,7 @@ func CheckBlockSeek() {
 								txBtcRows,
 								&model.DBTTxBtc{
 									BlockHash:    rpcBlock.Hash,
-									TxID:         rpcTx.Hash,
+									TxID:         rpcTx.Txid,
 									VoutN:        voutIndex,
 									VoutAddress:  voutAddress,
 									VoutValue:    fmt.Sprintf("%f", checkVout.Value),
@@ -221,7 +221,7 @@ func CheckBlockSeek() {
 								txBtcUxtoRows,
 								&model.DBTTxBtcUxto{
 									BlockHash:    rpcBlock.Hash,
-									TxID:         rpcTx.Hash,
+									TxID:         rpcTx.Txid,
 									VoutN:        voutIndex,
 									VoutAddress:  voutAddress,
 									VoutValue:    fmt.Sprintf("%f", checkVout.Value),

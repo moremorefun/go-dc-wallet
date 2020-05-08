@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-dc-wallet/hcommon"
+	"time"
 
 	"github.com/parnurzeal/gorequest"
 )
@@ -93,7 +94,7 @@ type StBlockResult struct {
 // InitClient 初始化客户端
 func InitClient(omniRPCHost, omniRPCUser, omniRPCPwd string) {
 	rpcURI = omniRPCHost
-	client = gorequest.New().SetBasicAuth(omniRPCUser, omniRPCPwd)
+	client = gorequest.New().SetBasicAuth(omniRPCUser, omniRPCPwd).Timeout(time.Minute * 2)
 }
 
 func doReq(method string, arqs []interface{}, resp interface{}) error {
