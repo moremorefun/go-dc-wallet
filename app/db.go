@@ -1039,7 +1039,7 @@ SET
 WHERE
 	tx_id IN (:tx_ids)`,
 		gin.H{
-			"tx_id":      txHashes,
+			"tx_ids":     txHashes,
 			"org_status": row.OrgStatus,
 			"org_msg":    row.OrgMsg,
 			"org_time":   row.OrgTime,
