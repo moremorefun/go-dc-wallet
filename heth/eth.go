@@ -18,8 +18,6 @@ import (
 
 	"github.com/parnurzeal/gorequest"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
 	"github.com/gin-gonic/gin"
@@ -2295,20 +2293,29 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 	if err != nil {
 		return err
 	}
-	rpcTx, err := ethclient.RpcGenTokenTransfer(
-		context.Background(),
-		tokenRow.TokenAddress,
-		&bind.TransactOpts{
-			Nonce:    big.NewInt(nonce),
-			GasPrice: big.NewInt(gasPrice),
-			GasLimit: uint64(gasLimit),
-		},
-		withdrawRow.ToAddress,
-		tokenBalance,
-	)
+	// 生成交易
+	contractAbi, err := abi.JSON(strings.NewReader(ethclient.EthABI))
 	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
 	}
+	input, err := contractAbi.Pack(
+		"transfer",
+		common.HexToAddress(withdrawRow.ToAddress),
+		big.NewInt(tokenBalance),
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	rpcTx := types.NewTransaction(
+		uint64(nonce),
+		common.HexToAddress(tokenRow.TokenAddress),
+		big.NewInt(0),
+		uint64(gasLimit),
+		big.NewInt(gasPrice),
+		input,
+	)
 	signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), key)
 	if err != nil {
 		return err
