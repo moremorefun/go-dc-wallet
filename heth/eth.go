@@ -1766,21 +1766,29 @@ func CheckErc20TxOrg() {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
 			}
-			rpcTx, err := ethclient.RpcGenTokenTransfer(
-				context.Background(),
-				tokenRow.TokenAddress,
-				&bind.TransactOpts{
-					Nonce:    big.NewInt(nonce),
-					GasPrice: big.NewInt(gasPriceRow.V),
-					GasLimit: uint64(erc20GasRow.V),
-				},
-				tokenRow.ColdAddress,
-				orgInfo.TokenBalance,
+			// 生成交易
+			contractAbi, err := abi.JSON(strings.NewReader(ethclient.EthABI))
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			input, err := contractAbi.Pack(
+				"transfer",
+				common.HexToAddress(tokenRow.ColdAddress),
+				big.NewInt(orgInfo.TokenBalance),
 			)
 			if err != nil {
-				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-				continue
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
 			}
+			rpcTx := types.NewTransaction(
+				uint64(nonce),
+				common.HexToAddress(tokenRow.TokenAddress),
+				big.NewInt(0),
+				uint64(erc20GasRow.V),
+				big.NewInt(gasPriceRow.V),
+				input,
+			)
 			signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
 			if err != nil {
 				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
