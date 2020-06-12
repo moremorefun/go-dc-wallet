@@ -1638,7 +1638,7 @@ func CheckErc20TxOrg() {
 				}
 				orgMap[orgKey] = orgInfo
 			}
-			orgInfo.TxIDs = append(orgInfo.TxIDs, txRow.TokenID)
+			orgInfo.TxIDs = append(orgInfo.TxIDs, txRow.ID)
 			orgInfo.TokenBalance += txRow.Balance
 
 			// 待查询id
