@@ -755,7 +755,7 @@ func CheckRawTxConfirm() {
 		var notifyRows []*model.DBTProductNotify
 		var sendIDs []int64
 		var withdrawUpdateIDs []int64
-		var erc20FeeTxHashes []string
+		var erc20FeeTxUpdateIDs []int64
 		for _, sendRow := range sendRows {
 			rpcTx, err := ethclient.RpcTransactionByHash(
 				context.Background(),
@@ -813,8 +813,8 @@ func CheckRawTxConfirm() {
 			}
 			if sendRow.RelatedType == app.SendRelationTypeTxErc20Fee {
 				// 零钱整理erc20的eth手续费
-				if !hcommon.IsStringInSlice(erc20FeeTxHashes, sendRow.TxID) {
-					erc20FeeTxHashes = append(erc20FeeTxHashes, sendRow.TxID)
+				if !hcommon.IsIntInSlice(erc20FeeTxUpdateIDs, sendRow.RelatedID) {
+					erc20FeeTxUpdateIDs = append(erc20FeeTxUpdateIDs, sendRow.RelatedID)
 				}
 			}
 			// 完成
@@ -846,10 +846,10 @@ func CheckRawTxConfirm() {
 			return
 		}
 		// 更新erc20零钱整理eth手续费状态
-		_, err = app.SQLUpdateTTxErc20OrgStatusByTxHashed(
+		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
-			erc20FeeTxHashes,
+			erc20FeeTxUpdateIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusFeeConfirm,
 				OrgMsg:    "eth fee confirmed",
