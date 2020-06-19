@@ -1,0 +1,22 @@
+version: '3'
+services:
+  go-dc-wallet-app-cron:
+    image: moremorefun/go-dc-wallet:latest
+    restart: always
+    env_file:
+      - .env
+    logging:
+      options:
+        max-size: "100M"
+        max-file: "3"
+  go-dc-wallet-app-api:
+    image: moremorefun/go-dc-wallet:latest
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "1000:1000"
+    logging:
+      options:
+        max-size: "100M"
+        max-file: "3"

@@ -5,6 +5,7 @@ import (
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/omniclient"
 	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -43,7 +44,11 @@ func EnvCreate() {
 
 	err := godotenv.Load()
 	if err != nil {
-		hcommon.Log.Fatalf("read env from .env err: [%T] %s", err, err.Error())
+		if !strings.Contains(err.Error(), "no such file or directory") {
+			hcommon.Log.Fatalf("read env from .env err: [%T] %s", err, err.Error())
+		} else {
+			hcommon.Log.Warnf("no .env file specialty, set read from system or docker env")
+		}
 	}
 	Cfg = new(config)
 	env.IgnorePrefix()
