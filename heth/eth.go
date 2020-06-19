@@ -1229,6 +1229,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 	return nil
 }
 
+// CheckTxNotify 创建eth冲币通知
 func CheckTxNotify() {
 	lockKey := "EthCheckTxNotify"
 	app.LockWrap(lockKey, func() {
@@ -1336,6 +1337,7 @@ func CheckTxNotify() {
 
 }
 
+// CheckErc20BlockSeek 检测erc20到账
 func CheckErc20BlockSeek() {
 	lockKey := "Erc20CheckBlockSeek"
 	app.LockWrap(lockKey, func() {
@@ -1568,6 +1570,7 @@ func CheckErc20BlockSeek() {
 	})
 }
 
+// CheckErc20TxNotify 创建erc20冲币通知
 func CheckErc20TxNotify() {
 	lockKey := "Erc20CheckTxNotify"
 	app.LockWrap(lockKey, func() {
@@ -1697,6 +1700,7 @@ func CheckErc20TxNotify() {
 	})
 }
 
+// CheckErc20TxOrg erc20零钱整理
 func CheckErc20TxOrg() {
 	lockKey := "Erc20CheckTxOrg"
 	app.LockWrap(lockKey, func() {
@@ -2182,6 +2186,7 @@ func CheckErc20TxOrg() {
 	})
 }
 
+// CheckErc20Withdraw erc20提币
 func CheckErc20Withdraw() {
 	lockKey := "Erc20CheckWithdraw"
 	app.LockWrap(lockKey, func() {
@@ -2491,6 +2496,7 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 	return nil
 }
 
+// CheckGasPrice 检测gas price
 func CheckGasPrice() {
 	lockKey := "EthCheckGasPrice"
 	app.LockWrap(lockKey, func() {
