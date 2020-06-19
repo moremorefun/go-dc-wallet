@@ -289,3 +289,11 @@ func CheckBlockSeek() {
 		}
 	})
 }
+
+// CheckTxOrg 检测零钱整理
+func CheckTxOrg() {
+	lockKey := "BtcCheckTxOrg"
+	app.LockWrap(lockKey, func() {
+
+	})
+}
