@@ -10,18 +10,12 @@ import (
 )
 
 type Network struct {
-	name        string
-	symbol      string
-	xpubkey     byte
-	xprivatekey byte
+	params *chaincfg.Params
 }
 
 var network = map[string]Network{
-	"btc":      {name: "bitcoin", symbol: "btc", xpubkey: 0x00, xprivatekey: 0x80},
-	"btc-test": {name: "bitcoin-test", symbol: "btc-test", xpubkey: 0x6F, xprivatekey: 0xEF},
-	"rdd":      {name: "reddcoin", symbol: "rdd", xpubkey: 0x3d, xprivatekey: 0xbd},
-	"dgb":      {name: "digibyte", symbol: "dgb", xpubkey: 0x1e, xprivatekey: 0x80},
-	"ltc":      {name: "litecoin", symbol: "ltc", xpubkey: 0x30, xprivatekey: 0xb0},
+	"btc":      {params: &chaincfg.MainNetParams},
+	"btc-test": {params: &chaincfg.TestNet3Params},
 }
 
 func GetNetwork(coinType string) Network {
@@ -34,10 +28,7 @@ func GetNetwork(coinType string) Network {
 }
 
 func (network Network) GetNetworkParams() *chaincfg.Params {
-	networkParams := &chaincfg.MainNetParams
-	networkParams.PubKeyHashAddrID = network.xpubkey
-	networkParams.PrivateKeyID = network.xprivatekey
-	return networkParams
+	return network.params
 }
 
 func (network Network) CreatePrivateKey() (*btcutil.WIF, error) {
@@ -54,7 +45,7 @@ func (network Network) ImportWIF(wifStr string) (*btcutil.WIF, error) {
 		return nil, err
 	}
 	if !wif.IsForNet(network.GetNetworkParams()) {
-		return nil, errors.New("The WIF string is not valid for the `" + network.name + "` network")
+		return nil, errors.New("The WIF string is not valid for the `" + network.params.Name + "` network")
 	}
 	return wif, nil
 }
