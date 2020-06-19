@@ -56,6 +56,6 @@ const (
 
 // uxto 类型
 const (
-	UxtoTypeTx  = 0
-	UxtoTypeHot = 1
+	UxtoTypeTx  = 1
+	UxtoTypeHot = 2
 )
