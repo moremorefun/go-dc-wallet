@@ -53,3 +53,9 @@ const (
 	WithdrawStatusSend    = 2
 	WithdrawStatusConfirm = 3
 )
+
+// uxto 类型
+const (
+	UxtoTypeTx  = 0
+	UxtoTypeHot = 1
+)

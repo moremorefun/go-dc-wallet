@@ -229,6 +229,9 @@ func CheckBlockSeek() {
 				now := time.Now().Unix()
 				// 遍历数据库中有交易的地址
 				for _, dbAddressRow := range dbAddressRows {
+					if dbAddressRow.UseTag < 0 {
+						continue
+					}
 					// 获取地址对应的交易列表
 					txes := toAddressTxMap[dbAddressRow.Address]
 					for _, tx := range txes {
@@ -1277,7 +1280,8 @@ func CheckTxNotify() {
 		for _, txRow := range txRows {
 			productRow, ok := productMap[txRow.ProductID]
 			if !ok {
-				hcommon.Log.Errorf("no productMap: %d", txRow.ProductID)
+				hcommon.Log.Warnf("no productMap: %d", txRow.ProductID)
+				notifyTxIDs = append(notifyTxIDs, txRow.ID)
 				continue
 			}
 			nonce := hcommon.GetUUIDStr()
@@ -1464,6 +1468,9 @@ func CheckErc20BlockSeek() {
 					var txErc20Rows []*model.DBTTxErc20
 					// 遍历数据库中有交易的地址
 					for _, dbAddressRow := range dbAddressRows {
+						if dbAddressRow.UseTag < 0 {
+							continue
+						}
 						// 获取地址对应的交易列表
 						logs, ok := toAddressLogMap[dbAddressRow.Address]
 						if !ok {
@@ -1636,7 +1643,8 @@ func CheckErc20TxNotify() {
 		for _, txRow := range txRows {
 			productRow, ok := productMap[txRow.ProductID]
 			if !ok {
-				hcommon.Log.Errorf("productMap no: %d", txRow.ProductID)
+				hcommon.Log.Warnf("productMap no: %d", txRow.ProductID)
+				notifyTxIDs = append(notifyTxIDs, txRow.ID)
 				continue
 			}
 			tokenRow, ok := tokenMap[txRow.TokenID]

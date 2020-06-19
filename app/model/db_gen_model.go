@@ -384,6 +384,7 @@ type DBTTxBtc struct {
 // const TTxBtcUxto
 const (
 	DBColTTxBtcUxtoID           = "t_tx_btc_uxto.id"
+	DBColTTxBtcUxtoUxtoType     = "t_tx_btc_uxto.uxto_type"
 	DBColTTxBtcUxtoBlockHash    = "t_tx_btc_uxto.block_hash"
 	DBColTTxBtcUxtoTxID         = "t_tx_btc_uxto.tx_id"
 	DBColTTxBtcUxtoVoutN        = "t_tx_btc_uxto.vout_n"
@@ -401,6 +402,7 @@ const (
 // DBTTxBtcUxto t_tx_btc_uxto 数据表
 /*
    id,
+   uxto_type,
    block_hash,
    tx_id,
    vout_n,
@@ -416,6 +418,7 @@ const (
 */
 type DBTTxBtcUxto struct {
 	ID           int64  `db:"id" json:"id"`
+	UxtoType     int64  `db:"uxto_type" json:"uxto_type"`
 	BlockHash    string `db:"block_hash" json:"block_hash"`
 	TxID         string `db:"tx_id" json:"tx_id"`
 	VoutN        int64  `db:"vout_n" json:"vout_n"`

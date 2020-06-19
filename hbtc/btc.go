@@ -209,9 +209,9 @@ func CheckBlockSeek() {
 								}
 							}
 						}
-						if !isVoutAddressInVin {
-							// 记录数据
-							value := decimal.NewFromFloat(checkVout.Value).String()
+						value := decimal.NewFromFloat(checkVout.Value).String()
+						if !isVoutAddressInVin && dbAddressRow.UseTag > 0 {
+							// 记录数据 只记录已经获取，并且输入没有输出的记录
 							txBtcRows = append(
 								txBtcRows,
 								&model.DBTTxBtc{
@@ -226,24 +226,29 @@ func CheckBlockSeek() {
 									HandleTime:   now,
 								},
 							)
-							txBtcUxtoRows = append(
-								txBtcUxtoRows,
-								&model.DBTTxBtcUxto{
-									BlockHash:    rpcBlock.Hash,
-									TxID:         rpcTx.Txid,
-									VoutN:        voutIndex,
-									VoutAddress:  voutAddress,
-									VoutValue:    value,
-									VoutScript:   voutScript,
-									CreateTime:   now,
-									SpendTxID:    "",
-									SpendN:       0,
-									HandleStatus: 0,
-									HandleMsg:    "",
-									HandleTime:   now,
-								},
-							)
 						}
+						uxtoType := int64(app.UxtoTypeTx)
+						if dbAddressRow.UseTag < 0 {
+							uxtoType = app.UxtoTypeHot
+						}
+						txBtcUxtoRows = append(
+							txBtcUxtoRows,
+							&model.DBTTxBtcUxto{
+								UxtoType:     uxtoType,
+								BlockHash:    rpcBlock.Hash,
+								TxID:         rpcTx.Txid,
+								VoutN:        voutIndex,
+								VoutAddress:  voutAddress,
+								VoutValue:    value,
+								VoutScript:   voutScript,
+								CreateTime:   now,
+								SpendTxID:    "",
+								SpendN:       0,
+								HandleStatus: 0,
+								HandleMsg:    "",
+								HandleTime:   now,
+							},
+						)
 					}
 				}
 

@@ -135,8 +135,7 @@ func SQLSelectTAddressKeyColByAddress(ctx context.Context, tx hcommon.DbExeAble,
 FROM
 	t_address_key
 WHERE
-	address IN (:addresses)
-	AND use_tag>0`)
+	address IN (:addresses)`)
 
 	var rows []*model.DBTAddressKey
 	err := hcommon.DbSelectNamedContent(

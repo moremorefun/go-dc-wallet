@@ -5754,6 +5754,7 @@ func SQLCreateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBt
 			tx,
 			`INSERT INTO t_tx_btc_uxto (
     id,
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -5768,6 +5769,7 @@ func SQLCreateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBt
     handle_time
 ) VALUES (
     :id,
+    :uxto_type,
     :block_hash,
     :tx_id,
     :vout_n,
@@ -5783,6 +5785,7 @@ func SQLCreateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBt
 )`,
 			gin.H{
 				"id":            row.ID,
+				"uxto_type":     row.UxtoType,
 				"block_hash":    row.BlockHash,
 				"tx_id":         row.TxID,
 				"vout_n":        row.VoutN,
@@ -5802,6 +5805,7 @@ func SQLCreateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBt
 			ctx,
 			tx,
 			`INSERT INTO t_tx_btc_uxto (
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -5815,6 +5819,7 @@ func SQLCreateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBt
     handle_msg,
     handle_time
 ) VALUES (
+    :uxto_type,
     :block_hash,
     :tx_id,
     :vout_n,
@@ -5829,6 +5834,7 @@ func SQLCreateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBt
     :handle_time
 )`,
 			gin.H{
+				"uxto_type":     row.UxtoType,
 				"block_hash":    row.BlockHash,
 				"tx_id":         row.TxID,
 				"vout_n":        row.VoutN,
@@ -5860,6 +5866,7 @@ func SQLCreateIgnoreTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *D
 			tx,
 			`INSERT IGNORE INTO t_tx_btc_uxto (
     id,
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -5874,6 +5881,7 @@ func SQLCreateIgnoreTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *D
     handle_time
 ) VALUES (
     :id,
+    :uxto_type,
     :block_hash,
     :tx_id,
     :vout_n,
@@ -5889,6 +5897,7 @@ func SQLCreateIgnoreTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *D
 )`,
 			gin.H{
 				"id":            row.ID,
+				"uxto_type":     row.UxtoType,
 				"block_hash":    row.BlockHash,
 				"tx_id":         row.TxID,
 				"vout_n":        row.VoutN,
@@ -5908,6 +5917,7 @@ func SQLCreateIgnoreTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *D
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_tx_btc_uxto (
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -5921,6 +5931,7 @@ func SQLCreateIgnoreTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *D
     handle_msg,
     handle_time
 ) VALUES (
+    :uxto_type,
     :block_hash,
     :tx_id,
     :vout_n,
@@ -5935,6 +5946,7 @@ func SQLCreateIgnoreTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *D
     :handle_time
 )`,
 			gin.H{
+				"uxto_type":     row.UxtoType,
 				"block_hash":    row.BlockHash,
 				"tx_id":         row.TxID,
 				"vout_n":        row.VoutN,
@@ -5968,6 +5980,7 @@ func SQLCreateManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, rows []*
 				args,
 				[]interface{}{
 					row.ID,
+					row.UxtoType,
 					row.BlockHash,
 					row.TxID,
 					row.VoutN,
@@ -5988,6 +6001,7 @@ func SQLCreateManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, rows []*
 			args = append(
 				args,
 				[]interface{}{
+					row.UxtoType,
 					row.BlockHash,
 					row.TxID,
 					row.VoutN,
@@ -6012,6 +6026,7 @@ func SQLCreateManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, rows []*
 			tx,
 			`INSERT INTO t_tx_btc_uxto (
     id,
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -6034,6 +6049,7 @@ func SQLCreateManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, rows []*
 			ctx,
 			tx,
 			`INSERT INTO t_tx_btc_uxto (
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -6070,6 +6086,7 @@ func SQLCreateIgnoreManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, ro
 				args,
 				[]interface{}{
 					row.ID,
+					row.UxtoType,
 					row.BlockHash,
 					row.TxID,
 					row.VoutN,
@@ -6090,6 +6107,7 @@ func SQLCreateIgnoreManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, ro
 			args = append(
 				args,
 				[]interface{}{
+					row.UxtoType,
 					row.BlockHash,
 					row.TxID,
 					row.VoutN,
@@ -6114,6 +6132,7 @@ func SQLCreateIgnoreManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, ro
 			tx,
 			`INSERT IGNORE INTO t_tx_btc_uxto (
     id,
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -6136,6 +6155,7 @@ func SQLCreateIgnoreManyTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, ro
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_tx_btc_uxto (
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -6169,6 +6189,7 @@ func SQLGetTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBT
 		&row,
 		`SELECT
     id,
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -6240,6 +6261,7 @@ func SQLSelectTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, ids []int64)
 		&rows,
 		`SELECT
     id,
+    uxto_type,
     block_hash,
     tx_id,
     vout_n,
@@ -6304,6 +6326,7 @@ func SQLUpdateTTxBtcUxto(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBt
 		`UPDATE
 	t_tx_btc_uxto
 SET
+    uxto_type=:uxto_type,
     block_hash=:block_hash,
     tx_id=:tx_id,
     vout_n=:vout_n,
@@ -6320,6 +6343,7 @@ WHERE
 	id=:id`,
 		gin.H{
 			"id":            row.ID,
+			"uxto_type":     row.UxtoType,
 			"block_hash":    row.BlockHash,
 			"tx_id":         row.TxID,
 			"vout_n":        row.VoutN,
