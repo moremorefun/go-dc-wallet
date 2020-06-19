@@ -11,6 +11,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	CoinSymbol = "btc"
+)
+
 func CheckAddressFree() {
 	lockKey := "BtcCheckAddressFree"
 	app.LockWrap(lockKey, func() {
@@ -32,7 +36,7 @@ func CheckAddressFree() {
 		freeCount, err := app.SQLGetTAddressKeyFreeCount(
 			context.Background(),
 			app.DbCon,
-			"btc",
+			CoinSymbol,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -44,7 +48,7 @@ func CheckAddressFree() {
 			// 遍历差值次数
 			for i := int64(0); i < minFreeRow.V-freeCount; i++ {
 				// 生成私钥
-				wif, err := network["btc"].CreatePrivateKey()
+				wif, err := GetNetwork(app.Cfg.BtcNetworkType).CreatePrivateKey()
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
@@ -52,14 +56,14 @@ func CheckAddressFree() {
 				// 加密密钥
 				wifStrEn := hcommon.AesEncrypt(wif.String(), app.Cfg.AESKey)
 				// 获取地址
-				address, err := network["btc"].GetAddress(wif)
+				address, err := GetNetwork(app.Cfg.BtcNetworkType).GetAddress(wif)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 存入待添加队列
 				rows = append(rows, &model.DBTAddressKey{
-					Symbol:  "btc",
+					Symbol:  CoinSymbol,
 					Address: address.EncodeAddress(),
 					Pwd:     wifStrEn,
 					UseTag:  0,
@@ -118,6 +122,7 @@ func CheckBlockSeek() {
 		vinTxMap := make(map[string]*omniclient.StTxResult)
 		startI := seekRow.V + 1
 		endI := rpcBlockNum - confirmRow.V
+		hcommon.Log.Debugf("btc block seek %d->%d", startI, endI)
 		if startI < endI {
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {

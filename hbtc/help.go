@@ -2,6 +2,7 @@ package hbtc
 
 import (
 	"errors"
+	"go-dc-wallet/hcommon"
 
 	"github.com/btcsuite/btcd/btcec"
 	"github.com/btcsuite/btcd/chaincfg"
@@ -16,10 +17,20 @@ type Network struct {
 }
 
 var network = map[string]Network{
-	"rdd": {name: "reddcoin", symbol: "rdd", xpubkey: 0x3d, xprivatekey: 0xbd},
-	"dgb": {name: "digibyte", symbol: "dgb", xpubkey: 0x1e, xprivatekey: 0x80},
-	"btc": {name: "bitcoin", symbol: "btc", xpubkey: 0x00, xprivatekey: 0x80},
-	"ltc": {name: "litecoin", symbol: "ltc", xpubkey: 0x30, xprivatekey: 0xb0},
+	"btc":      {name: "bitcoin", symbol: "btc", xpubkey: 0x00, xprivatekey: 0x80},
+	"btc-test": {name: "bitcoin-test", symbol: "btc-test", xpubkey: 0x6F, xprivatekey: 0xEF},
+	"rdd":      {name: "reddcoin", symbol: "rdd", xpubkey: 0x3d, xprivatekey: 0xbd},
+	"dgb":      {name: "digibyte", symbol: "dgb", xpubkey: 0x1e, xprivatekey: 0x80},
+	"ltc":      {name: "litecoin", symbol: "ltc", xpubkey: 0x30, xprivatekey: 0xb0},
+}
+
+func GetNetwork(coinType string) Network {
+	n, ok := network[coinType]
+	if !ok {
+		hcommon.Log.Errorf("no network: %s get btc for replace", coinType)
+		return network["btc"]
+	}
+	return n
 }
 
 func (network Network) GetNetworkParams() *chaincfg.Params {

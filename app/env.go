@@ -24,6 +24,8 @@ type config struct {
 
 	AESKey string `env:"AES-KEY"`
 
+	BtcNetworkType string `env:"BTC-NETWORK-TYPE" default:"btc"`
+
 	EthRPC string `env:"ETH_RPC"`
 
 	OmniRPCHost string `env:"OMNI_RPC_HOST"`
