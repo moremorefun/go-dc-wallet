@@ -530,11 +530,11 @@ func CheckRawTxSend() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		// 提币
+		// 首先单独处理提币，提取提币通知要使用的数据
 		var withdrawIDs []int64
 		for _, sendRow := range sendRows {
-			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
-				// 提币
+			switch sendRow.RelatedType {
+			case app.SendRelationTypeWithdraw:
 				if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
 					withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
 				}
@@ -571,33 +571,63 @@ func CheckRawTxSend() {
 			productIDs,
 		)
 		// 执行发送
-		var txHashes []string
+		var sendIDs []int64
+		var txIDs []int64
+		var erc20TxIDs []int64
+		var erc20TxFeeIDs []int64
+		withdrawIDs = []int64{}
+		// 通知数据
 		var notifyRows []*model.DBTProductNotify
 		now := time.Now().Unix()
 		for _, sendRow := range sendRows {
-			rawTxBytes, err := hex.DecodeString(sendRow.Hex)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				continue
-			}
-			tx := new(types.Transaction)
-			err = rlp.DecodeBytes(rawTxBytes, &tx)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				continue
-			}
-			err = ethclient.RpcSendTransaction(
-				context.Background(),
-				tx,
-			)
-			if err != nil {
-				if !strings.Contains(err.Error(), "known transaction") {
+			// 发送数据中需要排除占位数据
+			if sendRow.Hex != "" {
+				rawTxBytes, err := hex.DecodeString(sendRow.Hex)
+				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					continue
 				}
+				tx := new(types.Transaction)
+				err = rlp.DecodeBytes(rawTxBytes, &tx)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					continue
+				}
+				err = ethclient.RpcSendTransaction(
+					context.Background(),
+					tx,
+				)
+				if err != nil {
+					if !strings.Contains(err.Error(), "known transaction") {
+						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						continue
+					}
+				}
 			}
+			// 将发送成功和占位数据计入数组
+			if !hcommon.IsIntInSlice(sendIDs, sendRow.ID) {
+				sendIDs = append(sendIDs, sendRow.ID)
+			}
+			switch sendRow.RelatedType {
+			case app.SendRelationTypeTx:
+				if !hcommon.IsIntInSlice(txIDs, sendRow.RelatedID) {
+					txIDs = append(txIDs, sendRow.RelatedID)
+				}
+			case app.SendRelationTypeWithdraw:
+				if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
+					withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
+				}
+			case app.SendRelationTypeTxErc20:
+				if !hcommon.IsIntInSlice(erc20TxIDs, sendRow.RelatedID) {
+					erc20TxIDs = append(erc20TxIDs, sendRow.RelatedID)
+				}
+			case app.SendRelationTypeTxErc20Fee:
+				if !hcommon.IsIntInSlice(erc20TxFeeIDs, sendRow.RelatedID) {
+					erc20TxFeeIDs = append(erc20TxFeeIDs, sendRow.RelatedID)
+				}
+			}
+			// 如果是提币，创建通知信息
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
-				// 提币
 				withdrawRow, ok := withdrawMap[sendRow.RelatedID]
 				if !ok {
 					hcommon.Log.Errorf("withdrawMap no: %d", sendRow.RelatedID)
@@ -638,10 +668,6 @@ func CheckRawTxSend() {
 					UpdateTime:   now,
 				})
 			}
-			txHash := strings.ToLower(tx.Hash().Hex())
-			if !hcommon.IsStringInSlice(txHashes, txHash) {
-				txHashes = append(txHashes, txHash)
-			}
 		}
 		// 插入通知
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
@@ -654,11 +680,11 @@ func CheckRawTxSend() {
 			return
 		}
 		// 更新提币状态
-		_, err = app.SQLUpdateTWithdrawStatusByTxIDs(
+		_, err = app.SQLUpdateTWithdrawStatusByIDs(
 			context.Background(),
 			app.DbCon,
-			txHashes,
-			model.DBTWithdraw{
+			withdrawIDs,
+			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusSend,
 				HandleMsg:    "send",
 				HandleTime:   now,
@@ -668,11 +694,56 @@ func CheckRawTxSend() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		// 更新发送状态
-		_, err = app.SQLUpdateTSendStatusByTxIDs(
+		// 更新eth零钱整理状态
+		_, err = app.SQLUpdateTTxOrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
-			txHashes,
+			txIDs,
+			model.DBTTx{
+				OrgStatus: app.TxOrgStatusSend,
+				OrgMsg:    "send",
+				OrgTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新erc20零钱整理状态
+		_, err = app.SQLUpdateTTxOrgStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			erc20TxIDs,
+			model.DBTTx{
+				OrgStatus: app.TxOrgStatusSend,
+				OrgMsg:    "send",
+				OrgTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新erc20手续费状态
+		_, err = app.SQLUpdateTTxOrgStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			erc20TxFeeIDs,
+			model.DBTTx{
+				OrgStatus: app.TxOrgStatusFeeSend,
+				OrgMsg:    "send",
+				OrgTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新发送状态
+		_, err = app.SQLUpdateTSendStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			sendIDs,
 			model.DBTSend{
 				HandleStatus: app.SendStatusSend,
 				HandleMsg:    "send",
