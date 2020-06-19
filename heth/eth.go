@@ -329,9 +329,10 @@ func CheckAddressOrg() {
 		}
 		// 将待整理地址按地址做归并处理
 		type OrgInfo struct {
-			RowIDs  []int64
-			Balance int64
+			RowIDs  []int64 // db t_tx.id
+			Balance int64   // 金额
 		}
+		// addressMap map[地址] = []整理信息
 		addressMap := make(map[string]*OrgInfo)
 		// 获取gap price
 		gasRow, err := app.SQLGetTAppStatusIntByK(
@@ -350,6 +351,7 @@ func CheckAddressOrg() {
 		gasPrice := gasRow.V
 		gasLimit := int64(21000)
 		feeValue := gasLimit * gasPrice
+		// addresses 需要整理的地址列表
 		var addresses []string
 		for _, txRow := range txRows {
 			info := addressMap[txRow.ToAddress]
@@ -425,7 +427,7 @@ func CheckAddressOrg() {
 				big.NewInt(gasPrice),
 				data,
 			)
-
+			// 签名
 			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
 			if err != nil {
 				hcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
@@ -439,6 +441,7 @@ func CheckAddressOrg() {
 			var sendRows []*model.DBTSend
 			for rowIndex, rowID := range info.RowIDs {
 				if rowIndex == 0 {
+					// 只有第一条数据需要发送，其余数据为占位数据
 					sendRows = append(sendRows, &model.DBTSend{
 						RelatedType:  app.SendRelationTypeTx,
 						RelatedID:    rowID,
@@ -457,6 +460,7 @@ func CheckAddressOrg() {
 						HandleTime:   now,
 					})
 				} else {
+					// 占位数据
 					sendRows = append(sendRows, &model.DBTSend{
 						RelatedType:  app.SendRelationTypeTx,
 						RelatedID:    rowID,
