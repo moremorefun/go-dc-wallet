@@ -1049,3 +1049,99 @@ WHERE
 	}
 	return count, nil
 }
+
+// SQLSelectTTxBtcUxtoColByTxIDs 根据ids获取
+func SQLSelectTTxBtcUxtoColByTxIDs(ctx context.Context, tx hcommon.DbExeAble, cols []string, txHashes []string) ([]*model.DBTTxBtcUxto, error) {
+	if len(cols) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_uxto
+WHERE
+	tx_id IN (:tx_ids)`)
+
+	var rows []*model.DBTTxBtcUxto
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"tx_ids": txHashes,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLCreateManyTTxBtcUxtoUpdate 创建多个
+func SQLCreateManyTTxBtcUxtoUpdate(ctx context.Context, tx hcommon.DbExeAble, rows []*model.DBTTxBtcUxto) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	for _, row := range rows {
+		args = append(
+			args,
+			[]interface{}{
+				row.ID,
+				row.UxtoType,
+				row.BlockHash,
+				row.TxID,
+				row.VoutN,
+				row.VoutAddress,
+				row.VoutValue,
+				row.VoutScript,
+				row.CreateTime,
+				row.SpendTxID,
+				row.SpendN,
+				row.HandleStatus,
+				row.HandleMsg,
+				row.HandleTime,
+			},
+		)
+	}
+
+	var count int64
+	var err error
+	count, err = hcommon.DbExecuteCountManyContent(
+		ctx,
+		tx,
+		`INSERT INTO t_tx_btc_uxto (
+    id,
+    uxto_type,
+    block_hash,
+    tx_id,
+    vout_n,
+    vout_address,
+    vout_value,
+    vout_script,
+    create_time,
+    spend_tx_id,
+    spend_n,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s
+ON DUPLICATE KEY UPDATE 
+	spend_tx_id=VALUES(spend_tx_id),
+	spend_n=VALUES(spend_n),
+	handle_status=VALUES(handle_status),
+	handle_msg=VALUES(handle_msg),
+	handle_time=VALUES(handle_time)`,
+		len(rows),
+		args...,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

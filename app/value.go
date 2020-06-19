@@ -59,3 +59,10 @@ const (
 	UxtoTypeTx  = 1
 	UxtoTypeHot = 2
 )
+
+// uxto 处理类型
+const (
+	UxtoHandleStatusInit    = 0
+	UxtoHandleStatusUse     = 1
+	UxtoHandleStatusConfirm = 2
+)

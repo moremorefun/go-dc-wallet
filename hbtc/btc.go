@@ -2,6 +2,7 @@ package hbtc
 
 import (
 	"context"
+	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
@@ -137,14 +138,38 @@ func CheckBlockSeek() {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
+				// 目标地址
 				var toAddresses []string
 				type StTxWithIndex struct {
 					RpcTx *omniclient.StTxResult
 					Index int64
 				}
 				toAddressTxMap := make(map[string][]*StTxWithIndex)
+				// 来源hash
+				var fromTxHashes []string
+				type StVinWithIndex struct {
+					TxHash string
+					VoutN  int64
+
+					SpendTxHash string
+					SpendN      int64
+				}
+				vinMap := make(map[string]*StVinWithIndex)
 				// 所有tx
 				for _, rpcTx := range rpcBlock.Tx {
+					for i, vin := range rpcTx.Vin {
+						fromTxHash := vin.Txid
+						if !hcommon.IsStringInSlice(fromTxHashes, fromTxHash) {
+							fromTxHashes = append(fromTxHashes, fromTxHash)
+						}
+						key := fmt.Sprintf("%s-%d", vin.Txid, vin.Vout)
+						vinMap[key] = &StVinWithIndex{
+							TxHash:      vin.Txid,
+							VoutN:       vin.Vout,
+							SpendTxHash: rpcTx.Txid,
+							SpendN:      int64(i),
+						}
+					}
 					for _, vout := range rpcTx.Vout {
 						if len(vout.ScriptPubKey.Addresses) == 1 {
 							toAddress := vout.ScriptPubKey.Addresses[0]
@@ -159,6 +184,7 @@ func CheckBlockSeek() {
 					}
 				}
 				hcommon.Log.Debugf("rpc get block: %d to addresses: %d", i, len(toAddresses))
+
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
 					context.Background(),
@@ -252,6 +278,38 @@ func CheckBlockSeek() {
 					}
 				}
 
+				// 从uxto中查询txhash
+				var updateUxtoRows []*model.DBTTxBtcUxto
+				uxtoRows, err := app.SQLSelectTTxBtcUxtoColByTxIDs(
+					context.Background(),
+					app.DbCon,
+					[]string{
+						model.DBColTTxBtcUxtoID,
+						model.DBColTTxBtcUxtoTxID,
+						model.DBColTTxBtcUxtoVoutN,
+					},
+					fromTxHashes,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				for _, uxtoRow := range uxtoRows {
+					key := fmt.Sprintf("%s-%d", uxtoRow.TxID, uxtoRow.VoutN)
+					rpcVin, ok := vinMap[key]
+					if ok {
+						updateUxtoRows = append(updateUxtoRows, &model.DBTTxBtcUxto{
+							ID:           uxtoRow.ID,
+							TxID:         uxtoRow.TxID,
+							VoutN:        uxtoRow.VoutN,
+							SpendTxID:    rpcVin.SpendTxHash,
+							SpendN:       rpcVin.SpendN,
+							HandleStatus: app.UxtoHandleStatusConfirm,
+							HandleMsg:    "confirm",
+							HandleTime:   now,
+						})
+					}
+				}
 				// 插入数据库
 				_, err = model.SQLCreateIgnoreManyTTxBtc(
 					context.Background(),
@@ -271,7 +329,12 @@ func CheckBlockSeek() {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-
+				// 更新uxto状态
+				_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
+					context.Background(),
+					app.DbCon,
+					updateUxtoRows,
+				)
 				// 更新block num
 				_, err = app.SQLUpdateTAppStatusIntByK(
 					context.Background(),
