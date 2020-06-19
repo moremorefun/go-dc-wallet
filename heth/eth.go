@@ -803,7 +803,6 @@ func CheckRawTxConfirm() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-
 		var productIDs []int64
 		for _, withdrawRow := range withdrawMap {
 			if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
@@ -829,8 +828,10 @@ func CheckRawTxConfirm() {
 		now := time.Now().Unix()
 		var notifyRows []*model.DBTProductNotify
 		var sendIDs []int64
-		var withdrawUpdateIDs []int64
-		var erc20FeeTxUpdateIDs []int64
+		var txIDs []int64
+		var erc20TxIDs []int64
+		var erc20TxFeeIDs []int64
+		withdrawIDs = []int64{}
 		for _, sendRow := range sendRows {
 			rpcTx, err := ethclient.RpcTransactionByHash(
 				context.Background(),
@@ -884,16 +885,30 @@ func CheckRawTxConfirm() {
 					CreateTime:   now,
 					UpdateTime:   now,
 				})
-				withdrawUpdateIDs = append(withdrawUpdateIDs, sendRow.RelatedID)
+
 			}
-			if sendRow.RelatedType == app.SendRelationTypeTxErc20Fee {
-				// 零钱整理erc20的eth手续费
-				if !hcommon.IsIntInSlice(erc20FeeTxUpdateIDs, sendRow.RelatedID) {
-					erc20FeeTxUpdateIDs = append(erc20FeeTxUpdateIDs, sendRow.RelatedID)
+			// 将发送成功和占位数据计入数组
+			if !hcommon.IsIntInSlice(sendIDs, sendRow.ID) {
+				sendIDs = append(sendIDs, sendRow.ID)
+			}
+			switch sendRow.RelatedType {
+			case app.SendRelationTypeTx:
+				if !hcommon.IsIntInSlice(txIDs, sendRow.RelatedID) {
+					txIDs = append(txIDs, sendRow.RelatedID)
+				}
+			case app.SendRelationTypeWithdraw:
+				if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
+					withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
+				}
+			case app.SendRelationTypeTxErc20:
+				if !hcommon.IsIntInSlice(erc20TxIDs, sendRow.RelatedID) {
+					erc20TxIDs = append(erc20TxIDs, sendRow.RelatedID)
+				}
+			case app.SendRelationTypeTxErc20Fee:
+				if !hcommon.IsIntInSlice(erc20TxFeeIDs, sendRow.RelatedID) {
+					erc20TxFeeIDs = append(erc20TxFeeIDs, sendRow.RelatedID)
 				}
 			}
-			// 完成
-			sendIDs = append(sendIDs, sendRow.ID)
 		}
 		// 通知信息
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
@@ -909,7 +924,7 @@ func CheckRawTxConfirm() {
 		_, err = app.SQLUpdateTWithdrawStatusByIDs(
 			context.Background(),
 			app.DbCon,
-			withdrawUpdateIDs,
+			withdrawIDs,
 			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusConfirm,
 				HandleMsg:    "confirmed",
@@ -920,11 +935,41 @@ func CheckRawTxConfirm() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 更新eth零钱整理状态
+		_, err = app.SQLUpdateTTxOrgStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			txIDs,
+			model.DBTTx{
+				OrgStatus: app.TxOrgStatusConfirm,
+				OrgMsg:    "confirm",
+				OrgTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新erc20零钱整理状态
+		_, err = app.SQLUpdateTTxOrgStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			erc20TxIDs,
+			model.DBTTx{
+				OrgStatus: app.TxOrgStatusConfirm,
+				OrgMsg:    "confirm",
+				OrgTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		// 更新erc20零钱整理eth手续费状态
 		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
-			erc20FeeTxUpdateIDs,
+			erc20TxFeeIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusFeeConfirm,
 				OrgMsg:    "eth fee confirmed",
