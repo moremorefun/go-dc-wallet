@@ -187,6 +187,7 @@ func CheckBlockSeek() {
 						checkVout := rpcTx.Vout[voutIndex]
 
 						voutAddress := checkVout.ScriptPubKey.Addresses[0]
+						voutScript := checkVout.ScriptPubKey.Hex
 						isVoutAddressInVin := false
 						for _, vin := range rpcTx.Vin {
 							rpcVinTx, ok := vinTxMap[vin.Txid]
@@ -233,6 +234,7 @@ func CheckBlockSeek() {
 									VoutN:        voutIndex,
 									VoutAddress:  voutAddress,
 									VoutValue:    value,
+									VoutScript:   voutScript,
 									CreateTime:   now,
 									SpendTxID:    "",
 									SpendN:       0,

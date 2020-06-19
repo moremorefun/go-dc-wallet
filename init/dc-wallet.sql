@@ -1,10 +1,10 @@
 -- -------------------------------------------------------------
--- TablePlus 3.5.0(309)
+-- TablePlus 3.6.2(323)
 --
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-05-08 14:22:55.4610
+-- Generation Time: 2020-06-19 17:01:41.8910
 -- -------------------------------------------------------------
 
 
@@ -27,7 +27,7 @@ CREATE TABLE `t_address_key` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `t_address_key_address_idx` (`address`,`symbol`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=308 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=411 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -66,7 +66,7 @@ CREATE TABLE `t_app_lock` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `k_2` (`k`),
   KEY `k` (`k`,`create_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=112 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -167,7 +167,7 @@ CREATE TABLE `t_tx_btc` (
   `handle_time` bigint(22) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tx_id` (`tx_id`,`vout_n`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_btc_uxto` (
   `id` bigint(22) unsigned NOT NULL AUTO_INCREMENT,
@@ -176,6 +176,7 @@ CREATE TABLE `t_tx_btc_uxto` (
   `vout_n` int(11) NOT NULL,
   `vout_address` varchar(128) NOT NULL DEFAULT '',
   `vout_value` varchar(128) NOT NULL DEFAULT '',
+  `vout_script` varchar(256) NOT NULL,
   `create_time` bigint(22) unsigned NOT NULL,
   `spend_tx_id` varchar(128) NOT NULL DEFAULT '',
   `spend_n` int(11) NOT NULL,
@@ -186,7 +187,7 @@ CREATE TABLE `t_tx_btc_uxto` (
   UNIQUE KEY `tx_id` (`tx_id`,`vout_n`),
   KEY `handle_status` (`handle_status`),
   KEY `vout_address` (`vout_address`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_erc20` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,

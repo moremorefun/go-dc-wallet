@@ -389,6 +389,7 @@ const (
 	DBColTTxBtcUxtoVoutN        = "t_tx_btc_uxto.vout_n"
 	DBColTTxBtcUxtoVoutAddress  = "t_tx_btc_uxto.vout_address"
 	DBColTTxBtcUxtoVoutValue    = "t_tx_btc_uxto.vout_value"
+	DBColTTxBtcUxtoVoutScript   = "t_tx_btc_uxto.vout_script"
 	DBColTTxBtcUxtoCreateTime   = "t_tx_btc_uxto.create_time"
 	DBColTTxBtcUxtoSpendTxID    = "t_tx_btc_uxto.spend_tx_id"
 	DBColTTxBtcUxtoSpendN       = "t_tx_btc_uxto.spend_n"
@@ -405,6 +406,7 @@ const (
    vout_n,
    vout_address,
    vout_value,
+   vout_script,
    create_time,
    spend_tx_id,
    spend_n,
@@ -419,6 +421,7 @@ type DBTTxBtcUxto struct {
 	VoutN        int64  `db:"vout_n" json:"vout_n"`
 	VoutAddress  string `db:"vout_address" json:"vout_address"`
 	VoutValue    string `db:"vout_value" json:"vout_value"`
+	VoutScript   string `db:"vout_script" json:"vout_script"`
 	CreateTime   int64  `db:"create_time" json:"create_time"`
 	SpendTxID    string `db:"spend_tx_id" json:"spend_tx_id"`
 	SpendN       int64  `db:"spend_n" json:"spend_n"`
