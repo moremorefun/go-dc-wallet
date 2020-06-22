@@ -139,7 +139,7 @@ func CheckBlockSeek() {
 		}
 		vinTxMap := make(map[string]*omniclient.StTxResult)
 		startI := seekRow.V + 1
-		endI := rpcBlockNum - confirmRow.V
+		endI := rpcBlockNum - confirmRow.V + 1
 		hcommon.Log.Debugf("btc block seek %d->%d", startI, endI)
 		if startI < endI {
 			// 遍历获取需要查询的block信息

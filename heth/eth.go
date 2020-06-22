@@ -148,7 +148,7 @@ func CheckBlockSeek() {
 			return
 		}
 		startI := seekRow.V + 1
-		endI := rpcBlockNum - confirmRow.V
+		endI := rpcBlockNum - confirmRow.V + 1
 		if startI < endI {
 			// 手续费钱包列表
 			feeRow, err := app.SQLGetTAppConfigStrByK(
@@ -1380,7 +1380,7 @@ func CheckErc20BlockSeek() {
 			return
 		}
 		startI := seekRow.V + 1
-		endI := rpcBlockNum - confirmRow.V
+		endI := rpcBlockNum - confirmRow.V + 1
 		if startI < endI {
 			// 读取abi
 			type LogTransfer struct {
