@@ -1680,6 +1680,478 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTAppConfigTokenBtc 创建
+func SQLCreateTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigTokenBtc) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_token_btc (
+    id,
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+) VALUES (
+    :id,
+    :token_index,
+    :token_symbol,
+    :cold_address,
+    :hot_address,
+    :tx_org_min_balance,
+    :create_at
+)`,
+			gin.H{
+				"id":                 row.ID,
+				"token_index":        row.TokenIndex,
+				"token_symbol":       row.TokenSymbol,
+				"cold_address":       row.ColdAddress,
+				"hot_address":        row.HotAddress,
+				"tx_org_min_balance": row.TxOrgMinBalance,
+				"create_at":          row.CreateAt,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_token_btc (
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+) VALUES (
+    :token_index,
+    :token_symbol,
+    :cold_address,
+    :hot_address,
+    :tx_org_min_balance,
+    :create_at
+)`,
+			gin.H{
+				"token_index":        row.TokenIndex,
+				"token_symbol":       row.TokenSymbol,
+				"cold_address":       row.ColdAddress,
+				"hot_address":        row.HotAddress,
+				"tx_org_min_balance": row.TxOrgMinBalance,
+				"create_at":          row.CreateAt,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTAppConfigTokenBtc 创建
+func SQLCreateIgnoreTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigTokenBtc) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_token_btc (
+    id,
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+) VALUES (
+    :id,
+    :token_index,
+    :token_symbol,
+    :cold_address,
+    :hot_address,
+    :tx_org_min_balance,
+    :create_at
+)`,
+			gin.H{
+				"id":                 row.ID,
+				"token_index":        row.TokenIndex,
+				"token_symbol":       row.TokenSymbol,
+				"cold_address":       row.ColdAddress,
+				"hot_address":        row.HotAddress,
+				"tx_org_min_balance": row.TxOrgMinBalance,
+				"create_at":          row.CreateAt,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_token_btc (
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+) VALUES (
+    :token_index,
+    :token_symbol,
+    :cold_address,
+    :hot_address,
+    :tx_org_min_balance,
+    :create_at
+)`,
+			gin.H{
+				"token_index":        row.TokenIndex,
+				"token_symbol":       row.TokenSymbol,
+				"cold_address":       row.ColdAddress,
+				"hot_address":        row.HotAddress,
+				"tx_org_min_balance": row.TxOrgMinBalance,
+				"create_at":          row.CreateAt,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTAppConfigTokenBtc 创建多个
+func SQLCreateManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTAppConfigTokenBtc) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.TokenIndex,
+					row.TokenSymbol,
+					row.ColdAddress,
+					row.HotAddress,
+					row.TxOrgMinBalance,
+					row.CreateAt,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.TokenIndex,
+					row.TokenSymbol,
+					row.ColdAddress,
+					row.HotAddress,
+					row.TxOrgMinBalance,
+					row.CreateAt,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_token_btc (
+    id,
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_app_config_token_btc (
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTAppConfigTokenBtc 创建多个
+func SQLCreateIgnoreManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTAppConfigTokenBtc) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.TokenIndex,
+					row.TokenSymbol,
+					row.ColdAddress,
+					row.HotAddress,
+					row.TxOrgMinBalance,
+					row.CreateAt,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.TokenIndex,
+					row.TokenSymbol,
+					row.ColdAddress,
+					row.HotAddress,
+					row.TxOrgMinBalance,
+					row.CreateAt,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_token_btc (
+    id,
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_app_config_token_btc (
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTAppConfigTokenBtc 根据id查询
+func SQLGetTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTAppConfigTokenBtc, error) {
+	var row DBTAppConfigTokenBtc
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+FROM
+	t_app_config_token_btc
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTAppConfigTokenBtcCol 根据id查询
+func SQLGetTAppConfigTokenBtcCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTAppConfigTokenBtc, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_token_btc
+WHERE
+	id=:id`)
+
+	var row DBTAppConfigTokenBtc
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTAppConfigTokenBtc 根据ids获取
+func SQLSelectTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTAppConfigTokenBtc, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTAppConfigTokenBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    token_index,
+    token_symbol,
+    cold_address,
+    hot_address,
+    tx_org_min_balance,
+    create_at
+FROM
+	t_app_config_token_btc
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTAppConfigTokenBtcCol 根据ids获取
+func SQLSelectTAppConfigTokenBtcCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTAppConfigTokenBtc, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_token_btc
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTAppConfigTokenBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTAppConfigTokenBtc 更新
+func SQLUpdateTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppConfigTokenBtc) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_app_config_token_btc
+SET
+    token_index=:token_index,
+    token_symbol=:token_symbol,
+    cold_address=:cold_address,
+    hot_address=:hot_address,
+    tx_org_min_balance=:tx_org_min_balance,
+    create_at=:create_at
+WHERE
+	id=:id`,
+		gin.H{
+			"id":                 row.ID,
+			"token_index":        row.TokenIndex,
+			"token_symbol":       row.TokenSymbol,
+			"cold_address":       row.ColdAddress,
+			"hot_address":        row.HotAddress,
+			"tx_org_min_balance": row.TxOrgMinBalance,
+			"create_at":          row.CreateAt,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTAppConfigTokenBtc 删除
+func SQLDeleteTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_app_config_token_btc
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTAppLock 创建
 func SQLCreateTAppLock(ctx context.Context, tx hcommon.DbExeAble, row *DBTAppLock) (int64, error) {
 	var lastID int64
@@ -6444,6 +6916,622 @@ func SQLDeleteTTxBtc(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64
 		`DELETE
 FROM
 	t_tx_btc
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateTTxBtcToken 创建
+func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtcToken) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc_token (
+    id,
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :id,
+    :token_index,
+    :token_symbol,
+    :block_hash,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :value,
+    :blocktime,
+    :create_at,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"id":            row.ID,
+				"token_index":   row.TokenIndex,
+				"token_symbol":  row.TokenSymbol,
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"value":         row.Value,
+				"blocktime":     row.Blocktime,
+				"create_at":     row.CreateAt,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc_token (
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :token_index,
+    :token_symbol,
+    :block_hash,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :value,
+    :blocktime,
+    :create_at,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"token_index":   row.TokenIndex,
+				"token_symbol":  row.TokenSymbol,
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"value":         row.Value,
+				"blocktime":     row.Blocktime,
+				"create_at":     row.CreateAt,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTTxBtcToken 创建
+func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtcToken) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc_token (
+    id,
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :id,
+    :token_index,
+    :token_symbol,
+    :block_hash,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :value,
+    :blocktime,
+    :create_at,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"id":            row.ID,
+				"token_index":   row.TokenIndex,
+				"token_symbol":  row.TokenSymbol,
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"value":         row.Value,
+				"blocktime":     row.Blocktime,
+				"create_at":     row.CreateAt,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc_token (
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :token_index,
+    :token_symbol,
+    :block_hash,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :value,
+    :blocktime,
+    :create_at,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"token_index":   row.TokenIndex,
+				"token_symbol":  row.TokenSymbol,
+				"block_hash":    row.BlockHash,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"value":         row.Value,
+				"blocktime":     row.Blocktime,
+				"create_at":     row.CreateAt,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTTxBtcToken 创建多个
+func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxBtcToken) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.TokenIndex,
+					row.TokenSymbol,
+					row.BlockHash,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Value,
+					row.Blocktime,
+					row.CreateAt,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.TokenIndex,
+					row.TokenSymbol,
+					row.BlockHash,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Value,
+					row.Blocktime,
+					row.CreateAt,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc_token (
+    id,
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_btc_token (
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTTxBtcToken 创建多个
+func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxBtcToken) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.TokenIndex,
+					row.TokenSymbol,
+					row.BlockHash,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Value,
+					row.Blocktime,
+					row.CreateAt,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.TokenIndex,
+					row.TokenSymbol,
+					row.BlockHash,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Value,
+					row.Blocktime,
+					row.CreateAt,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc_token (
+    id,
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_btc_token (
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTTxBtcToken 根据id查询
+func SQLGetTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTxBtcToken, error) {
+	var row DBTTxBtcToken
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+FROM
+	t_tx_btc_token
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTTxBtcTokenCol 根据id查询
+func SQLGetTTxBtcTokenCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTTxBtcToken, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_token
+WHERE
+	id=:id`)
+
+	var row DBTTxBtcToken
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTTxBtcToken 根据ids获取
+func SQLSelectTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTTxBtcToken, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTTxBtcToken
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    token_index,
+    token_symbol,
+    block_hash,
+    tx_id,
+    from_address,
+    to_address,
+    value,
+    blocktime,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+FROM
+	t_tx_btc_token
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTTxBtcTokenCol 根据ids获取
+func SQLSelectTTxBtcTokenCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTTxBtcToken, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_token
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTTxBtcToken
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTTxBtcToken 更新
+func SQLUpdateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtcToken) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_btc_token
+SET
+    token_index=:token_index,
+    token_symbol=:token_symbol,
+    block_hash=:block_hash,
+    tx_id=:tx_id,
+    from_address=:from_address,
+    to_address=:to_address,
+    value=:value,
+    blocktime=:blocktime,
+    create_at=:create_at,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_at=:handle_at
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"token_index":   row.TokenIndex,
+			"token_symbol":  row.TokenSymbol,
+			"block_hash":    row.BlockHash,
+			"tx_id":         row.TxID,
+			"from_address":  row.FromAddress,
+			"to_address":    row.ToAddress,
+			"value":         row.Value,
+			"blocktime":     row.Blocktime,
+			"create_at":     row.CreateAt,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_at":     row.HandleAt,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTTxBtcToken 删除
+func SQLDeleteTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_tx_btc_token
 WHERE
 	id=:id`,
 		gin.H{

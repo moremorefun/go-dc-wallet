@@ -97,6 +97,37 @@ type DBTAppConfigToken struct {
 	CreateTime    int64  `db:"create_time" json:"create_time"`
 }
 
+// const TAppConfigTokenBtc
+const (
+	DBColTAppConfigTokenBtcID              = "t_app_config_token_btc.id"
+	DBColTAppConfigTokenBtcTokenIndex      = "t_app_config_token_btc.token_index"
+	DBColTAppConfigTokenBtcTokenSymbol     = "t_app_config_token_btc.token_symbol"
+	DBColTAppConfigTokenBtcColdAddress     = "t_app_config_token_btc.cold_address"
+	DBColTAppConfigTokenBtcHotAddress      = "t_app_config_token_btc.hot_address"
+	DBColTAppConfigTokenBtcTxOrgMinBalance = "t_app_config_token_btc.tx_org_min_balance"
+	DBColTAppConfigTokenBtcCreateAt        = "t_app_config_token_btc.create_at"
+)
+
+// DBTAppConfigTokenBtc t_app_config_token_btc 数据表
+/*
+   id,
+   token_index,
+   token_symbol,
+   cold_address,
+   hot_address,
+   tx_org_min_balance,
+   create_at
+*/
+type DBTAppConfigTokenBtc struct {
+	ID              int64  `db:"id" json:"id"`
+	TokenIndex      int64  `db:"token_index" json:"token_index"`
+	TokenSymbol     string `db:"token_symbol" json:"token_symbol"`
+	ColdAddress     string `db:"cold_address" json:"cold_address"`
+	HotAddress      string `db:"hot_address" json:"hot_address"`
+	TxOrgMinBalance string `db:"tx_org_min_balance" json:"tx_org_min_balance"`
+	CreateAt        int64  `db:"create_at" json:"create_at"`
+}
+
 // const TAppLock
 const (
 	DBColTAppLockID         = "t_app_lock.id"
@@ -440,6 +471,55 @@ type DBTTxBtc struct {
 	HandleStatus int64  `db:"handle_status" json:"handle_status"`
 	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
 	HandleTime   int64  `db:"handle_time" json:"handle_time"`
+}
+
+// const TTxBtcToken
+const (
+	DBColTTxBtcTokenID           = "t_tx_btc_token.id"
+	DBColTTxBtcTokenTokenIndex   = "t_tx_btc_token.token_index"
+	DBColTTxBtcTokenTokenSymbol  = "t_tx_btc_token.token_symbol"
+	DBColTTxBtcTokenBlockHash    = "t_tx_btc_token.block_hash"
+	DBColTTxBtcTokenTxID         = "t_tx_btc_token.tx_id"
+	DBColTTxBtcTokenFromAddress  = "t_tx_btc_token.from_address"
+	DBColTTxBtcTokenToAddress    = "t_tx_btc_token.to_address"
+	DBColTTxBtcTokenValue        = "t_tx_btc_token.value"
+	DBColTTxBtcTokenBlocktime    = "t_tx_btc_token.blocktime"
+	DBColTTxBtcTokenCreateAt     = "t_tx_btc_token.create_at"
+	DBColTTxBtcTokenHandleStatus = "t_tx_btc_token.handle_status"
+	DBColTTxBtcTokenHandleMsg    = "t_tx_btc_token.handle_msg"
+	DBColTTxBtcTokenHandleAt     = "t_tx_btc_token.handle_at"
+)
+
+// DBTTxBtcToken t_tx_btc_token 数据表
+/*
+   id,
+   token_index,
+   token_symbol,
+   block_hash,
+   tx_id,
+   from_address,
+   to_address,
+   value,
+   blocktime,
+   create_at,
+   handle_status,
+   handle_msg,
+   handle_at
+*/
+type DBTTxBtcToken struct {
+	ID           int64  `db:"id" json:"id"`
+	TokenIndex   int64  `db:"token_index" json:"token_index"`
+	TokenSymbol  string `db:"token_symbol" json:"token_symbol"`
+	BlockHash    string `db:"block_hash" json:"block_hash"`
+	TxID         string `db:"tx_id" json:"tx_id"`
+	FromAddress  string `db:"from_address" json:"from_address"`
+	ToAddress    string `db:"to_address" json:"to_address"`
+	Value        string `db:"value" json:"value"`
+	Blocktime    int64  `db:"blocktime" json:"blocktime"`
+	CreateAt     int64  `db:"create_at" json:"create_at"`
+	HandleStatus int64  `db:"handle_status" json:"handle_status"`
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
+	HandleAt     int64  `db:"handle_at" json:"handle_at"`
 }
 
 // const TTxBtcUxto
