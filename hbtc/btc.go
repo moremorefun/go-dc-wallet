@@ -272,8 +272,10 @@ func CheckBlockSeek() {
 								vinTxMap[vin.Txid] = rpcVinTx
 								hcommon.Log.Debugf("get tx: %s", vin.Txid)
 							}
-							if omniVinAddress == "" && len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
-								omniVinAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
+							if rpcTxWithIndex.IsOmniTx {
+								if omniVinAddress == "" && len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
+									omniVinAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
+								}
 							}
 							if int64(len(rpcVinTx.Vout)) > vin.Vout {
 								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
