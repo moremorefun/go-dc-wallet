@@ -10,8 +10,11 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/omniclient"
+	"net/http"
 	"strings"
 	"time"
+
+	"github.com/parnurzeal/gorequest"
 
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
@@ -1541,4 +1544,61 @@ func CheckTxNotify() {
 		}
 	})
 
+}
+
+// CheckGasPrice 检测gas price
+func CheckGasPrice() {
+	lockKey := "BtcCheckGasPrice"
+	app.LockWrap(lockKey, func() {
+		type StRespGasPrice struct {
+			FastestFee  int64 `json:"fastestFee"`
+			HalfHourFee int64 `json:"halfHourFee"`
+			HourFee     int64 `json:"hourFee"`
+		}
+		gresp, body, errs := gorequest.New().
+			Get("https://bitcoinfees.earn.com/api/v1/fees/recommended").
+			Timeout(time.Second * 120).
+			End()
+		if errs != nil {
+			hcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
+			return
+		}
+		if gresp.StatusCode != http.StatusOK {
+			// 状态错误
+			hcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
+			return
+		}
+		var resp StRespGasPrice
+		err := json.Unmarshal([]byte(body), &resp)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		toUserGasPrice := resp.FastestFee
+		toColdGasPrice := resp.HalfHourFee
+		_, err = app.SQLUpdateTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			&model.DBTAppStatusInt{
+				K: "to_user_gas_price_btc",
+				V: toUserGasPrice,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		_, err = app.SQLUpdateTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			&model.DBTAppStatusInt{
+				K: "to_cold_gas_price_btc",
+				V: toColdGasPrice,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
 }
