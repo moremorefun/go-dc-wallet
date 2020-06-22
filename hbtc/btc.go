@@ -142,6 +142,25 @@ func CheckBlockSeek() {
 		endI := rpcBlockNum - confirmRow.V + 1
 		hcommon.Log.Debugf("btc block seek %d->%d", startI, endI)
 		if startI < endI {
+			// 获取所有token
+			var tokenHotAddresses []string
+			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
+				context.Background(),
+				app.DbCon,
+				[]string{
+					model.DBColTAppConfigTokenBtcID,
+					model.DBColTAppConfigTokenBtcHotAddress,
+				},
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			for _, tokenRow := range tokenRows {
+				if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
+					tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
+				}
+			}
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
 				blockHash, err := omniclient.RpcGetBlockHash(i)
@@ -262,7 +281,10 @@ func CheckBlockSeek() {
 							}
 						}
 						value := decimal.NewFromFloat(checkVout.Value).String()
-						if !isVoutAddressInVin && dbAddressRow.UseTag > 0 && !rpcTxWithIndex.IsOmniTx {
+						if !isVoutAddressInVin &&
+							dbAddressRow.UseTag > 0 &&
+							!rpcTxWithIndex.IsOmniTx &&
+							!hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
 							// 记录数据 只记录已经获取，并且输入没有输出的记录
 							txBtcRows = append(
 								txBtcRows,
@@ -286,6 +308,9 @@ func CheckBlockSeek() {
 						}
 						if rpcTxWithIndex.IsOmniTx {
 							uxtoType = app.UxtoTypeOmni
+						}
+						if hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
+							uxtoType = app.UxtoTypeOmniHot
 						}
 						txBtcUxtoRows = append(
 							txBtcUxtoRows,

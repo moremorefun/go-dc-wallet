@@ -1395,3 +1395,26 @@ WHERE
 	}
 	return count, nil
 }
+
+// SQLSelectTAppConfigTokenBtcColAll 根据ids获取
+func SQLSelectTAppConfigTokenBtcColAll(ctx context.Context, tx hcommon.DbExeAble, cols []string) ([]*model.DBTAppConfigTokenBtc, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_token_btc`)
+
+	var rows []*model.DBTAppConfigTokenBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
