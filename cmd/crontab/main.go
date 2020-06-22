@@ -21,6 +21,12 @@ func main() {
 		),
 	)
 	var err error
+	// --- common --
+	// 检测 通知发送
+	_, err = c.AddFunc("@every 1m", app.CheckDoNotify)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
 	// --- eth ---
 	// 检测 eth 生成地址
 	_, err = c.AddFunc("@every 1m", heth.CheckAddressFree)
@@ -57,11 +63,12 @@ func main() {
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
-	// 检测 eth 通知发送
-	_, err = c.AddFunc("@every 1m", app.CheckDoNotify)
+	// 检测 eth gas price
+	_, err = c.AddFunc("@every 2m", heth.CheckGasPrice)
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
+
 	// --- erc20 ---
 	// 检测 erc20 冲币
 	_, err = c.AddFunc("@every 5s", heth.CheckErc20BlockSeek)
@@ -80,11 +87,6 @@ func main() {
 	}
 	// 检测 erc20 提币
 	_, err = c.AddFunc("@every 3m", heth.CheckErc20Withdraw)
-	if err != nil {
-		hcommon.Log.Errorf("cron add func error: %#v", err)
-	}
-	// 检测 eth gas price
-	_, err = c.AddFunc("@every 2m", heth.CheckGasPrice)
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
