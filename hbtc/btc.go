@@ -260,6 +260,7 @@ func CheckBlockSeek() {
 						voutAddress := checkVout.ScriptPubKey.Addresses[0]
 						voutScript := checkVout.ScriptPubKey.Hex
 						isVoutAddressInVin := false
+						omniVinAddress := ""
 						for _, vin := range rpcTx.Vin {
 							rpcVinTx, ok := vinTxMap[vin.Txid]
 							if !ok {
@@ -270,6 +271,9 @@ func CheckBlockSeek() {
 								}
 								vinTxMap[vin.Txid] = rpcVinTx
 								hcommon.Log.Debugf("get tx: %s", vin.Txid)
+							}
+							if omniVinAddress == "" && len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
+								omniVinAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
 							}
 							if int64(len(rpcVinTx.Vout)) > vin.Vout {
 								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
@@ -307,7 +311,20 @@ func CheckBlockSeek() {
 							uxtoType = app.UxtoTypeHot
 						}
 						if rpcTxWithIndex.IsOmniTx {
-							uxtoType = app.UxtoTypeOmni
+							omniOutAddress := ""
+							for i := len(rpcTx.Vout) - 1; i >= 0; i-- {
+								vout := rpcTx.Vout[i]
+								if len(vout.ScriptPubKey.Addresses) > 0 {
+									toAddress := strings.Join(vout.ScriptPubKey.Addresses, ",")
+									if toAddress != omniVinAddress {
+										omniOutAddress = toAddress
+										break
+									}
+								}
+							}
+							if omniOutAddress == voutAddress {
+								uxtoType = app.UxtoTypeOmni
+							}
 						}
 						if hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
 							uxtoType = app.UxtoTypeOmniHot
