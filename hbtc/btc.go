@@ -280,8 +280,7 @@ func CheckBlockSeek() {
 						}
 						value := decimal.NewFromFloat(checkVout.Value).String()
 						if dbAddressRow.UseTag > 0 &&
-							!rpcTxWithIndex.IsOmniTx &&
-							!hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
+							!rpcTxWithIndex.IsOmniTx {
 							// 记录数据 只记录已经获取，并且输入没有输出的记录
 							txBtcRows = append(
 								txBtcRows,
