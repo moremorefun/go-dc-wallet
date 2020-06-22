@@ -1376,7 +1376,7 @@ func SQLUpdateTTxBtcStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids [
 		ctx,
 		tx,
 		`UPDATE
-	t_tx
+	t_tx_btc
 SET
     handle_status=:handle_status,
     handle_msg=:handle_msg,
