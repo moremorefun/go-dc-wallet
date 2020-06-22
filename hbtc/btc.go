@@ -380,6 +380,7 @@ func CheckTxOrg() {
 				model.DBColTTxBtcUxtoVoutValue,
 				model.DBColTTxBtcUxtoVoutScript,
 			},
+			app.UxtoTypeTx,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -767,6 +768,409 @@ func CheckRawTxConfirm() {
 func CheckWithdraw() {
 	lockKey := "BtcCheckWithdraw"
 	app.LockWrap(lockKey, func() {
+		// 获取提币信息
+		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+				model.DBColTWithdrawProductID,
+				model.DBColTWithdrawOutSerial,
+				model.DBColTWithdrawToAddress,
+				model.DBColTWithdrawBalanceReal,
+			},
+			app.WithdrawStatusInit,
+			[]string{"btc"},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if len(withdrawRows) == 0 {
+			return
+		}
+		// 获取热钱包uxto
+		uxtoRows, err := app.SQLSelectTTxBtcUxtoColToOrg(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTTxBtcUxtoID,
+				model.DBColTTxBtcUxtoTxID,
+				model.DBColTTxBtcUxtoVoutN,
+				model.DBColTTxBtcUxtoVoutAddress,
+				model.DBColTTxBtcUxtoVoutValue,
+				model.DBColTTxBtcUxtoVoutScript,
+			},
+			app.UxtoTypeHot,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var addresses []string
+		for _, uxtoRow := range uxtoRows {
+			addresses = append(addresses, uxtoRow.VoutAddress)
+		}
+		addressKeyMap, err := app.SQLGetAddressKeyMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTAddressKeyID,
+				model.DBColTAddressKeyAddress,
+				model.DBColTAddressKeyPwd,
+			},
+			addresses,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 获取手续费配置
+		feeRow, err := app.SQLGetTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			"to_user_gas_price_btc",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if feeRow == nil {
+			hcommon.Log.Errorf("no config int of to_user_gas_price_btc")
+			return
+		}
+		// 生成交易
+		// 输入金额
+		inBalance := int64(0)
+		// 输出金额
+		outBalance := int64(0)
+		// 初算手续费
+		inputCount := int64(0)
+		outputCount := int64(1)
+		// 使用到的uxto的索引
+		uxtoUseIndex := 0
+		// 输入信息
+		var inUxtoRows []*model.DBTTxBtcUxto
+		// 输出信息
+		var outWithdrawRows []*model.DBTWithdraw
+		// 计算交易
+		for _, withdrawRow := range withdrawRows {
+			var tmpInUxtoRows []*model.DBTTxBtcUxto
+			// 添加输出
+			withdrawBalance, err := decimal.NewFromString(withdrawRow.BalanceReal)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			outBalance += withdrawBalance.Mul(decimal.NewFromInt(1e8)).IntPart()
+			// 处理金额
+			outputCount++
+			for outBalance+(inputCount*180+outputCount*34+10+40)*feeRow.V > inBalance {
+				if uxtoUseIndex >= len(uxtoRows) {
+					break
+				}
+				if inputCount*180+outputCount*34+10+40 >= 1000000 {
+					break
+				}
+				uxtoRow := uxtoRows[uxtoUseIndex]
+				uxtoBalance, err := decimal.NewFromString(uxtoRow.VoutValue)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				inBalance += uxtoBalance.Mul(decimal.NewFromInt(1e8)).IntPart()
+				uxtoUseIndex++
+				inputCount++
+				tmpInUxtoRows = append(tmpInUxtoRows, uxtoRow)
+			}
+			if outBalance+(inputCount*180+outputCount*34+10+40)*feeRow.V <= inBalance {
+				// 处理这些数据
+				outWithdrawRows = append(outWithdrawRows, withdrawRow)
+				if len(tmpInUxtoRows) > 0 {
+					inUxtoRows = append(inUxtoRows, tmpInUxtoRows...)
+				}
+			} else {
+				break
+			}
+		}
+		hcommon.Log.Debugf("inUxtoRows: %#v, outWithdrawRows: %#v", inUxtoRows, outWithdrawRows)
+		// 创建交易
+		realInBalance := int64(0)
+		realOutBalance := int64(0)
+		tx := wire.NewMsgTx(wire.TxVersion)
+		// 提币输出
+		for _, outWithdrawRow := range outWithdrawRows {
+			addrTo, err := btcutil.DecodeAddress(
+				outWithdrawRow.ToAddress,
+				GetNetwork(app.Cfg.BtcNetworkType).params,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			pkScriptf, err := txscript.PayToAddrScript(addrTo)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			outBalance, err := decimal.NewFromString(outWithdrawRow.BalanceReal)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			baf := outBalance.Mul(decimal.NewFromInt(1e8)).IntPart()
+			tx.AddTxOut(wire.NewTxOut(baf, pkScriptf))
+			realOutBalance += baf
+		}
+		// 找零输出
+		if len(inUxtoRows) <= 0 || inUxtoRows == nil {
+			hcommon.Log.Errorf("error input arr")
+			return
+		}
+		addrTo, err := btcutil.DecodeAddress(
+			inUxtoRows[0].VoutAddress,
+			GetNetwork(app.Cfg.BtcNetworkType).params,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		pkScriptf, err := txscript.PayToAddrScript(addrTo)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		tx.AddTxOut(wire.NewTxOut(0, pkScriptf))
+		// 创建输入
+		for _, uxtoRow := range inUxtoRows {
+			hash, _ := chainhash.NewHashFromStr(uxtoRow.TxID)
+			outPoint := wire.NewOutPoint(hash, uint32(uxtoRow.VoutN))
+			txIn := wire.NewTxIn(outPoint, nil, nil)
+			tx.AddTxIn(txIn)
+		}
+		// 签名,用于计算手续费
+		for i, uxtoRow := range inUxtoRows {
+			addressKey, ok := addressKeyMap[uxtoRow.VoutAddress]
+			if !ok {
+				hcommon.Log.Errorf("no address key: %s", uxtoRow.VoutAddress)
+				return
+			}
+			key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
+			if len(key) == 0 {
+				hcommon.Log.Errorf("error key of: %s", uxtoRow.VoutAddress)
+				return
+			}
+			wif, err := btcutil.DecodeWIF(key)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			txinPkScript, err := hex.DecodeString(uxtoRow.VoutScript)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			script, err := txscript.SignatureScript(
+				tx,
+				i,
+				txinPkScript,
+				txscript.SigHashAll,
+				wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			tx.TxIn[i].SignatureScript = script
+			vm, err := txscript.NewEngine(
+				txinPkScript,
+				tx,
+				i,
+				txscript.StandardVerifyFlags,
+				nil,
+				nil,
+				-1,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			err = vm.Execute()
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			inBalance, err := decimal.NewFromString(uxtoRow.VoutValue)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			baf := inBalance.Mul(decimal.NewFromInt(1e8)).IntPart()
+			realInBalance += baf
+		}
+		// 计算手续费
+		txSize := tx.SerializeSize()
+		txFee := feeRow.V * int64(txSize)
+		lastOut := realInBalance - realOutBalance - txFee
+		if lastOut < 0 {
+			hcommon.Log.Errorf("error out put")
+			return
+		}
+		if lastOut < 5460 {
+			var newOut []*wire.TxOut
+			for i, out := range tx.TxOut {
+				if i != len(tx.TxOut)-2 {
+					newOut = append(newOut, out)
+				}
+			}
+			tx.TxOut = newOut
+		} else {
+			tx.TxOut[len(tx.TxOut)-1].Value = lastOut
+		}
+		// 重新计算签名
+		for i, uxtoRow := range inUxtoRows {
+			addressKey, ok := addressKeyMap[uxtoRow.VoutAddress]
+			if !ok {
+				hcommon.Log.Errorf("no address key: %s", uxtoRow.VoutAddress)
+				return
+			}
+			key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
+			if len(key) == 0 {
+				hcommon.Log.Errorf("error key of: %s", uxtoRow.VoutAddress)
+				return
+			}
+			wif, err := btcutil.DecodeWIF(key)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			txinPkScript, err := hex.DecodeString(uxtoRow.VoutScript)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			script, err := txscript.SignatureScript(
+				tx,
+				i,
+				txinPkScript,
+				txscript.SigHashAll,
+				wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			tx.TxIn[i].SignatureScript = script
+			vm, err := txscript.NewEngine(
+				txinPkScript,
+				tx,
+				i,
+				txscript.StandardVerifyFlags,
+				nil,
+				nil,
+				-1,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			err = vm.Execute()
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
 
+		}
+		b := new(bytes.Buffer)
+		b.Grow(tx.SerializeSize())
+		err = tx.Serialize(b)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+		now := time.Now().Unix()
+		var sendRows []*model.DBTSendBtc
+		var updateUxtoRows []*model.DBTTxBtcUxto
+		var updateWithdrawRows []*model.DBTWithdraw
+		for i, outWithdrawRow := range outWithdrawRows {
+			balance, err := decimal.NewFromString(outWithdrawRow.BalanceReal)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			sendHex := ""
+			if i == 0 {
+				sendHex = hex.EncodeToString(b.Bytes())
+			}
+			sendRows = append(sendRows, &model.DBTSendBtc{
+				RelatedType:  app.SendRelationTypeWithdraw,
+				RelatedID:    outWithdrawRow.ID,
+				TokenID:      0,
+				TxID:         tx.TxHash().String(),
+				FromAddress:  "",
+				ToAddress:    outWithdrawRow.ToAddress,
+				Balance:      balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
+				BalanceReal:  outWithdrawRow.BalanceReal,
+				Gas:          int64(tx.SerializeSize()),
+				GasPrice:     feeRow.V,
+				Hex:          sendHex,
+				CreateTime:   now,
+				HandleStatus: 0,
+				HandleMsg:    "",
+				HandleTime:   now,
+			})
+			updateWithdrawRows = append(updateWithdrawRows, &model.DBTWithdraw{
+				ID:           outWithdrawRow.ID,
+				TxHash:       fmt.Sprintf("%s_%d", tx.TxHash().String(), i),
+				HandleStatus: app.WithdrawStatusHex,
+				HandleMsg:    "hex",
+				HandleTime:   now,
+			})
+		}
+		for i, uxtoRow := range inUxtoRows {
+			updateUxtoRows = append(updateUxtoRows, &model.DBTTxBtcUxto{
+				ID:           uxtoRow.ID,
+				TxID:         uxtoRow.TxID,
+				VoutN:        uxtoRow.VoutN,
+				SpendTxID:    tx.TxHash().String(),
+				SpendN:       int64(i),
+				HandleStatus: app.UxtoHandleStatusUse,
+				HandleMsg:    "use",
+				HandleTime:   now,
+			})
+		}
+		// 插入数据
+		_, err = model.SQLCreateIgnoreManyTSendBtc(
+			context.Background(),
+			app.DbCon,
+			sendRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新uxto状态
+		_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
+			context.Background(),
+			app.DbCon,
+			updateUxtoRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新withdraw
+		_, err = app.SQLCreateManyTWithdrawUpdate(
+			context.Background(),
+			app.DbCon,
+			updateWithdrawRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 	})
 }

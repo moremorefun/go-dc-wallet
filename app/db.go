@@ -1147,7 +1147,7 @@ ON DUPLICATE KEY UPDATE
 }
 
 // SQLSelectTTxBtcUxtoColToOrg 根据ids获取
-func SQLSelectTTxBtcUxtoColToOrg(ctx context.Context, tx hcommon.DbExeAble, cols []string) ([]*model.DBTTxBtcUxto, error) {
+func SQLSelectTTxBtcUxtoColToOrg(ctx context.Context, tx hcommon.DbExeAble, cols []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1157,8 +1157,12 @@ FROM
 WHERE
 	handle_status=0
 	AND uxto_type=:uxto_type
-ORDER BY
-	id`)
+ORDER BY`)
+	if uxtoType == UxtoTypeTx {
+		query.WriteString(" id")
+	} else {
+		query.WriteString(" CAST(vout_value as DECIMAL(65,8)) DESC")
+	}
 
 	var rows []*model.DBTTxBtcUxto
 	err := hcommon.DbSelectNamedContent(
@@ -1167,7 +1171,7 @@ ORDER BY
 		&rows,
 		query.String(),
 		gin.H{
-			"uxto_type": UxtoTypeTx,
+			"uxto_type": uxtoType,
 		},
 	)
 	if err != nil {
@@ -1226,6 +1230,110 @@ WHERE
 			"handle_time":   row.HandleTime,
 		},
 	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateManyTWithdrawUpdate 创建多个
+func SQLCreateManyTWithdrawUpdate(ctx context.Context, tx hcommon.DbExeAble, rows []*model.DBTWithdraw) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.ProductID,
+					row.OutSerial,
+					row.ToAddress,
+					row.Symbol,
+					row.BalanceReal,
+					row.TxHash,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ProductID,
+					row.OutSerial,
+					row.ToAddress,
+					row.Symbol,
+					row.BalanceReal,
+					row.TxHash,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_withdraw (
+    id,
+    product_id,
+    out_serial,
+    to_address,
+    symbol,
+    balance_real,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s
+ON DUPLICATE KEY UPDATE 
+	tx_hash=VALUES(tx_hash),
+	handle_status=VALUES(handle_status),
+	handle_msg=VALUES(handle_msg),
+	handle_time=VALUES(handle_time)`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_withdraw (
+    product_id,
+    out_serial,
+    to_address,
+    symbol,
+    balance_real,
+    tx_hash,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s
+ON DUPLICATE KEY UPDATE 
+	tx_hash=VALUES(tx_hash),
+	handle_status=VALUES(handle_status),
+	handle_msg=VALUES(handle_msg),
+	handle_time=VALUES(handle_time)`,
+			len(rows),
+			args...,
+		)
+	}
 	if err != nil {
 		return 0, err
 	}
