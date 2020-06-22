@@ -158,8 +158,9 @@ func CheckBlockSeek() {
 				// 目标地址
 				var toAddresses []string
 				type StTxWithIndex struct {
-					RpcTx *omniclient.StTxResult
-					Index int64
+					RpcTx    *omniclient.StTxResult
+					Index    int64
+					IsOmniTx bool
 				}
 				toAddressTxMap := make(map[string][]*StTxWithIndex)
 				// 来源hash
@@ -187,6 +188,13 @@ func CheckBlockSeek() {
 							SpendN:      int64(i),
 						}
 					}
+					omniScript := "6a146f6d6e69"
+					isOmniTx := false
+					for _, vout := range rpcTx.Vout {
+						if strings.HasPrefix(vout.ScriptPubKey.Hex, omniScript) {
+							isOmniTx = true
+						}
+					}
 					for _, vout := range rpcTx.Vout {
 						if len(vout.ScriptPubKey.Addresses) == 1 {
 							toAddress := vout.ScriptPubKey.Addresses[0]
@@ -194,8 +202,9 @@ func CheckBlockSeek() {
 								toAddresses = append(toAddresses, toAddress)
 							}
 							toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], &StTxWithIndex{
-								RpcTx: rpcTx,
-								Index: vout.N,
+								RpcTx:    rpcTx,
+								Index:    vout.N,
+								IsOmniTx: isOmniTx,
 							})
 						}
 					}
@@ -253,7 +262,7 @@ func CheckBlockSeek() {
 							}
 						}
 						value := decimal.NewFromFloat(checkVout.Value).String()
-						if !isVoutAddressInVin && dbAddressRow.UseTag > 0 {
+						if !isVoutAddressInVin && dbAddressRow.UseTag > 0 && !rpcTxWithIndex.IsOmniTx {
 							// 记录数据 只记录已经获取，并且输入没有输出的记录
 							txBtcRows = append(
 								txBtcRows,
