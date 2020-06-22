@@ -653,6 +653,7 @@ func CheckRawTxSend() {
 			app.DbCon,
 			[]string{
 				model.DBColTSendBtcID,
+				model.DBColTSendBtcTxID,
 				model.DBColTSendBtcHex,
 			},
 			app.SendStatusInit,
@@ -662,9 +663,9 @@ func CheckRawTxSend() {
 			return
 		}
 		var sendIDs []int64
+		var sendTxHashes []string
 		for _, sendRow := range sendRows {
 			if sendRow.Hex == "" {
-				sendIDs = append(sendIDs, sendRow.ID)
 				continue
 			}
 			_, err := omniclient.RpcSendRawTransaction(sendRow.Hex)
@@ -673,6 +674,14 @@ func CheckRawTxSend() {
 				continue
 			}
 			sendIDs = append(sendIDs, sendRow.ID)
+			sendTxHashes = append(sendTxHashes, sendRow.TxID)
+		}
+		for _, sendRow := range sendRows {
+			if hcommon.IsStringInSlice(sendTxHashes, sendRow.TxID) {
+				if !hcommon.IsIntInSlice(sendIDs, sendRow.ID) {
+					sendIDs = append(sendIDs, sendRow.ID)
+				}
+			}
 		}
 		now := time.Now().Unix()
 		_, err = app.SQLUpdateTSendBtcByIDs(
