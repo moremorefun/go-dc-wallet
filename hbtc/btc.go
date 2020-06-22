@@ -284,6 +284,9 @@ func CheckBlockSeek() {
 						if dbAddressRow.UseTag < 0 {
 							uxtoType = app.UxtoTypeHot
 						}
+						if rpcTxWithIndex.IsOmniTx {
+							uxtoType = app.UxtoTypeOmni
+						}
 						txBtcUxtoRows = append(
 							txBtcUxtoRows,
 							&model.DBTTxBtcUxto{

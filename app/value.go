@@ -57,8 +57,9 @@ const (
 
 // uxto 类型
 const (
-	UxtoTypeTx  = 1
-	UxtoTypeHot = 2
+	UxtoTypeTx   = 1
+	UxtoTypeHot  = 2
+	UxtoTypeOmni = 3
 )
 
 // uxto 处理类型
