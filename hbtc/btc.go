@@ -700,3 +700,56 @@ func CheckRawTxSend() {
 		}
 	})
 }
+
+// CheckRawTxConfirm 确认tx是否打包完成
+func CheckRawTxConfirm() {
+	lockKey := "BtcCheckRawTxConfirm"
+	app.LockWrap(lockKey, func() {
+		sendRows, err := app.SQLSelectTSendBtcColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTSendBtcID,
+				model.DBColTSendBtcTxID,
+				model.DBColTSendBtcHex,
+			},
+			app.SendStatusSend,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var sendIDs []int64
+		var confirmHashes []string
+		for _, sendRow := range sendRows {
+			if !hcommon.IsStringInSlice(confirmHashes, sendRow.TxID) {
+				rpcTx, err := omniclient.RpcGetRawTransactionVerbose(sendRow.TxID)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					continue
+				}
+				if rpcTx.Confirmations <= 0 {
+					continue
+				}
+				confirmHashes = append(confirmHashes, sendRow.TxID)
+			}
+			// 已经确认
+			sendIDs = append(sendIDs, sendRow.ID)
+		}
+		now := time.Now().Unix()
+		_, err = app.SQLUpdateTSendBtcByIDs(
+			context.Background(),
+			app.DbCon,
+			sendIDs,
+			&model.DBTSendBtc{
+				HandleStatus: app.SendStatusConfirm,
+				HandleTime:   now,
+				HandleMsg:    "confirm",
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
+}
