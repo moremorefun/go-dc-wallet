@@ -3,6 +3,7 @@ package main
 
 import (
 	"go-dc-wallet/app"
+	"go-dc-wallet/hbtc"
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/heth"
 
@@ -20,6 +21,7 @@ func main() {
 		),
 	)
 	var err error
+	// --- eth ---
 	// 检测 eth 生成地址
 	_, err = c.AddFunc("@every 1m", heth.CheckAddressFree)
 	if err != nil {
@@ -60,6 +62,7 @@ func main() {
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
+	// --- erc20 ---
 	// 检测 erc20 冲币
 	_, err = c.AddFunc("@every 5s", heth.CheckErc20BlockSeek)
 	if err != nil {
@@ -82,6 +85,48 @@ func main() {
 	}
 	// 检测 eth gas price
 	_, err = c.AddFunc("@every 2m", heth.CheckGasPrice)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+
+	// --- btc ---
+	// 检测 btc 生成地址
+	_, err = c.AddFunc("@every 1m", hbtc.CheckAddressFree)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 btc 冲币
+	_, err = c.AddFunc("@every 5m", hbtc.CheckBlockSeek)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 btc 零钱整理
+	_, err = c.AddFunc("@every 10m", hbtc.CheckTxOrg)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 btc 提币
+	_, err = c.AddFunc("@every 3m", hbtc.CheckWithdraw)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 btc 发送交易
+	_, err = c.AddFunc("@every 1m", hbtc.CheckRawTxSend)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 btc 交易上链
+	_, err = c.AddFunc("@every 5m", hbtc.CheckRawTxConfirm)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 btc 通知到账
+	_, err = c.AddFunc("@every 5s", hbtc.CheckTxNotify)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 btc 手续费
+	_, err = c.AddFunc("@every 5m", hbtc.CheckGasPrice)
 	if err != nil {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
