@@ -259,36 +259,27 @@ func CheckBlockSeek() {
 
 						voutAddress := checkVout.ScriptPubKey.Addresses[0]
 						voutScript := checkVout.ScriptPubKey.Hex
-						isVoutAddressInVin := false
 						omniVinAddress := ""
-						for _, vin := range rpcTx.Vin {
-							rpcVinTx, ok := vinTxMap[vin.Txid]
-							if !ok {
-								rpcVinTx, err = omniclient.RpcGetRawTransactionVerbose(vin.Txid)
-								if err != nil {
-									hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-									return
-								}
-								vinTxMap[vin.Txid] = rpcVinTx
-								hcommon.Log.Debugf("get tx: %s", vin.Txid)
-							}
-							if rpcTxWithIndex.IsOmniTx {
-								if omniVinAddress == "" && len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
-									omniVinAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
-								}
-							}
-							if int64(len(rpcVinTx.Vout)) > vin.Vout {
-								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
-									if rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses[0] == voutAddress {
-										isVoutAddressInVin = true
-										break
+						if rpcTxWithIndex.IsOmniTx {
+							for _, vin := range rpcTx.Vin {
+								rpcVinTx, ok := vinTxMap[vin.Txid]
+								if !ok {
+									rpcVinTx, err = omniclient.RpcGetRawTransactionVerbose(vin.Txid)
+									if err != nil {
+										hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+										return
 									}
+									vinTxMap[vin.Txid] = rpcVinTx
+									hcommon.Log.Debugf("get tx: %s", vin.Txid)
+								}
+								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
+									omniVinAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
+									break
 								}
 							}
 						}
 						value := decimal.NewFromFloat(checkVout.Value).String()
-						if !isVoutAddressInVin &&
-							dbAddressRow.UseTag > 0 &&
+						if dbAddressRow.UseTag > 0 &&
 							!rpcTxWithIndex.IsOmniTx &&
 							!hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
 							// 记录数据 只记录已经获取，并且输入没有输出的记录
