@@ -912,6 +912,7 @@ func CheckRawTxConfirm() {
 		}
 
 		var notifyRows []*model.DBTProductNotify
+		withdrawIDs = []int64{}
 		now := time.Now().Unix()
 		addWithdrawNotify := func(sendRow *model.DBTSendBtc) error {
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
@@ -955,6 +956,7 @@ func CheckRawTxConfirm() {
 					CreateTime:   now,
 					UpdateTime:   now,
 				})
+				withdrawIDs = append(withdrawIDs, withdrawRow.ID)
 			}
 			return nil
 		}
@@ -979,6 +981,21 @@ func CheckRawTxConfirm() {
 			if err != nil {
 				return
 			}
+		}
+		// 更新提币状态
+		_, err = app.SQLUpdateTWithdrawStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			withdrawIDs,
+			&model.DBTWithdraw{
+				HandleStatus: app.WithdrawStatusConfirm,
+				HandleMsg:    "confirm",
+				HandleTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
 		}
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
