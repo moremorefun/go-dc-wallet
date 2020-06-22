@@ -402,6 +402,7 @@ type DBTTx struct {
 // const TTxBtc
 const (
 	DBColTTxBtcID           = "t_tx_btc.id"
+	DBColTTxBtcProductID    = "t_tx_btc.product_id"
 	DBColTTxBtcBlockHash    = "t_tx_btc.block_hash"
 	DBColTTxBtcTxID         = "t_tx_btc.tx_id"
 	DBColTTxBtcVoutN        = "t_tx_btc.vout_n"
@@ -416,6 +417,7 @@ const (
 // DBTTxBtc t_tx_btc 数据表
 /*
    id,
+   product_id,
    block_hash,
    tx_id,
    vout_n,
@@ -428,6 +430,7 @@ const (
 */
 type DBTTxBtc struct {
 	ID           int64  `db:"id" json:"id"`
+	ProductID    int64  `db:"product_id" json:"product_id"`
 	BlockHash    string `db:"block_hash" json:"block_hash"`
 	TxID         string `db:"tx_id" json:"tx_id"`
 	VoutN        int64  `db:"vout_n" json:"vout_n"`

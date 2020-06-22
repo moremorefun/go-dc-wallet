@@ -5898,6 +5898,7 @@ func SQLCreateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (
 			tx,
 			`INSERT INTO t_tx_btc (
     id,
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -5909,6 +5910,7 @@ func SQLCreateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (
     handle_time
 ) VALUES (
     :id,
+    :product_id,
     :block_hash,
     :tx_id,
     :vout_n,
@@ -5921,6 +5923,7 @@ func SQLCreateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (
 )`,
 			gin.H{
 				"id":            row.ID,
+				"product_id":    row.ProductID,
 				"block_hash":    row.BlockHash,
 				"tx_id":         row.TxID,
 				"vout_n":        row.VoutN,
@@ -5937,6 +5940,7 @@ func SQLCreateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (
 			ctx,
 			tx,
 			`INSERT INTO t_tx_btc (
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -5947,6 +5951,7 @@ func SQLCreateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (
     handle_msg,
     handle_time
 ) VALUES (
+    :product_id,
     :block_hash,
     :tx_id,
     :vout_n,
@@ -5958,6 +5963,7 @@ func SQLCreateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (
     :handle_time
 )`,
 			gin.H{
+				"product_id":    row.ProductID,
 				"block_hash":    row.BlockHash,
 				"tx_id":         row.TxID,
 				"vout_n":        row.VoutN,
@@ -5986,6 +5992,7 @@ func SQLCreateIgnoreTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
 			tx,
 			`INSERT IGNORE INTO t_tx_btc (
     id,
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -5997,6 +6004,7 @@ func SQLCreateIgnoreTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
     handle_time
 ) VALUES (
     :id,
+    :product_id,
     :block_hash,
     :tx_id,
     :vout_n,
@@ -6009,6 +6017,7 @@ func SQLCreateIgnoreTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
 )`,
 			gin.H{
 				"id":            row.ID,
+				"product_id":    row.ProductID,
 				"block_hash":    row.BlockHash,
 				"tx_id":         row.TxID,
 				"vout_n":        row.VoutN,
@@ -6025,6 +6034,7 @@ func SQLCreateIgnoreTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_tx_btc (
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -6035,6 +6045,7 @@ func SQLCreateIgnoreTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
     handle_msg,
     handle_time
 ) VALUES (
+    :product_id,
     :block_hash,
     :tx_id,
     :vout_n,
@@ -6046,6 +6057,7 @@ func SQLCreateIgnoreTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
     :handle_time
 )`,
 			gin.H{
+				"product_id":    row.ProductID,
 				"block_hash":    row.BlockHash,
 				"tx_id":         row.TxID,
 				"vout_n":        row.VoutN,
@@ -6076,6 +6088,7 @@ func SQLCreateManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTT
 				args,
 				[]interface{}{
 					row.ID,
+					row.ProductID,
 					row.BlockHash,
 					row.TxID,
 					row.VoutN,
@@ -6093,6 +6106,7 @@ func SQLCreateManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTT
 			args = append(
 				args,
 				[]interface{}{
+					row.ProductID,
 					row.BlockHash,
 					row.TxID,
 					row.VoutN,
@@ -6114,6 +6128,7 @@ func SQLCreateManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTT
 			tx,
 			`INSERT INTO t_tx_btc (
     id,
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -6133,6 +6148,7 @@ func SQLCreateManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTT
 			ctx,
 			tx,
 			`INSERT INTO t_tx_btc (
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -6166,6 +6182,7 @@ func SQLCreateIgnoreManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows [
 				args,
 				[]interface{}{
 					row.ID,
+					row.ProductID,
 					row.BlockHash,
 					row.TxID,
 					row.VoutN,
@@ -6183,6 +6200,7 @@ func SQLCreateIgnoreManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows [
 			args = append(
 				args,
 				[]interface{}{
+					row.ProductID,
 					row.BlockHash,
 					row.TxID,
 					row.VoutN,
@@ -6204,6 +6222,7 @@ func SQLCreateIgnoreManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows [
 			tx,
 			`INSERT IGNORE INTO t_tx_btc (
     id,
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -6223,6 +6242,7 @@ func SQLCreateIgnoreManyTTxBtc(ctx context.Context, tx hcommon.DbExeAble, rows [
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_tx_btc (
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -6253,6 +6273,7 @@ func SQLGetTTxBtc(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTxBt
 		&row,
 		`SELECT
     id,
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -6321,6 +6342,7 @@ func SQLSelectTTxBtc(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]
 		&rows,
 		`SELECT
     id,
+    product_id,
     block_hash,
     tx_id,
     vout_n,
@@ -6382,6 +6404,7 @@ func SQLUpdateTTxBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxBtc) (
 		`UPDATE
 	t_tx_btc
 SET
+    product_id=:product_id,
     block_hash=:block_hash,
     tx_id=:tx_id,
     vout_n=:vout_n,
@@ -6395,6 +6418,7 @@ WHERE
 	id=:id`,
 		gin.H{
 			"id":            row.ID,
+			"product_id":    row.ProductID,
 			"block_hash":    row.BlockHash,
 			"tx_id":         row.TxID,
 			"vout_n":        row.VoutN,

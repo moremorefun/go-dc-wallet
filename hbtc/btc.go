@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
+	"github.com/gin-gonic/gin"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
@@ -253,6 +255,7 @@ func CheckBlockSeek() {
 							txBtcRows = append(
 								txBtcRows,
 								&model.DBTTxBtc{
+									ProductID:    dbAddressRow.UseTag,
 									BlockHash:    rpcBlock.Hash,
 									TxID:         rpcTx.Txid,
 									VoutN:        voutIndex,
@@ -1173,4 +1176,113 @@ func CheckWithdraw() {
 			return
 		}
 	})
+}
+
+// CheckTxNotify 创建btc冲币通知
+func CheckTxNotify() {
+	lockKey := "BtcCheckTxNotify"
+	app.LockWrap(lockKey, func() {
+		txRows, err := app.SQLSelectTTxBtcColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTTxBtcID,
+				model.DBColTTxBtcProductID,
+				model.DBColTTxBtcTxID,
+				model.DBColTTxBtcVoutAddress,
+				model.DBColTTxBtcVoutN,
+				model.DBColTTxBtcVoutValue,
+			},
+			app.TxStatusInit,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var productIDs []int64
+		for _, txRow := range txRows {
+			if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+				productIDs = append(productIDs, txRow.ProductID)
+			}
+		}
+		productMap, err := app.SQLGetProductMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTProductID,
+				model.DBColTProductAppName,
+				model.DBColTProductCbURL,
+				model.DBColTProductAppSk,
+			},
+			productIDs,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var notifyTxIDs []int64
+		var notifyRows []*model.DBTProductNotify
+		now := time.Now().Unix()
+		for _, txRow := range txRows {
+			productRow, ok := productMap[txRow.ProductID]
+			if !ok {
+				hcommon.Log.Warnf("no productMap: %d", txRow.ProductID)
+				notifyTxIDs = append(notifyTxIDs, txRow.ID)
+				continue
+			}
+			nonce := hcommon.GetUUIDStr()
+			reqObj := gin.H{
+				"tx_hash":     fmt.Sprintf("%s_%d", txRow.TxID, txRow.VoutN),
+				"app_name":    productRow.AppName,
+				"address":     txRow.VoutAddress,
+				"balance":     txRow.VoutValue,
+				"symbol":      CoinSymbol,
+				"notify_type": app.NotifyTypeTx,
+			}
+			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			req, err := json.Marshal(reqObj)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+			notifyRows = append(notifyRows, &model.DBTProductNotify{
+				Nonce:        nonce,
+				ProductID:    txRow.ProductID,
+				ItemType:     app.SendRelationTypeTx,
+				ItemID:       txRow.ID,
+				NotifyType:   app.NotifyTypeTx,
+				URL:          productRow.CbURL,
+				Msg:          string(req),
+				HandleStatus: app.NotifyStatusInit,
+				HandleMsg:    "",
+				CreateTime:   now,
+				UpdateTime:   now,
+			})
+			notifyTxIDs = append(notifyTxIDs, txRow.ID)
+		}
+		_, err = model.SQLCreateIgnoreManyTProductNotify(
+			context.Background(),
+			app.DbCon,
+			notifyRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		_, err = app.SQLUpdateTTxBtcStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			notifyTxIDs,
+			model.DBTTxBtc{
+				HandleStatus: app.TxStatusNotify,
+				HandleMsg:    "notify",
+				HandleTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
+
 }
