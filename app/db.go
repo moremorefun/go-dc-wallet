@@ -1175,3 +1175,59 @@ ORDER BY
 	}
 	return rows, nil
 }
+
+// SQLSelectTSendBtcColByStatus 根据ids获取
+func SQLSelectTSendBtcColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSendBtc, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_send_btc
+WHERE
+	handle_status=:handle_status`)
+
+	var rows []*model.DBTSendBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"handle_status": status,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTSendBtcByIDs 更新
+func SQLUpdateTSendBtcByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row *model.DBTSendBtc) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_send_btc
+SET
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids":           ids,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

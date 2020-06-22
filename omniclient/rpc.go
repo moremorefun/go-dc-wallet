@@ -213,3 +213,23 @@ func RpcDecodeRawTransaction(txHex string) (*StTxResult, error) {
 	}
 	return resp.Result, nil
 }
+
+// RpcSendRawTransaction 发送tx
+func RpcSendRawTransaction(txHex string) (*string, error) {
+	resp := struct {
+		StRpcResp
+		Result *string `json:"result"`
+	}{}
+	err := doReq(
+		"sendrawtransaction",
+		[]interface{}{txHex},
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}

@@ -9,6 +9,7 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/omniclient"
+	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/txscript"
@@ -25,6 +26,7 @@ const (
 	CoinSymbol = "btc"
 )
 
+// CheckAddressFree 检测剩余地址数
 func CheckAddressFree() {
 	lockKey := "BtcCheckAddressFree"
 	app.LockWrap(lockKey, func() {
@@ -93,6 +95,7 @@ func CheckAddressFree() {
 	})
 }
 
+// CheckBlockSeek 检测到账
 func CheckBlockSeek() {
 	lockKey := "BtcCheckBlockSeek"
 	app.LockWrap(lockKey, func() {
@@ -582,6 +585,7 @@ func CheckTxOrg() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 		// 准备插入数据
 		now := time.Now().Unix()
 		var sendRows []*model.DBTSendBtc
@@ -632,6 +636,54 @@ func CheckTxOrg() {
 			context.Background(),
 			app.DbCon,
 			updateUxtoRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
+}
+
+// CheckRawTxSend 发送交易
+func CheckRawTxSend() {
+	lockKey := "BtcCheckRawTxSend"
+	app.LockWrap(lockKey, func() {
+		sendRows, err := app.SQLSelectTSendBtcColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTSendBtcID,
+				model.DBColTSendBtcHex,
+			},
+			app.SendStatusInit,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var sendIDs []int64
+		for _, sendRow := range sendRows {
+			if sendRow.Hex == "" {
+				sendIDs = append(sendIDs, sendRow.ID)
+				continue
+			}
+			_, err := omniclient.RpcSendRawTransaction(sendRow.Hex)
+			if err != nil && strings.Contains(err.Error(), "already in block chain") {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+			sendIDs = append(sendIDs, sendRow.ID)
+		}
+		now := time.Now().Unix()
+		_, err = app.SQLUpdateTSendBtcByIDs(
+			context.Background(),
+			app.DbCon,
+			sendIDs,
+			&model.DBTSendBtc{
+				HandleStatus: app.SendStatusSend,
+				HandleTime:   now,
+				HandleMsg:    "send",
+			},
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
