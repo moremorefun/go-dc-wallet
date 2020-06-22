@@ -4560,6 +4560,694 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTSendBtc 创建
+func SQLCreateTSendBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTSendBtc) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_send_btc (
+    id,
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :id,
+    :related_type,
+    :related_id,
+    :token_id,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :balance,
+    :balance_real,
+    :gas,
+    :gas_price,
+    :hex,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"related_type":  row.RelatedType,
+				"related_id":    row.RelatedID,
+				"token_id":      row.TokenID,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"balance":       row.Balance,
+				"balance_real":  row.BalanceReal,
+				"gas":           row.Gas,
+				"gas_price":     row.GasPrice,
+				"hex":           row.Hex,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_send_btc (
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :related_type,
+    :related_id,
+    :token_id,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :balance,
+    :balance_real,
+    :gas,
+    :gas_price,
+    :hex,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"related_type":  row.RelatedType,
+				"related_id":    row.RelatedID,
+				"token_id":      row.TokenID,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"balance":       row.Balance,
+				"balance_real":  row.BalanceReal,
+				"gas":           row.Gas,
+				"gas_price":     row.GasPrice,
+				"hex":           row.Hex,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTSendBtc 创建
+func SQLCreateIgnoreTSendBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTSendBtc) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_send_btc (
+    id,
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :id,
+    :related_type,
+    :related_id,
+    :token_id,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :balance,
+    :balance_real,
+    :gas,
+    :gas_price,
+    :hex,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"id":            row.ID,
+				"related_type":  row.RelatedType,
+				"related_id":    row.RelatedID,
+				"token_id":      row.TokenID,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"balance":       row.Balance,
+				"balance_real":  row.BalanceReal,
+				"gas":           row.Gas,
+				"gas_price":     row.GasPrice,
+				"hex":           row.Hex,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_send_btc (
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES (
+    :related_type,
+    :related_id,
+    :token_id,
+    :tx_id,
+    :from_address,
+    :to_address,
+    :balance,
+    :balance_real,
+    :gas,
+    :gas_price,
+    :hex,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_time
+)`,
+			gin.H{
+				"related_type":  row.RelatedType,
+				"related_id":    row.RelatedID,
+				"token_id":      row.TokenID,
+				"tx_id":         row.TxID,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"balance":       row.Balance,
+				"balance_real":  row.BalanceReal,
+				"gas":           row.Gas,
+				"gas_price":     row.GasPrice,
+				"hex":           row.Hex,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_time":   row.HandleTime,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTSendBtc 创建多个
+func SQLCreateManyTSendBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTSendBtc) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.RelatedType,
+					row.RelatedID,
+					row.TokenID,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Balance,
+					row.BalanceReal,
+					row.Gas,
+					row.GasPrice,
+					row.Hex,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.RelatedType,
+					row.RelatedID,
+					row.TokenID,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Balance,
+					row.BalanceReal,
+					row.Gas,
+					row.GasPrice,
+					row.Hex,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_send_btc (
+    id,
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_send_btc (
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTSendBtc 创建多个
+func SQLCreateIgnoreManyTSendBtc(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTSendBtc) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.RelatedType,
+					row.RelatedID,
+					row.TokenID,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Balance,
+					row.BalanceReal,
+					row.Gas,
+					row.GasPrice,
+					row.Hex,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.RelatedType,
+					row.RelatedID,
+					row.TokenID,
+					row.TxID,
+					row.FromAddress,
+					row.ToAddress,
+					row.Balance,
+					row.BalanceReal,
+					row.Gas,
+					row.GasPrice,
+					row.Hex,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleTime,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_send_btc (
+    id,
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_send_btc (
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTSendBtc 根据id查询
+func SQLGetTSendBtc(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTSendBtc, error) {
+	var row DBTSendBtc
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+FROM
+	t_send_btc
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTSendBtcCol 根据id查询
+func SQLGetTSendBtcCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTSendBtc, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_send_btc
+WHERE
+	id=:id`)
+
+	var row DBTSendBtc
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTSendBtc 根据ids获取
+func SQLSelectTSendBtc(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTSendBtc, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTSendBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    related_type,
+    related_id,
+    token_id,
+    tx_id,
+    from_address,
+    to_address,
+    balance,
+    balance_real,
+    gas,
+    gas_price,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_time
+FROM
+	t_send_btc
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTSendBtcCol 根据ids获取
+func SQLSelectTSendBtcCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTSendBtc, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_send_btc
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTSendBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTSendBtc 更新
+func SQLUpdateTSendBtc(ctx context.Context, tx hcommon.DbExeAble, row *DBTSendBtc) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_send_btc
+SET
+    related_type=:related_type,
+    related_id=:related_id,
+    token_id=:token_id,
+    tx_id=:tx_id,
+    from_address=:from_address,
+    to_address=:to_address,
+    balance=:balance,
+    balance_real=:balance_real,
+    gas=:gas,
+    gas_price=:gas_price,
+    hex=:hex,
+    create_time=:create_time,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_time=:handle_time
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"related_type":  row.RelatedType,
+			"related_id":    row.RelatedID,
+			"token_id":      row.TokenID,
+			"tx_id":         row.TxID,
+			"from_address":  row.FromAddress,
+			"to_address":    row.ToAddress,
+			"balance":       row.Balance,
+			"balance_real":  row.BalanceReal,
+			"gas":           row.Gas,
+			"gas_price":     row.GasPrice,
+			"hex":           row.Hex,
+			"create_time":   row.CreateTime,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_time":   row.HandleTime,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTSendBtc 删除
+func SQLDeleteTSendBtc(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_send_btc
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTTx 创建
 func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64, error) {
 	var lastID int64

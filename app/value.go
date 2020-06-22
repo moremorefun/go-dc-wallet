@@ -30,6 +30,7 @@ const (
 	SendRelationTypeWithdraw   = 2
 	SendRelationTypeTxErc20    = 3
 	SendRelationTypeTxErc20Fee = 4
+	SendRelationTypeUXTOOrg    = 5
 )
 
 // 通知状态

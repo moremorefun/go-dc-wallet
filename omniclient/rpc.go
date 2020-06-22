@@ -193,3 +193,23 @@ func RpcGetRawTransactionVerbose(txHash string) (*StTxResult, error) {
 	}
 	return resp.Result, nil
 }
+
+// RpcDecodeRawTransaction 解析tx
+func RpcDecodeRawTransaction(txHex string) (*StTxResult, error) {
+	resp := struct {
+		StRpcResp
+		Result *StTxResult `json:"result"`
+	}{}
+	err := doReq(
+		"decoderawtransaction",
+		[]interface{}{txHex},
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}

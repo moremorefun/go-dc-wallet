@@ -1145,3 +1145,33 @@ ON DUPLICATE KEY UPDATE
 	}
 	return count, nil
 }
+
+// SQLSelectTTxBtcUxtoColToOrg 根据ids获取
+func SQLSelectTTxBtcUxtoColToOrg(ctx context.Context, tx hcommon.DbExeAble, cols []string) ([]*model.DBTTxBtcUxto, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_uxto
+WHERE
+	handle_status=0
+	AND uxto_type=:uxto_type
+ORDER BY
+	id`)
+
+	var rows []*model.DBTTxBtcUxto
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"uxto_type": UxtoTypeTx,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}

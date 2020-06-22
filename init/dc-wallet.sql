@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-06-19 17:01:41.8910
+-- Generation Time: 2020-06-22 11:09:52.8560
 -- -------------------------------------------------------------
 
 
@@ -27,7 +27,7 @@ CREATE TABLE `t_address_key` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `t_address_key_address_idx` (`address`,`symbol`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=411 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=412 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -43,7 +43,7 @@ CREATE TABLE `t_app_config_str` (
   `v` varchar(1024) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_token` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -66,7 +66,7 @@ CREATE TABLE `t_app_lock` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `k_2` (`k`),
   KEY `k` (`k`,`create_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=65 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=101 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -74,7 +74,7 @@ CREATE TABLE `t_app_status_int` (
   `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_product` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -135,6 +135,29 @@ CREATE TABLE `t_send` (
   KEY `t_send_from_address_idx` (`from_address`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE `t_send_btc` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `related_type` tinyint(4) NOT NULL COMMENT '关联类型 1 零钱整理 2 提币',
+  `related_id` int(11) unsigned NOT NULL COMMENT '关联id',
+  `token_id` int(11) unsigned NOT NULL,
+  `tx_id` varchar(128) NOT NULL DEFAULT '' COMMENT 'tx hash',
+  `from_address` varchar(128) NOT NULL DEFAULT '' COMMENT '打币地址',
+  `to_address` varchar(128) NOT NULL COMMENT '收币地址',
+  `balance` bigint(20) NOT NULL COMMENT '打币金额 Wei',
+  `balance_real` varchar(128) NOT NULL COMMENT '打币金额 Ether',
+  `gas` bigint(20) NOT NULL COMMENT 'gas消耗',
+  `gas_price` bigint(20) NOT NULL COMMENT 'gasPrice',
+  `hex` varchar(2048) NOT NULL COMMENT 'tx raw hex',
+  `create_time` bigint(20) NOT NULL COMMENT '创建时间',
+  `handle_status` tinyint(4) NOT NULL COMMENT '处理状态',
+  `handle_msg` varchar(1024) NOT NULL DEFAULT '' COMMENT '处理消息',
+  `handle_time` bigint(20) NOT NULL COMMENT '处理时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `related_id` (`related_id`,`related_type`) USING BTREE,
+  KEY `tx_id` (`tx_id`) USING BTREE,
+  KEY `t_send_from_address_idx` (`from_address`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4;
+
 CREATE TABLE `t_tx` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `product_id` int(11) unsigned NOT NULL,
@@ -167,10 +190,11 @@ CREATE TABLE `t_tx_btc` (
   `handle_time` bigint(22) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tx_id` (`tx_id`,`vout_n`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_btc_uxto` (
   `id` bigint(22) unsigned NOT NULL AUTO_INCREMENT,
+  `uxto_type` tinyint(4) NOT NULL,
   `block_hash` varchar(128) NOT NULL DEFAULT '',
   `tx_id` varchar(128) NOT NULL DEFAULT '',
   `vout_n` int(11) NOT NULL,
@@ -187,7 +211,7 @@ CREATE TABLE `t_tx_btc_uxto` (
   UNIQUE KEY `tx_id` (`tx_id`,`vout_n`),
   KEY `handle_status` (`handle_status`),
   KEY `vout_address` (`vout_address`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_erc20` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,

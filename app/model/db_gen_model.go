@@ -289,6 +289,64 @@ type DBTSend struct {
 	HandleTime   int64  `db:"handle_time" json:"handle_time"`     // 处理时间
 }
 
+// const TSendBtc
+const (
+	DBColTSendBtcID           = "t_send_btc.id"
+	DBColTSendBtcRelatedType  = "t_send_btc.related_type" // 关联类型 1 零钱整理 2 提币
+	DBColTSendBtcRelatedID    = "t_send_btc.related_id"   // 关联id
+	DBColTSendBtcTokenID      = "t_send_btc.token_id"
+	DBColTSendBtcTxID         = "t_send_btc.tx_id"         // tx hash
+	DBColTSendBtcFromAddress  = "t_send_btc.from_address"  // 打币地址
+	DBColTSendBtcToAddress    = "t_send_btc.to_address"    // 收币地址
+	DBColTSendBtcBalance      = "t_send_btc.balance"       // 打币金额 Wei
+	DBColTSendBtcBalanceReal  = "t_send_btc.balance_real"  // 打币金额 Ether
+	DBColTSendBtcGas          = "t_send_btc.gas"           // gas消耗
+	DBColTSendBtcGasPrice     = "t_send_btc.gas_price"     // gasPrice
+	DBColTSendBtcHex          = "t_send_btc.hex"           // tx raw hex
+	DBColTSendBtcCreateTime   = "t_send_btc.create_time"   // 创建时间
+	DBColTSendBtcHandleStatus = "t_send_btc.handle_status" // 处理状态
+	DBColTSendBtcHandleMsg    = "t_send_btc.handle_msg"    // 处理消息
+	DBColTSendBtcHandleTime   = "t_send_btc.handle_time"   // 处理时间
+)
+
+// DBTSendBtc t_send_btc 数据表
+/*
+   id,
+   related_type,
+   related_id,
+   token_id,
+   tx_id,
+   from_address,
+   to_address,
+   balance,
+   balance_real,
+   gas,
+   gas_price,
+   hex,
+   create_time,
+   handle_status,
+   handle_msg,
+   handle_time
+*/
+type DBTSendBtc struct {
+	ID           int64  `db:"id" json:"id"`
+	RelatedType  int64  `db:"related_type" json:"related_type"` // 关联类型 1 零钱整理 2 提币
+	RelatedID    int64  `db:"related_id" json:"related_id"`     // 关联id
+	TokenID      int64  `db:"token_id" json:"token_id"`
+	TxID         string `db:"tx_id" json:"tx_id"`                 // tx hash
+	FromAddress  string `db:"from_address" json:"from_address"`   // 打币地址
+	ToAddress    string `db:"to_address" json:"to_address"`       // 收币地址
+	Balance      int64  `db:"balance" json:"balance"`             // 打币金额 Wei
+	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 打币金额 Ether
+	Gas          int64  `db:"gas" json:"gas"`                     // gas消耗
+	GasPrice     int64  `db:"gas_price" json:"gas_price"`         // gasPrice
+	Hex          string `db:"hex" json:"hex"`                     // tx raw hex
+	CreateTime   int64  `db:"create_time" json:"create_time"`     // 创建时间
+	HandleStatus int64  `db:"handle_status" json:"handle_status"` // 处理状态
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`       // 处理消息
+	HandleTime   int64  `db:"handle_time" json:"handle_time"`     // 处理时间
+}
+
 // const TTx
 const (
 	DBColTTxID           = "t_tx.id"
