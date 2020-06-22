@@ -669,7 +669,7 @@ func CheckRawTxSend() {
 				continue
 			}
 			_, err := omniclient.RpcSendRawTransaction(sendRow.Hex)
-			if err != nil && strings.Contains(err.Error(), "already in block chain") {
+			if err != nil && !strings.Contains(err.Error(), "already in block chain") {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
 			}
