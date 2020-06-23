@@ -31,6 +31,7 @@ const (
 	SendRelationTypeTxErc20    = 3
 	SendRelationTypeTxErc20Fee = 4
 	SendRelationTypeUXTOOrg    = 5
+	SendRelationTypeOmniOrg    = 6
 )
 
 // 通知状态

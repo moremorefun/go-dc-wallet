@@ -1800,6 +1800,10 @@ func OmniCheckTxOrg() {
 				)
 			}
 			// 处理零钱整理
+			var sendTxIDs []int64
+			var sendRows []*model.DBTSendBtc
+			var usedUxtoRows []*model.DBTTxBtcUxto
+			now := time.Now().Unix()
 			for _, orgItem := range orgMap {
 				tokenRow, ok := tokenMap[orgItem.TokenIndex]
 				if !ok {
@@ -1895,9 +1899,102 @@ func OmniCheckTxOrg() {
 					return
 				}
 				hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+				for i, txRow := range orgItem.txRows {
+					gas := int64(0)
+					gasPrice := int64(0)
+					txHex := ""
+					balance := int64(0)
+					balanceReal := "0"
+					if i == 0 {
+						gas = int64(tx.SerializeSize())
+						gasPrice = feeRow.V
+						txHex = hex.EncodeToString(b.Bytes())
+						balance = orgItem.Balance
+						balanceReal = decimal.NewFromInt(orgItem.Balance).Div(decimal.NewFromInt(1e8)).String()
+					}
+					// 发送数据
+					sendRows = append(sendRows, &model.DBTSendBtc{
+						RelatedType:  app.SendRelationTypeOmniOrg,
+						RelatedID:    txRow.ID,
+						TokenID:      txRow.TokenIndex,
+						TxID:         tx.TxHash().String(),
+						FromAddress:  txRow.ToAddress,
+						ToAddress:    tokenRow.ColdAddress,
+						Balance:      balance,
+						BalanceReal:  balanceReal,
+						Gas:          gas,
+						GasPrice:     gasPrice,
+						Hex:          txHex,
+						CreateTime:   now,
+						HandleStatus: 0,
+						HandleMsg:    "",
+						HandleTime:   0,
+					})
+					// 发送的t_tx_btc_token.id
+					sendTxIDs = append(sendTxIDs, txRow.ID)
+				}
+				// 使用过的uxto
+				tmpUxtoRow := omniUxtoRows[0]
+				usedUxtoRows = append(usedUxtoRows, &model.DBTTxBtcUxto{
+					ID:           tmpUxtoRow.ID,
+					TxID:         tmpUxtoRow.TxID,
+					VoutN:        tmpUxtoRow.VoutN,
+					SpendTxID:    tx.TxHash().String(),
+					SpendN:       0,
+					HandleStatus: app.UxtoHandleStatusUse,
+					HandleMsg:    "use",
+					HandleTime:   now,
+				})
+				for i, usedUxtoRow := range omniHotUxtoRows[:omniHotUxtoIndex+1] {
+					usedUxtoRows = append(usedUxtoRows, &model.DBTTxBtcUxto{
+						ID:           usedUxtoRow.ID,
+						TxID:         usedUxtoRow.TxID,
+						VoutN:        usedUxtoRow.VoutN,
+						SpendTxID:    tx.TxHash().String(),
+						SpendN:       int64(i) + 1,
+						HandleStatus: app.UxtoHandleStatusUse,
+						HandleMsg:    "use",
+						HandleTime:   now,
+					})
+				}
 				// 重置数据
 				omniUxtoMap[orgItem.Address] = omniUxtoRows[1:]
 				omniHotUxtoMap[tokenRow.HotAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
+			}
+			// 添加发送
+			_, err = model.SQLCreateIgnoreManyTSendBtc(
+				context.Background(),
+				app.DbCon,
+				sendRows,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			// 更新uxto状态
+			_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
+				context.Background(),
+				app.DbCon,
+				usedUxtoRows,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			// 更新整理状态
+			_, err = app.SQLUpdateTTxBtcTokenOrgStatusByIDs(
+				context.Background(),
+				app.DbCon,
+				sendTxIDs,
+				model.DBTTxBtcToken{
+					OrgStatus: app.TxOrgStatusHex,
+					OrgMsg:    "hex",
+					OrgAt:     now,
+				},
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
 			}
 		}
 	})

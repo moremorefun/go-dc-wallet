@@ -1555,3 +1555,32 @@ WHERE
 	}
 	return rows, nil
 }
+
+// SQLUpdateTTxBtcTokenOrgStatusByIDs 更新
+func SQLUpdateTTxBtcTokenOrgStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxBtcToken) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_btc_token
+SET
+    org_status=:org_status,
+    org_msg=:org_msg,
+    org_at=:org_at
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids":        ids,
+			"org_status": row.OrgStatus,
+			"org_msg":    row.OrgMsg,
+			"org_at":     row.OrgAt,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
