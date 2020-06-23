@@ -8,6 +8,5 @@ import (
 func main() {
 	app.EnvCreate()
 	defer app.EnvDestroy()
-
 	hbtc.OmniCheckTxOrg()
 }

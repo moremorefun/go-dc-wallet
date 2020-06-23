@@ -3,6 +3,7 @@ package hbtc
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
@@ -279,4 +280,319 @@ func BtcTxWithdrawSize(vins []*model.DBTTxBtcUxto, vouts []*model.DBTWithdraw, k
 		Balance:     0,
 	})
 	return BtcTxSize(argVins, argVouts)
+}
+
+// OmniTxSize 计算omni大小
+func OmniTxSize(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, tokenIndex int64, tokenBalance int64, keyMap map[string]*btcutil.WIF, inUxtoRows []*model.DBTTxBtcUxto, vouts []*StBtxTxOut) (int64, error) {
+	tx := wire.NewMsgTx(wire.TxVersion)
+	// 添加sender
+	hash, err := chainhash.NewHashFromStr(senderUxtoRow.TxID)
+	if err != nil {
+		return 0, err
+	}
+	outPoint := wire.NewOutPoint(hash, uint32(senderUxtoRow.VoutN))
+	txIn := wire.NewTxIn(outPoint, nil, nil)
+	tx.AddTxIn(txIn)
+	// 添加input
+	for _, inUxtoRow := range inUxtoRows {
+		hash, err := chainhash.NewHashFromStr(inUxtoRow.TxID)
+		if err != nil {
+			return 0, err
+		}
+		outPoint := wire.NewOutPoint(hash, uint32(inUxtoRow.VoutN))
+		txIn := wire.NewTxIn(outPoint, nil, nil)
+		tx.AddTxIn(txIn)
+	}
+	// 添加script
+	sHex := fmt.Sprintf("%016x%016x", tokenIndex, tokenBalance)
+	b, err := hex.DecodeString(omniHex + sHex)
+	if err != nil {
+		return 0, err
+	}
+	opreturnScript, err := txscript.NullDataScript(b)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return 0, err
+	}
+	tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
+	// 添加output
+	for _, vout := range vouts {
+		err := BtcAddTxOut(tx, vout.VoutAddress, vout.Balance)
+		if err != nil {
+			return 0, err
+		}
+	}
+	// 添加 omni get
+	err = BtcAddTxOut(tx, toAddress, MinNondustOutput)
+	if err != nil {
+		return 0, err
+	}
+	// 计算手续费
+	for i := range tx.TxIn {
+		scriptHex := ""
+		address := ""
+		if i == 0 {
+			scriptHex = senderUxtoRow.VoutScript
+			address = senderUxtoRow.VoutAddress
+		} else {
+			scriptHex = inUxtoRows[i-1].VoutScript
+			address = inUxtoRows[i-1].VoutAddress
+		}
+		txinPkScript, err := hex.DecodeString(scriptHex)
+		if err != nil {
+			return 0, err
+		}
+		wif, ok := keyMap[address]
+		if !ok {
+			return 0, errors.New("no wif")
+		}
+		script, err := txscript.SignatureScript(
+			tx,
+			i,
+			txinPkScript,
+			txscript.SigHashAll,
+			wif.PrivKey,
+			true,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return 0, err
+		}
+		tx.TxIn[i].SignatureScript = script
+	}
+	txSize := int64(tx.SerializeSize())
+	return txSize, nil
+}
+
+// OmniTxMake 生成交易
+func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddress string, tokenIndex int64, tokenBalance int64, gasPrice int64, keyMap map[string]*btcutil.WIF, inUxtoRows []*model.DBTTxBtcUxto) (*wire.MsgTx, error) {
+	inBalance := int64(0)
+	outBalance := int64(0)
+
+	tx := wire.NewMsgTx(wire.TxVersion)
+	// 添加sender
+	hash, err := chainhash.NewHashFromStr(senderUxtoRow.TxID)
+	if err != nil {
+		return nil, err
+	}
+	outPoint := wire.NewOutPoint(hash, uint32(senderUxtoRow.VoutN))
+	txIn := wire.NewTxIn(outPoint, nil, nil)
+	tx.AddTxIn(txIn)
+	balance, err := decimal.NewFromString(senderUxtoRow.VoutValue)
+	if err != nil {
+		return nil, err
+	}
+	inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
+
+	// 添加input
+	for _, inUxtoRow := range inUxtoRows {
+		hash, err := chainhash.NewHashFromStr(inUxtoRow.TxID)
+		if err != nil {
+			return nil, err
+		}
+		outPoint := wire.NewOutPoint(hash, uint32(inUxtoRow.VoutN))
+		txIn := wire.NewTxIn(outPoint, nil, nil)
+		tx.AddTxIn(txIn)
+		balance, err := decimal.NewFromString(inUxtoRow.VoutValue)
+		if err != nil {
+			return nil, err
+		}
+		inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
+	}
+	// 添加script
+	sHex := fmt.Sprintf("%016x%016x", tokenIndex, tokenBalance)
+	b, err := hex.DecodeString(omniHex + sHex)
+	if err != nil {
+		return nil, err
+	}
+	opreturnScript, err := txscript.NullDataScript(b)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return nil, err
+	}
+	tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
+	// 添加 omni get
+	err = BtcAddTxOut(tx, toAddress, MinNondustOutput)
+	if err != nil {
+		return nil, err
+	}
+	outBalance += MinNondustOutput
+	// 计算手续费
+	for i := range tx.TxIn {
+		scriptHex := ""
+		address := ""
+		if i == 0 {
+			scriptHex = senderUxtoRow.VoutScript
+			address = senderUxtoRow.VoutAddress
+		} else {
+			scriptHex = inUxtoRows[i-1].VoutScript
+			address = inUxtoRows[i-1].VoutAddress
+		}
+		txinPkScript, err := hex.DecodeString(scriptHex)
+		if err != nil {
+			return nil, err
+		}
+		wif, ok := keyMap[address]
+		if !ok {
+			return nil, errors.New("no wif")
+		}
+		script, err := txscript.SignatureScript(
+			tx,
+			i,
+			txinPkScript,
+			txscript.SigHashAll,
+			wif.PrivKey,
+			true,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return nil, err
+		}
+		tx.TxIn[i].SignatureScript = script
+	}
+	// 填充
+	tmpBalance := int64(50000)
+	for {
+		err = BtcAddTxOut(tx, changeAddress, 0)
+		if err != nil {
+			return nil, err
+		}
+		txSize := int64(tx.SerializeSize())
+		remain := inBalance - outBalance - txSize*gasPrice
+		if remain > tmpBalance {
+			tx.TxOut[len(tx.TxOut)-1].Value = tmpBalance
+			outBalance += tmpBalance
+		} else if remain >= MinNondustOutput {
+			tx.TxOut[len(tx.TxOut)-1].Value = remain
+			outBalance += remain
+		} else {
+			tx.TxOut = tx.TxOut[:len(tx.TxOut)-1]
+			break
+		}
+	}
+	// 重新整理手续费
+	var newOut []*wire.TxOut
+	for i, out := range tx.TxOut {
+		if i != 1 {
+			newOut = append(newOut, out)
+		}
+	}
+	newOut = append(newOut, tx.TxOut[1])
+	tx.TxOut = newOut
+	// 重新签名
+	for i := range tx.TxIn {
+		scriptHex := ""
+		address := ""
+		if i == 0 {
+			scriptHex = senderUxtoRow.VoutScript
+			address = senderUxtoRow.VoutAddress
+		} else {
+			scriptHex = inUxtoRows[i-1].VoutScript
+			address = inUxtoRows[i-1].VoutAddress
+		}
+		txinPkScript, err := hex.DecodeString(scriptHex)
+		if err != nil {
+			return nil, err
+		}
+		wif, ok := keyMap[address]
+		if !ok {
+			return nil, errors.New("no wif")
+		}
+		script, err := txscript.SignatureScript(
+			tx,
+			i,
+			txinPkScript,
+			txscript.SigHashAll,
+			wif.PrivKey,
+			true,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return nil, err
+		}
+		tx.TxIn[i].SignatureScript = script
+		vm, err := txscript.NewEngine(
+			txinPkScript,
+			tx,
+			i,
+			txscript.StandardVerifyFlags,
+			nil,
+			nil,
+			-1,
+		)
+		if err != nil {
+			return nil, err
+		}
+		err = vm.Execute()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tx, nil
+}
+
+// GetEstimateTxSize 获取tx大小
+func GetEstimateTxSize(fromAddressCount int64, toAddressCount int64, isOmniScript bool) (int64, error) {
+	tmpTxID := "e326842c86612d9e3849825117839b40444e7e1066136afcc5e6b7757f9508e0"
+	tmpAddress := "mnzBq3LMyq71maLMqzSKaPMSm2WuiJtZpQ"
+	tmpWif := "cRdLxqbRbPFQB12XDKQNkD8fDsBCAqEbNJVn4Z6fT8qMFSih3AFm"
+	wif, err := btcutil.DecodeWIF(tmpWif)
+	if err != nil {
+		return 0, err
+	}
+	addrTo, err := btcutil.DecodeAddress(
+		tmpAddress,
+		&chaincfg.TestNet3Params,
+	)
+	if err != nil {
+		return 0, err
+	}
+	pkScriptf, err := txscript.PayToAddrScript(addrTo)
+	if err != nil {
+		return 0, err
+	}
+	tx := wire.NewMsgTx(wire.TxVersion)
+	for i := int64(0); i < toAddressCount; i++ {
+		tx.AddTxOut(wire.NewTxOut(0, pkScriptf))
+	}
+	if isOmniScript {
+		// 添加script
+		sHex := fmt.Sprintf("%016x%016x", 1, 0)
+		b, err := hex.DecodeString(omniHex + sHex)
+		if err != nil {
+			return 0, err
+		}
+		opreturnScript, err := txscript.NullDataScript(b)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return 0, err
+		}
+		tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
+	}
+	for i := int64(0); i < fromAddressCount; i++ {
+		hash, err := chainhash.NewHashFromStr(tmpTxID)
+		if err != nil {
+			return 0, err
+		}
+		outPoint := wire.NewOutPoint(hash, 0)
+		txIn := wire.NewTxIn(outPoint, nil, nil)
+		tx.AddTxIn(txIn)
+	}
+	for i := range tx.TxIn {
+		script, err := txscript.SignatureScript(
+			tx,
+			i,
+			pkScriptf,
+			txscript.SigHashAll,
+			wif.PrivKey,
+			true,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return 0, err
+		}
+		tx.TxIn[i].SignatureScript = script
+	}
+	txSize := int64(tx.SerializeSize()) + fromAddressCount*2
+	return txSize, nil
 }

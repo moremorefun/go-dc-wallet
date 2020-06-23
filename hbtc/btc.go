@@ -16,13 +16,8 @@ import (
 
 	"github.com/parnurzeal/gorequest"
 
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	"github.com/gin-gonic/gin"
-
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-
-	"github.com/btcsuite/btcd/wire"
 
 	"github.com/shopspring/decimal"
 )
@@ -306,6 +301,9 @@ func CheckBlockSeek() {
 						if dbAddressRow.UseTag < 0 {
 							uxtoType = app.UxtoTypeHot
 						}
+						if hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
+							uxtoType = app.UxtoTypeOmniHot
+						}
 						if rpcTxWithIndex.IsOmniTx {
 							omniOutAddress := ""
 							for i := len(rpcTx.Vout) - 1; i >= 0; i-- {
@@ -321,9 +319,6 @@ func CheckBlockSeek() {
 							if omniOutAddress == voutAddress {
 								uxtoType = app.UxtoTypeOmni
 							}
-						}
-						if hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
-							uxtoType = app.UxtoTypeOmniHot
 						}
 						txBtcUxtoRows = append(
 							txBtcUxtoRows,
@@ -1655,6 +1650,7 @@ func OmniCheckTxOrg() {
 		var tokenIndexes []int64
 		orgMap := make(map[string]*stOrgItem)
 		var omniAddresses []string
+		var keyAddresses []string
 		for _, txRow := range txRows {
 			key := fmt.Sprintf("%s_%d", txRow.ToAddress, txRow.TokenIndex)
 			orgItem, ok := orgMap[key]
@@ -1679,8 +1675,25 @@ func OmniCheckTxOrg() {
 			if !hcommon.IsIntInSlice(tokenIndexes, txRow.TokenIndex) {
 				tokenIndexes = append(tokenIndexes, txRow.TokenIndex)
 			}
+			if !hcommon.IsStringInSlice(keyAddresses, txRow.ToAddress) {
+				keyAddresses = append(keyAddresses, txRow.ToAddress)
+			}
 		}
 		if len(orgMap) > 0 {
+			// 获取手续费配置
+			feeRow, err := app.SQLGetTAppStatusIntByK(
+				context.Background(),
+				app.DbCon,
+				"to_cold_gas_price_btc",
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			if feeRow == nil {
+				hcommon.Log.Errorf("no config int of to_cold_gas_price_btc")
+				return
+			}
 			tokenMap := make(map[int64]*model.DBTAppConfigTokenBtc)
 			var tokenHotAddresses []string
 			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColByIndexes(
@@ -1704,6 +1717,37 @@ func OmniCheckTxOrg() {
 				if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
 					tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
 				}
+				if !hcommon.IsStringInSlice(keyAddresses, tokenRow.HotAddress) {
+					keyAddresses = append(keyAddresses, tokenRow.HotAddress)
+				}
+			}
+			addressKeyMap, err := app.SQLGetAddressKeyMap(
+				context.Background(),
+				app.DbCon,
+				[]string{
+					model.DBColTAddressKeyID,
+					model.DBColTAddressKeyAddress,
+					model.DBColTAddressKeyPwd,
+				},
+				keyAddresses,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			addressWifMap := make(map[string]*btcutil.WIF)
+			for k, addressKey := range addressKeyMap {
+				key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
+				if len(key) == 0 {
+					hcommon.Log.Errorf("error key of: %s", k)
+					return
+				}
+				wif, err := btcutil.DecodeWIF(key)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				addressWifMap[k] = wif
 			}
 			omniUxtoMap := make(map[string][]*model.DBTTxBtcUxto)
 			omniUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndType(
@@ -1755,6 +1799,7 @@ func OmniCheckTxOrg() {
 					omniHotUxtoRow,
 				)
 			}
+			// 处理零钱整理
 			for _, orgItem := range orgMap {
 				tokenRow, ok := tokenMap[orgItem.TokenIndex]
 				if !ok {
@@ -1780,42 +1825,88 @@ func OmniCheckTxOrg() {
 					hcommon.Log.Errorf("no omni hot uxto")
 					return
 				}
-				uxtoRow := omniUxtoRows[0]
+				omniHotUxtoIndex := 0
+				isOmniInputOK := false
+				for {
+					if omniHotUxtoIndex >= len(omniHotUxtoRows) {
+						break
+					}
+					// 计算手续费
+					tmpUxtoHotRows := omniHotUxtoRows[:omniHotUxtoIndex+1]
+					txSize, err := OmniTxSize(
+						omniUxtoRows[0],
+						tokenRow.ColdAddress,
+						tokenRow.TokenIndex,
+						orgItem.Balance,
+						addressWifMap,
+						tmpUxtoHotRows,
+						[]*StBtxTxOut{{
+							VoutAddress: tokenRow.HotAddress,
+							Balance:     0,
+						}},
+					)
+					if err != nil {
+						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						return
+					}
+					fee := txSize * feeRow.V
+					hcommon.Log.Debugf("fee: %d", fee)
+
+					inBalance := int64(0)
+					outBalance := int64(0)
+					// 输入金额
+					omniUxtoBalance, err := decimal.NewFromString(omniUxtoRows[0].VoutValue)
+					if err != nil {
+						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						return
+					}
+					inBalance += omniUxtoBalance.Mul(decimal.NewFromInt(1e8)).IntPart()
+					for _, tmpUxtoHotRow := range tmpUxtoHotRows {
+						balance, err := decimal.NewFromString(tmpUxtoHotRow.VoutValue)
+						if err != nil {
+							hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+							return
+						}
+						inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
+					}
+					// 输出金额
+					// omni 输出
+					outBalance += MinNondustOutput
+					if inBalance >= outBalance+fee {
+						// 输入金额ok
+						isOmniInputOK = true
+						break
+					}
+					omniHotUxtoIndex++
+				}
 				// 生成交易
-				tx := wire.NewMsgTx(wire.TxVersion)
-				hash, _ := chainhash.NewHashFromStr(uxtoRow.TxID)
-				outPoint := wire.NewOutPoint(hash, uint32(uxtoRow.VoutN))
-				txIn := wire.NewTxIn(outPoint, nil, nil)
-				tx.AddTxIn(txIn)
-				// 输出
-				// 脚本
-				sHex := fmt.Sprintf("%016x%016x", tokenRow.TokenIndex, orgItem.Balance)
-				b, err := hex.DecodeString(omniHex + sHex)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				opreturnScript, err := txscript.NullDataScript(b)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
-				// 金额
-				addrTo, err := btcutil.DecodeAddress(
+				tx, err := OmniTxMake(
+					omniUxtoRows[0],
 					tokenRow.ColdAddress,
-					GetNetwork(app.Cfg.BtcNetworkType).params,
+					tokenRow.HotAddress,
+					tokenRow.TokenIndex,
+					orgItem.Balance,
+					feeRow.V,
+					addressWifMap,
+					omniHotUxtoRows[:omniHotUxtoIndex+1],
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				pkScriptf, err := txscript.PayToAddrScript(addrTo)
+				txSize := tx.SerializeSize()
+				b := new(bytes.Buffer)
+				b.Grow(txSize)
+				err = tx.Serialize(b)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				tx.AddTxOut(wire.NewTxOut(MinNondustOutput, pkScriptf))
+				hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+				if isOmniInputOK {
+					omniUxtoMap[orgItem.Address] = omniUxtoRows[1:]
+					omniHotUxtoMap[tokenRow.HotAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
+				}
 			}
 		}
 	})
