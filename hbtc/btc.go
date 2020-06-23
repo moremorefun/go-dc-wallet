@@ -1563,6 +1563,7 @@ func OmniCheckBlockSeek() {
 			}
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
+				hcommon.Log.Debugf("omni check block: %d", i)
 				rpcTransactionHashes, err := omniclient.RpcOmniListBlockTransactions(i)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
