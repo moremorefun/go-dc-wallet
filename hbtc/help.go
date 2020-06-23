@@ -4,7 +4,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"go-dc-wallet/app"
+	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
@@ -151,6 +154,10 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 		// 数额不足
 		return nil, errors.New("btc tx input amount not ok")
 	}
+	if tx.SerializeSize() > MaxTxSize {
+		// 长度过大
+		return nil, errors.New("btc tx size too big")
+	}
 	// 重新签名
 	for i, vin := range vins {
 		txinPkScript, err := hex.DecodeString(vin.VinScript)
@@ -188,4 +195,88 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 		}
 	}
 	return tx, nil
+}
+
+// BtcTxSize 交易大小
+func BtcTxSize(vins []*StBtxTxIn, vouts []*StBtxTxOut) (int64, error) {
+	tx := wire.NewMsgTx(wire.TxVersion)
+	for _, vin := range vins {
+		hash, err := chainhash.NewHashFromStr(vin.VinTxHash)
+		if err != nil {
+			return 0, err
+		}
+		outPoint := wire.NewOutPoint(hash, uint32(vin.VinTxN))
+		txIn := wire.NewTxIn(outPoint, nil, nil)
+		tx.AddTxIn(txIn)
+	}
+	for _, vout := range vouts {
+		err := BtcAddTxOut(tx, vout.VoutAddress, vout.Balance)
+		if err != nil {
+			return 0, err
+		}
+	}
+	// 计算手续费
+	for i, vin := range vins {
+		txinPkScript, err := hex.DecodeString(vin.VinScript)
+		if err != nil {
+			return 0, err
+		}
+		script, err := txscript.SignatureScript(
+			tx,
+			i,
+			txinPkScript,
+			txscript.SigHashAll,
+			vin.Wif.PrivKey,
+			true,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return 0, err
+		}
+		tx.TxIn[i].SignatureScript = script
+	}
+	txSize := int64(tx.SerializeSize())
+	return txSize, nil
+}
+
+// BtcTxWithdrawSize 提币tx大小
+func BtcTxWithdrawSize(vins []*model.DBTTxBtcUxto, vouts []*model.DBTWithdraw, keyMap map[string]*btcutil.WIF) (int64, error) {
+	var argVins []*StBtxTxIn
+	var argVouts []*StBtxTxOut
+	firstAddress := ""
+	for _, vin := range vins {
+		wif, ok := keyMap[vin.VoutAddress]
+		if !ok {
+			return 0, errors.New("no key of wif")
+		}
+		balance, err := decimal.NewFromString(vin.VoutValue)
+		if err != nil {
+			return 0, err
+		}
+		argVins = append(argVins, &StBtxTxIn{
+			VinTxHash: vin.TxID,
+			VinTxN:    vin.VoutN,
+			VinScript: vin.VoutScript,
+			Balance:   balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
+			Wif:       wif,
+		})
+		if firstAddress == "" {
+			firstAddress = vin.VoutAddress
+		}
+	}
+	for _, vout := range vouts {
+		balance, err := decimal.NewFromString(vout.BalanceReal)
+		if err != nil {
+			return 0, err
+		}
+		argVouts = append(argVouts, &StBtxTxOut{
+			VoutAddress: vout.ToAddress,
+			Balance:     balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
+		})
+	}
+	argVouts = append(argVouts, &StBtxTxOut{
+		VoutAddress: firstAddress,
+		Balance:     0,
+	})
+	return BtcTxSize(argVins, argVouts)
 }
