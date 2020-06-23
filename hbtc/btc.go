@@ -653,8 +653,16 @@ func CheckTxOrg() {
 			var updateUxtoRows []*model.DBTTxBtcUxto
 			for i, uxtoRow := range uxtoRows {
 				sendHex := ""
+				balance := int64(0)
+				balanceReal := "0"
+				gas := int64(0)
+				gasPrice := int64(0)
 				if i == 0 {
 					sendHex = hex.EncodeToString(b.Bytes())
+					balance = tx.TxOut[0].Value
+					balanceReal = (decimal.NewFromInt(tx.TxOut[0].Value).Div(decimal.NewFromInt(1e8))).String()
+					gas = int64(txSize)
+					gasPrice = feeRow.V
 				}
 				sendRows = append(sendRows, &model.DBTSendBtc{
 					RelatedType:  app.SendRelationTypeUXTOOrg,
@@ -663,10 +671,10 @@ func CheckTxOrg() {
 					TxID:         tx.TxHash().String(),
 					FromAddress:  uxtoRow.VoutAddress,
 					ToAddress:    coldRow.V,
-					Balance:      tx.TxOut[0].Value,
-					BalanceReal:  (decimal.NewFromInt(tx.TxOut[0].Value).Div(decimal.NewFromInt(1e8))).String(),
-					Gas:          int64(txSize),
-					GasPrice:     feeRow.V,
+					Balance:      balance,
+					BalanceReal:  balanceReal,
+					Gas:          gas,
+					GasPrice:     gasPrice,
 					Hex:          sendHex,
 					CreateTime:   now,
 					HandleStatus: 0,
@@ -1250,11 +1258,15 @@ func CheckWithdraw() {
 		}
 		tx.AddTxOut(wire.NewTxOut(0, pkScriptf))
 		// 创建输入
+		var inputAddress []string
 		for _, uxtoRow := range inUxtoRows {
 			hash, _ := chainhash.NewHashFromStr(uxtoRow.TxID)
 			outPoint := wire.NewOutPoint(hash, uint32(uxtoRow.VoutN))
 			txIn := wire.NewTxIn(outPoint, nil, nil)
 			tx.AddTxIn(txIn)
+			if !hcommon.IsStringInSlice(inputAddress, uxtoRow.VoutAddress) {
+				inputAddress = append(inputAddress, uxtoRow.VoutAddress)
+			}
 		}
 		// 签名,用于计算手续费
 		for i, uxtoRow := range inUxtoRows {
@@ -1409,21 +1421,26 @@ func CheckWithdraw() {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
+			gas := int64(0)
+			gasPrice := int64(0)
 			sendHex := ""
 			if i == 0 {
 				sendHex = hex.EncodeToString(b.Bytes())
+				gas = int64(tx.SerializeSize())
+				gasPrice = feeRow.V
 			}
+			inputAddressStr := strings.Join(inputAddress, ",")
 			sendRows = append(sendRows, &model.DBTSendBtc{
 				RelatedType:  app.SendRelationTypeWithdraw,
 				RelatedID:    outWithdrawRow.ID,
 				TokenID:      0,
 				TxID:         tx.TxHash().String(),
-				FromAddress:  "",
+				FromAddress:  inputAddressStr,
 				ToAddress:    outWithdrawRow.ToAddress,
 				Balance:      balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
 				BalanceReal:  outWithdrawRow.BalanceReal,
-				Gas:          int64(tx.SerializeSize()),
-				GasPrice:     feeRow.V,
+				Gas:          gas,
+				GasPrice:     gasPrice,
 				Hex:          sendHex,
 				CreateTime:   now,
 				HandleStatus: 0,
