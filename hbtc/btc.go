@@ -28,7 +28,10 @@ import (
 )
 
 const (
-	CoinSymbol = "btc"
+	CoinSymbol        = "btc"
+	MinNondustOutput  = 546 // satoshis
+	omniHex           = "6f6d6e69"
+	omniWithReturnHex = "6a146f6d6e69"
 )
 
 // CheckAddressFree 检测剩余地址数
@@ -207,7 +210,7 @@ func CheckBlockSeek() {
 							SpendN:      int64(i),
 						}
 					}
-					omniScript := "6a146f6d6e69"
+					omniScript := omniWithReturnHex
 					isOmniTx := false
 					for _, vout := range rpcTx.Vout {
 						if strings.HasPrefix(vout.ScriptPubKey.Hex, omniScript) {
@@ -488,6 +491,20 @@ func CheckTxOrg() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		addressWifMap := make(map[string]*btcutil.WIF)
+		for k, addressKey := range addressKeyMap {
+			key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
+			if len(key) == 0 {
+				hcommon.Log.Errorf("error key of: %s", k)
+				return
+			}
+			wif, err := btcutil.DecodeWIF(key)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			addressWifMap[k] = wif
+		}
 		// 按5000个in拆分
 		step := 5000
 		for i := 0; i < len(allUxtoRows); i += step {
@@ -497,150 +514,36 @@ func CheckTxOrg() {
 			}
 			uxtoRows := allUxtoRows[i:endI]
 			// 生成交易
-			tx := wire.NewMsgTx(wire.TxVersion)
-			voutAmount := decimal.NewFromInt(0)
+			var inItems []*StBtxTxIn
+			var outItems []*StBtxTxOut
 			for _, uxtoRow := range uxtoRows {
-				hash, _ := chainhash.NewHashFromStr(uxtoRow.TxID)
-				outPoint := wire.NewOutPoint(hash, uint32(uxtoRow.VoutN))
-				txIn := wire.NewTxIn(outPoint, nil, nil)
-				tx.AddTxIn(txIn)
+				wif, ok := addressWifMap[uxtoRow.VoutAddress]
+				if !ok {
+					hcommon.Log.Errorf("no address key: %s", uxtoRow.VoutAddress)
+					return
+				}
 
-				amount, err := decimal.NewFromString(uxtoRow.VoutValue)
+				balance, err := decimal.NewFromString(uxtoRow.VoutValue)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				voutAmount = voutAmount.Add(amount)
+				inItems = append(inItems, &StBtxTxIn{
+					VinTxHash: uxtoRow.TxID,
+					VinTxN:    uxtoRow.VoutN,
+					VinScript: uxtoRow.VoutScript,
+					Balance:   balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
+					Wif:       wif,
+				})
 			}
-			addrTo, err := btcutil.DecodeAddress(
-				coldRow.V,
-				GetNetwork(app.Cfg.BtcNetworkType).params,
-			)
+			tx, err := BtcMakeTx(inItems, outItems, feeRow.V, coldRow.V)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			pkScriptf, err := txscript.PayToAddrScript(addrTo)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
-			baf := voutAmount.Mul(decimal.NewFromInt(1e8)).IntPart()
-			tx.AddTxOut(wire.NewTxOut(baf, pkScriptf))
-			// 签名,用于计算手续费
-			for i, uxtoRow := range uxtoRows {
-				addressKey, ok := addressKeyMap[uxtoRow.VoutAddress]
-				if !ok {
-					hcommon.Log.Errorf("no address key: %s", uxtoRow.VoutAddress)
-					return
-				}
-				key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
-				if len(key) == 0 {
-					hcommon.Log.Errorf("error key of: %s", uxtoRow.VoutAddress)
-					return
-				}
-				wif, err := btcutil.DecodeWIF(key)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				txinPkScript, err := hex.DecodeString(uxtoRow.VoutScript)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				script, err := txscript.SignatureScript(
-					tx,
-					i,
-					txinPkScript,
-					txscript.SigHashAll,
-					wif.PrivKey,
-					true,
-				)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				tx.TxIn[i].SignatureScript = script
-				vm, err := txscript.NewEngine(
-					txinPkScript,
-					tx,
-					i,
-					txscript.StandardVerifyFlags,
-					nil,
-					nil,
-					-1,
-				)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				err = vm.Execute()
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-			}
-			// 计算手续费
 			txSize := tx.SerializeSize()
-			txFee := feeRow.V * int64(txSize)
-			tx.TxOut[0].Value -= txFee
-			// 重新计算签名
-			for i, uxtoRow := range uxtoRows {
-				addressKey, ok := addressKeyMap[uxtoRow.VoutAddress]
-				if !ok {
-					hcommon.Log.Errorf("no address key: %s", uxtoRow.VoutAddress)
-					return
-				}
-				key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
-				if len(key) == 0 {
-					hcommon.Log.Errorf("error key of: %s", uxtoRow.VoutAddress)
-					return
-				}
-				wif, err := btcutil.DecodeWIF(key)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				txinPkScript, err := hex.DecodeString(uxtoRow.VoutScript)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				script, err := txscript.SignatureScript(
-					tx,
-					i,
-					txinPkScript,
-					txscript.SigHashAll,
-					wif.PrivKey,
-					true,
-				)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				tx.TxIn[i].SignatureScript = script
-				vm, err := txscript.NewEngine(
-					txinPkScript,
-					tx,
-					i,
-					txscript.StandardVerifyFlags,
-					nil,
-					nil,
-					-1,
-				)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				err = vm.Execute()
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-			}
 			b := new(bytes.Buffer)
-			b.Grow(tx.SerializeSize())
+			b.Grow(txSize)
 			err = tx.Serialize(b)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1157,6 +1060,20 @@ func CheckWithdraw() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		addressWifMap := make(map[string]*btcutil.WIF)
+		for k, addressKey := range addressKeyMap {
+			key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
+			if len(key) == 0 {
+				hcommon.Log.Errorf("error key of: %s", k)
+				return
+			}
+			wif, err := btcutil.DecodeWIF(key)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			addressWifMap[k] = wif
+		}
 		// 获取手续费配置
 		feeRow, err := app.SQLGetTAppStatusIntByK(
 			context.Background(),
@@ -1349,7 +1266,7 @@ func CheckWithdraw() {
 			hcommon.Log.Errorf("error out put")
 			return
 		}
-		if lastOut < 5460 {
+		if lastOut < MinNondustOutput {
 			var newOut []*wire.TxOut
 			for i, out := range tx.TxOut {
 				if i != len(tx.TxOut)-2 {
@@ -1991,6 +1908,50 @@ func OmniCheckTxOrg() {
 					return
 				}
 				hcommon.Log.Debugf("omniUxtoRows: %#v, omniHotUxtoRows: %#v", omniUxtoRows, omniHotUxtoRows)
+				if len(omniUxtoRows) <= 0 {
+					hcommon.Log.Errorf("no omni uxto")
+					return
+				}
+				if len(omniHotUxtoRows) <= 0 {
+					hcommon.Log.Errorf("no omni hot uxto")
+					return
+				}
+				uxtoRow := omniUxtoRows[0]
+				// 生成交易
+				tx := wire.NewMsgTx(wire.TxVersion)
+				hash, _ := chainhash.NewHashFromStr(uxtoRow.TxID)
+				outPoint := wire.NewOutPoint(hash, uint32(uxtoRow.VoutN))
+				txIn := wire.NewTxIn(outPoint, nil, nil)
+				tx.AddTxIn(txIn)
+				// 输出
+				// 脚本
+				sHex := fmt.Sprintf("%016x%016x", tokenRow.TokenIndex, orgItem.Balance)
+				b, err := hex.DecodeString(omniHex + sHex)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				opreturnScript, err := txscript.NullDataScript(b)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
+				// 金额
+				addrTo, err := btcutil.DecodeAddress(
+					tokenRow.ColdAddress,
+					GetNetwork(app.Cfg.BtcNetworkType).params,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				pkScriptf, err := txscript.PayToAddrScript(addrTo)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				tx.AddTxOut(wire.NewTxOut(MinNondustOutput, pkScriptf))
 			}
 		}
 	})
