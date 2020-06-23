@@ -1180,6 +1180,42 @@ ORDER BY`)
 	return rows, nil
 }
 
+// SQLSelectTTxBtcUxtoColByAddressAndType 根据ids获取
+func SQLSelectTTxBtcUxtoColByAddressAndType(ctx context.Context, tx hcommon.DbExeAble, cols []string, address string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_uxto
+WHERE
+	vout_address=:vout_address
+	AND handle_status=0
+	AND uxto_type=:uxto_type
+ORDER BY`)
+	if uxtoType == UxtoTypeTx {
+		query.WriteString(" id")
+	} else {
+		query.WriteString(" CAST(vout_value as DECIMAL(65,8)) DESC")
+	}
+
+	var rows []*model.DBTTxBtcUxto
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"vout_address": address,
+			"uxto_type":    uxtoType,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // SQLSelectTSendBtcColByStatus 根据ids获取
 func SQLSelectTSendBtcColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSendBtc, error) {
 	query := strings.Builder{}

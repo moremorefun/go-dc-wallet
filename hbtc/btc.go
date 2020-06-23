@@ -1105,8 +1105,23 @@ func CheckWithdraw() {
 		if len(withdrawRows) == 0 {
 			return
 		}
+		// 获取热钱包地址
+		hotRow, err := app.SQLGetTAppConfigStrByK(
+			context.Background(),
+			app.DbCon,
+			"hot_wallet_address_btc",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if hotRow == nil {
+			hcommon.Log.Errorf("no config int of hot_wallet_address_btc")
+			return
+		}
+		hotAddress := hotRow.V
 		// 获取热钱包uxto
-		uxtoRows, err := app.SQLSelectTTxBtcUxtoColToOrg(
+		uxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressAndType(
 			context.Background(),
 			app.DbCon,
 			[]string{
@@ -1117,6 +1132,7 @@ func CheckWithdraw() {
 				model.DBColTTxBtcUxtoVoutValue,
 				model.DBColTTxBtcUxtoVoutScript,
 			},
+			hotAddress,
 			app.UxtoTypeHot,
 		)
 		if err != nil {
@@ -1258,15 +1274,11 @@ func CheckWithdraw() {
 		}
 		tx.AddTxOut(wire.NewTxOut(0, pkScriptf))
 		// 创建输入
-		var inputAddress []string
 		for _, uxtoRow := range inUxtoRows {
 			hash, _ := chainhash.NewHashFromStr(uxtoRow.TxID)
 			outPoint := wire.NewOutPoint(hash, uint32(uxtoRow.VoutN))
 			txIn := wire.NewTxIn(outPoint, nil, nil)
 			tx.AddTxIn(txIn)
-			if !hcommon.IsStringInSlice(inputAddress, uxtoRow.VoutAddress) {
-				inputAddress = append(inputAddress, uxtoRow.VoutAddress)
-			}
 		}
 		// 签名,用于计算手续费
 		for i, uxtoRow := range inUxtoRows {
@@ -1429,13 +1441,12 @@ func CheckWithdraw() {
 				gas = int64(tx.SerializeSize())
 				gasPrice = feeRow.V
 			}
-			inputAddressStr := strings.Join(inputAddress, ",")
 			sendRows = append(sendRows, &model.DBTSendBtc{
 				RelatedType:  app.SendRelationTypeWithdraw,
 				RelatedID:    outWithdrawRow.ID,
 				TokenID:      0,
 				TxID:         tx.TxHash().String(),
-				FromAddress:  inputAddressStr,
+				FromAddress:  hotAddress,
 				ToAddress:    outWithdrawRow.ToAddress,
 				Balance:      balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
 				BalanceReal:  outWithdrawRow.BalanceReal,
