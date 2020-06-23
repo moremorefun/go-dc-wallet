@@ -1648,3 +1648,169 @@ func CheckGasPrice() {
 		}
 	})
 }
+
+// OmniCheckBlockSeek 检测到账
+func OmniCheckBlockSeek() {
+	lockKey := "OmniCheckBlockSeek"
+	app.LockWrap(lockKey, func() {
+		// 获取配置 延迟确认数
+		confirmRow, err := app.SQLGetTAppConfigIntByK(
+			context.Background(),
+			app.DbCon,
+			"btc_block_confirm_num",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if confirmRow == nil {
+			hcommon.Log.Errorf("no config int of btc_block_confirm_num")
+			return
+		}
+		// 获取状态 当前处理完成的最新的block number
+		seekRow, err := app.SQLGetTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			"omni_seek_num",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if seekRow == nil {
+			hcommon.Log.Errorf("no config int of omni_seek_num")
+			return
+		}
+		rpcBlockNum, err := omniclient.RpcGetBlockCount()
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		startI := seekRow.V + 1
+		endI := rpcBlockNum - confirmRow.V + 1
+		hcommon.Log.Debugf("omni block seek %d->%d", startI, endI)
+		if startI < endI {
+			// 获取所有token
+			var tokenIndexes []int64
+			tokenMap := make(map[int64]*model.DBTAppConfigTokenBtc)
+			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
+				context.Background(),
+				app.DbCon,
+				[]string{
+					model.DBColTAppConfigTokenBtcID,
+					model.DBColTAppConfigTokenBtcTokenIndex,
+					model.DBColTAppConfigTokenBtcTokenSymbol,
+				},
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			for _, tokenRow := range tokenRows {
+				tokenIndexes = append(tokenIndexes, tokenRow.TokenIndex)
+				tokenMap[tokenRow.TokenIndex] = tokenRow
+			}
+			// 遍历获取需要查询的block信息
+			for i := startI; i < endI; i++ {
+				rpcTransactionHashes, err := omniclient.RpcOmniListBlockTransactions(i)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				var toAddresses []string
+				toAddressMap := make(map[string][]*omniclient.StOmniTx)
+
+				for _, rpcTransactionHash := range rpcTransactionHashes {
+					rpcTx, err := omniclient.RpcOmniGetTransaction(rpcTransactionHash)
+					if err != nil {
+						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						return
+					}
+					// type_int 0 Simple Send
+					if rpcTx.TypeInt == 0 && rpcTx.Valid && rpcTx.Confirmations > 0 {
+						// 验证成功
+						if hcommon.IsIntInSlice(tokenIndexes, rpcTx.Propertyid) {
+							// 是关注的代币类型
+							if !hcommon.IsStringInSlice(toAddresses, rpcTx.Referenceaddress) {
+								toAddresses = append(toAddresses, rpcTx.Referenceaddress)
+							}
+							toAddressMap[rpcTx.Referenceaddress] = append(
+								toAddressMap[rpcTx.Referenceaddress],
+								rpcTx,
+							)
+						}
+					}
+				}
+				// 从db中查询这些地址是否是冲币地址中的地址
+				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
+					context.Background(),
+					app.DbCon,
+					[]string{
+						model.DBColTAddressKeyAddress,
+						model.DBColTAddressKeyUseTag,
+					},
+					toAddresses,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				now := time.Now().Unix()
+				var txTokenRows []*model.DBTTxBtcToken
+				for _, dbAddressRow := range dbAddressRows {
+					if dbAddressRow.UseTag >= 0 {
+						toAddress := dbAddressRow.Address
+						rpcTxes := toAddressMap[toAddress]
+						for _, rpcTx := range rpcTxes {
+							tokenRow, ok := tokenMap[rpcTx.Propertyid]
+							if !ok {
+								hcommon.Log.Errorf("no btc token: %d", rpcTx.Propertyid)
+								return
+							}
+							txTokenRows = append(txTokenRows, &model.DBTTxBtcToken{
+								TokenIndex:   rpcTx.Propertyid,
+								TokenSymbol:  tokenRow.TokenSymbol,
+								BlockHash:    rpcTx.Blockhash,
+								TxID:         rpcTx.Txid,
+								FromAddress:  rpcTx.Sendingaddress,
+								ToAddress:    rpcTx.Referenceaddress,
+								Value:        rpcTx.Amount,
+								Blocktime:    rpcTx.Blocktime,
+								CreateAt:     now,
+								HandleStatus: 0,
+								HandleMsg:    "",
+								HandleAt:     0,
+								OrgStatus:    0,
+								OrgMsg:       "",
+								OrgAt:        0,
+							})
+						}
+					}
+
+				}
+				_, err = model.SQLCreateIgnoreManyTTxBtcToken(
+					context.Background(),
+					app.DbCon,
+					txTokenRows,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 更新block num
+				_, err = app.SQLUpdateTAppStatusIntByK(
+					context.Background(),
+					app.DbCon,
+					&model.DBTAppStatusInt{
+						K: "btc_seek_num",
+						V: i,
+					},
+				)
+				if err != nil {
+					hcommon.Log.Errorf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
+					return
+				}
+			}
+		}
+	})
+}

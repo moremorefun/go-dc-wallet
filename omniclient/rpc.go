@@ -91,6 +91,26 @@ type StBlockResult struct {
 	Nextblockhash     string        `json:"nextblockhash"`
 }
 
+type StOmniTx struct {
+	Txid             string `json:"txid"`
+	Fee              string `json:"fee"`
+	Sendingaddress   string `json:"sendingaddress"`
+	Referenceaddress string `json:"referenceaddress"`
+	Ismine           bool   `json:"ismine"`
+	Version          int64  `json:"version"`
+	TypeInt          int64  `json:"type_int"`
+	Type             string `json:"type"`
+	Propertyid       int64  `json:"propertyid"`
+	Divisible        bool   `json:"divisible"`
+	Amount           string `json:"amount"`
+	Valid            bool   `json:"valid"`
+	Blockhash        string `json:"blockhash"`
+	Blocktime        int64  `json:"blocktime"`
+	Positioninblock  int64  `json:"positioninblock"`
+	Block            int64  `json:"block"`
+	Confirmations    int64  `json:"confirmations"`
+}
+
 // InitClient 初始化客户端
 func InitClient(omniRPCHost, omniRPCUser, omniRPCPwd string) {
 	rpcURI = omniRPCHost
@@ -223,6 +243,46 @@ func RpcSendRawTransaction(txHex string) (*string, error) {
 	err := doReq(
 		"sendrawtransaction",
 		[]interface{}{txHex},
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}
+
+// RpcOmniListBlockTransactions 检测交易
+func RpcOmniListBlockTransactions(blockNumber int64) ([]string, error) {
+	resp := struct {
+		StRpcResp
+		Result []string `json:"result"`
+	}{}
+	err := doReq(
+		"omni_listblocktransactions",
+		[]interface{}{blockNumber},
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}
+
+// RpcOmniGetTransaction 查询交易
+func RpcOmniGetTransaction(txHash string) (*StOmniTx, error) {
+	resp := struct {
+		StRpcResp
+		Result *StOmniTx `json:"result"`
+	}{}
+	err := doReq(
+		"omni_gettransaction",
+		[]interface{}{txHash},
 		&resp,
 	)
 	if err != nil {
