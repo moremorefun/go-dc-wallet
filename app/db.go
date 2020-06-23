@@ -1192,13 +1192,17 @@ WHERE
 	vout_address=:vout_address
 	AND handle_status=0
 	AND uxto_type=:uxto_type
-ORDER BY`)
-	if uxtoType == UxtoTypeTx {
+ORDER BY `)
+	switch uxtoType {
+	case UxtoTypeTx:
 		query.WriteString(" id")
-	} else {
+	case UxtoTypeOmni:
+		query.WriteString(" CAST(vout_value as DECIMAL(65,8))")
+	case UxtoTypeOmniHot:
+		query.WriteString(" CAST(vout_value as DECIMAL(65,8))")
+	default:
 		query.WriteString(" CAST(vout_value as DECIMAL(65,8)) DESC")
 	}
-
 	var rows []*model.DBTTxBtcUxto
 	err := hcommon.DbSelectNamedContent(
 		ctx,
@@ -1207,6 +1211,46 @@ ORDER BY`)
 		query.String(),
 		gin.H{
 			"vout_address": address,
+			"uxto_type":    uxtoType,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTTxBtcUxtoColByAddressesAndType 根据ids获取
+func SQLSelectTTxBtcUxtoColByAddressesAndType(ctx context.Context, tx hcommon.DbExeAble, cols []string, addresses []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_uxto
+WHERE
+	vout_address IN (:vout_address)
+	AND handle_status=0
+	AND uxto_type=:uxto_type
+ORDER BY `)
+	switch uxtoType {
+	case UxtoTypeTx:
+		query.WriteString(" vout_address, id")
+	case UxtoTypeOmni:
+		query.WriteString(" vout_address, CAST(vout_value as DECIMAL(65,8))")
+	case UxtoTypeOmniHot:
+		query.WriteString(" vout_address, CAST(vout_value as DECIMAL(65,8))")
+	default:
+		query.WriteString(" vout_address, CAST(vout_value as DECIMAL(65,8)) DESC")
+	}
+	var rows []*model.DBTTxBtcUxto
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"vout_address": addresses,
 			"uxto_type":    uxtoType,
 		},
 	)
@@ -1448,6 +1492,63 @@ FROM
 		&rows,
 		query.String(),
 		gin.H{},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTTxBtcTokenColByOrgStatus 根据ids获取
+func SQLSelectTTxBtcTokenColByOrgStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTxBtcToken, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_token
+WHERE
+	org_status=:org_status`)
+
+	var rows []*model.DBTTxBtcToken
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"org_status": orgStatus,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTAppConfigTokenBtcColByIndexes 根据ids获取
+func SQLSelectTAppConfigTokenBtcColByIndexes(ctx context.Context, tx hcommon.DbExeAble, cols []string, tokenIndexes []int64) ([]*model.DBTAppConfigTokenBtc, error) {
+	if len(tokenIndexes) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_app_config_token_btc
+WHERE
+	token_index IN (:token_index)`)
+
+	var rows []*model.DBTAppConfigTokenBtc
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"token_index": tokenIndexes,
+		},
 	)
 	if err != nil {
 		return nil, err

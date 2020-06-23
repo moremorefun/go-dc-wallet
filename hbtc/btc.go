@@ -1842,3 +1842,156 @@ func OmniCheckBlockSeek() {
 		}
 	})
 }
+
+// OmniCheckTxOrg 检测零钱整理
+func OmniCheckTxOrg() {
+	lockKey := "OmniCheckTxOrg"
+	app.LockWrap(lockKey, func() {
+		txRows, err := app.SQLSelectTTxBtcTokenColByOrgStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTTxBtcTokenID,
+				model.DBColTTxBtcTokenTokenIndex,
+				model.DBColTTxBtcTokenTokenSymbol,
+				model.DBColTTxBtcTokenTxID,
+				model.DBColTTxBtcTokenFromAddress,
+				model.DBColTTxBtcTokenToAddress,
+				model.DBColTTxBtcTokenValue,
+			},
+			app.TxOrgStatusInit,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		type stOrgItem struct {
+			Address    string
+			TokenIndex int64
+			Balance    int64
+			txRows     []*model.DBTTxBtcToken
+		}
+		var tokenIndexes []int64
+		orgMap := make(map[string]*stOrgItem)
+		var omniAddresses []string
+		for _, txRow := range txRows {
+			key := fmt.Sprintf("%s_%d", txRow.ToAddress, txRow.TokenIndex)
+			orgItem, ok := orgMap[key]
+			if !ok {
+				orgItem = &stOrgItem{
+					Address:    txRow.ToAddress,
+					TokenIndex: txRow.TokenIndex,
+				}
+				orgMap[key] = orgItem
+			}
+			balance, err := decimal.NewFromString(txRow.Value)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			orgItem.Balance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
+			orgItem.txRows = append(orgItem.txRows, txRow)
+
+			if !hcommon.IsStringInSlice(omniAddresses, txRow.ToAddress) {
+				omniAddresses = append(omniAddresses, txRow.ToAddress)
+			}
+			if !hcommon.IsIntInSlice(tokenIndexes, txRow.TokenIndex) {
+				tokenIndexes = append(tokenIndexes, txRow.TokenIndex)
+			}
+		}
+		if len(orgMap) > 0 {
+			tokenMap := make(map[int64]*model.DBTAppConfigTokenBtc)
+			var tokenHotAddresses []string
+			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColByIndexes(
+				context.Background(),
+				app.DbCon,
+				[]string{
+					model.DBColTAppConfigTokenBtcID,
+					model.DBColTAppConfigTokenBtcTokenIndex,
+					model.DBColTAppConfigTokenBtcHotAddress,
+					model.DBColTAppConfigTokenBtcColdAddress,
+					model.DBColTAppConfigTokenBtcTxOrgMinBalance,
+				},
+				tokenIndexes,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			for _, tokenRow := range tokenRows {
+				tokenMap[tokenRow.TokenIndex] = tokenRow
+				if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
+					tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
+				}
+			}
+			omniUxtoMap := make(map[string][]*model.DBTTxBtcUxto)
+			omniUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndType(
+				context.Background(),
+				app.DbCon,
+				[]string{
+					model.DBColTTxBtcUxtoID,
+					model.DBColTTxBtcUxtoTxID,
+					model.DBColTTxBtcUxtoVoutN,
+					model.DBColTTxBtcUxtoVoutAddress,
+					model.DBColTTxBtcUxtoVoutValue,
+					model.DBColTTxBtcUxtoVoutScript,
+				},
+				omniAddresses,
+				app.UxtoTypeOmni,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			for _, omniUxtoRow := range omniUxtoRows {
+				omniUxtoMap[omniUxtoRow.VoutAddress] = append(
+					omniUxtoMap[omniUxtoRow.VoutAddress],
+					omniUxtoRow,
+				)
+			}
+			omniHotUxtoMap := make(map[string][]*model.DBTTxBtcUxto)
+			omniHotUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndType(
+				context.Background(),
+				app.DbCon,
+				[]string{
+					model.DBColTTxBtcUxtoID,
+					model.DBColTTxBtcUxtoTxID,
+					model.DBColTTxBtcUxtoVoutN,
+					model.DBColTTxBtcUxtoVoutAddress,
+					model.DBColTTxBtcUxtoVoutValue,
+					model.DBColTTxBtcUxtoVoutScript,
+				},
+				tokenHotAddresses,
+				app.UxtoTypeOmniHot,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			for _, omniHotUxtoRow := range omniHotUxtoRows {
+				omniHotUxtoMap[omniHotUxtoRow.VoutAddress] = append(
+					omniHotUxtoMap[omniHotUxtoRow.VoutAddress],
+					omniHotUxtoRow,
+				)
+			}
+			for _, orgItem := range orgMap {
+				tokenRow, ok := tokenMap[orgItem.TokenIndex]
+				if !ok {
+					hcommon.Log.Errorf("no token: %d", orgItem.TokenIndex)
+					return
+				}
+				omniUxtoRows, ok := omniUxtoMap[orgItem.Address]
+				if !ok {
+					hcommon.Log.Errorf("no omni uxto %s", orgItem.Address)
+					return
+				}
+				omniHotUxtoRows, ok := omniHotUxtoMap[tokenRow.HotAddress]
+				if !ok {
+					hcommon.Log.Errorf("no omni hot %s", tokenRow.HotAddress)
+					return
+				}
+				hcommon.Log.Debugf("omniUxtoRows: %#v, omniHotUxtoRows: %#v", omniUxtoRows, omniHotUxtoRows)
+			}
+		}
+	})
+}
