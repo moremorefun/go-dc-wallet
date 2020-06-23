@@ -1831,24 +1831,13 @@ func OmniCheckTxOrg() {
 					if omniHotUxtoIndex >= len(omniHotUxtoRows) {
 						break
 					}
-					// 计算手续费
 					tmpUxtoHotRows := omniHotUxtoRows[:omniHotUxtoIndex+1]
-					txSize, err := OmniTxSize(
-						omniUxtoRows[0],
-						tokenRow.ColdAddress,
-						tokenRow.TokenIndex,
-						orgItem.Balance,
-						addressWifMap,
-						tmpUxtoHotRows,
-						[]*StBtxTxOut{{
-							VoutAddress: tokenRow.HotAddress,
-							Balance:     0,
-						}},
+					// 计算手续费
+					txSize, err := GetEstimateTxSize(
+						1+int64(len(tmpUxtoHotRows)),
+						2,
+						true,
 					)
-					if err != nil {
-						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-						return
-					}
 					fee := txSize * feeRow.V
 					hcommon.Log.Debugf("fee: %d", fee)
 
@@ -1879,6 +1868,9 @@ func OmniCheckTxOrg() {
 					}
 					omniHotUxtoIndex++
 				}
+				if !isOmniInputOK {
+					break
+				}
 				// 生成交易
 				tx, err := OmniTxMake(
 					omniUxtoRows[0],
@@ -1903,10 +1895,9 @@ func OmniCheckTxOrg() {
 					return
 				}
 				hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
-				if isOmniInputOK {
-					omniUxtoMap[orgItem.Address] = omniUxtoRows[1:]
-					omniHotUxtoMap[tokenRow.HotAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
-				}
+				// 重置数据
+				omniUxtoMap[orgItem.Address] = omniUxtoRows[1:]
+				omniHotUxtoMap[tokenRow.HotAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
 			}
 		}
 	})

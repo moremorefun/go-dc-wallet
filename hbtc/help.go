@@ -369,6 +369,7 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 	inBalance := int64(0)
 	outBalance := int64(0)
 
+	// --- 生成基础交易 ---
 	tx := wire.NewMsgTx(wire.TxVersion)
 	// 添加sender
 	hash, err := chainhash.NewHashFromStr(senderUxtoRow.TxID)
@@ -383,7 +384,6 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 		return nil, err
 	}
 	inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
-
 	// 添加input
 	for _, inUxtoRow := range inUxtoRows {
 		hash, err := chainhash.NewHashFromStr(inUxtoRow.TxID)
@@ -399,7 +399,7 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 		}
 		inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
 	}
-	// 添加script
+	// 添加 out script
 	sHex := fmt.Sprintf("%016x%016x", tokenIndex, tokenBalance)
 	b, err := hex.DecodeString(omniHex + sHex)
 	if err != nil {
@@ -411,13 +411,32 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 		return nil, err
 	}
 	tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
-	// 添加 omni get
+	// 添加 out omni address
 	err = BtcAddTxOut(tx, toAddress, MinNondustOutput)
 	if err != nil {
 		return nil, err
 	}
 	outBalance += MinNondustOutput
-	// 计算手续费
+	// --- 计算拆分热钱包交易 ---
+	tmpBalance := int64(50000)
+	addOutPutCount := (inBalance - outBalance) / tmpBalance
+	// 获取预估大小
+	txSize, err := GetEstimateTxSize(int64(len(tx.TxIn)), 1+addOutPutCount+1, true)
+	fee := txSize * gasPrice
+	addOutPutCount = (inBalance - outBalance - fee) / tmpBalance
+	// --- 添加拆分输出 ---
+	for i := int64(0); i < addOutPutCount; i++ {
+		err = BtcAddTxOut(tx, changeAddress, tmpBalance)
+		if err != nil {
+			return nil, err
+		}
+	}
+	// --- 添加找零 ---
+	err = BtcAddTxOut(tx, changeAddress, 0)
+	if err != nil {
+		return nil, err
+	}
+	// --- 重新计算找零 ---
 	for i := range tx.TxIn {
 		scriptHex := ""
 		address := ""
@@ -450,27 +469,17 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 		}
 		tx.TxIn[i].SignatureScript = script
 	}
-	// 填充
-	tmpBalance := int64(50000)
-	for {
-		err = BtcAddTxOut(tx, changeAddress, 0)
-		if err != nil {
-			return nil, err
-		}
-		txSize := int64(tx.SerializeSize())
-		remain := inBalance - outBalance - txSize*gasPrice
-		if remain > tmpBalance {
-			tx.TxOut[len(tx.TxOut)-1].Value = tmpBalance
-			outBalance += tmpBalance
-		} else if remain >= MinNondustOutput {
-			tx.TxOut[len(tx.TxOut)-1].Value = remain
-			outBalance += remain
-		} else {
-			tx.TxOut = tx.TxOut[:len(tx.TxOut)-1]
-			break
-		}
+	txSize = int64(tx.SerializeSize())
+	leaveInBalance := inBalance - txSize*gasPrice - MinNondustOutput - addOutPutCount*tmpBalance
+	if leaveInBalance < 0 {
+		return nil, errors.New("error input")
 	}
-	// 重新整理手续费
+	if leaveInBalance < MinNondustOutput {
+		tx.TxOut = tx.TxOut[:len(tx.TxOut)-1]
+	} else {
+		tx.TxOut[len(tx.TxOut)-1].Value = leaveInBalance
+	}
+	// --- 重新签名 ---
 	var newOut []*wire.TxOut
 	for i, out := range tx.TxOut {
 		if i != 1 {
@@ -479,7 +488,6 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 	}
 	newOut = append(newOut, tx.TxOut[1])
 	tx.TxOut = newOut
-	// 重新签名
 	for i := range tx.TxIn {
 		scriptHex := ""
 		address := ""
