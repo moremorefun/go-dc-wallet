@@ -488,6 +488,9 @@ const (
 	DBColTTxBtcTokenHandleStatus = "t_tx_btc_token.handle_status"
 	DBColTTxBtcTokenHandleMsg    = "t_tx_btc_token.handle_msg"
 	DBColTTxBtcTokenHandleAt     = "t_tx_btc_token.handle_at"
+	DBColTTxBtcTokenOrgStatus    = "t_tx_btc_token.org_status"
+	DBColTTxBtcTokenOrgMsg       = "t_tx_btc_token.org_msg"
+	DBColTTxBtcTokenOrgAt        = "t_tx_btc_token.org_at"
 )
 
 // DBTTxBtcToken t_tx_btc_token 数据表
@@ -504,7 +507,10 @@ const (
    create_at,
    handle_status,
    handle_msg,
-   handle_at
+   handle_at,
+   org_status,
+   org_msg,
+   org_at
 */
 type DBTTxBtcToken struct {
 	ID           int64  `db:"id" json:"id"`
@@ -520,6 +526,9 @@ type DBTTxBtcToken struct {
 	HandleStatus int64  `db:"handle_status" json:"handle_status"`
 	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
 	HandleAt     int64  `db:"handle_at" json:"handle_at"`
+	OrgStatus    int64  `db:"org_status" json:"org_status"`
+	OrgMsg       string `db:"org_msg" json:"org_msg"`
+	OrgAt        int64  `db:"org_at" json:"org_at"`
 }
 
 // const TTxBtcUxto

@@ -6949,7 +6949,10 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 ) VALUES (
     :id,
     :token_index,
@@ -6963,7 +6966,10 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
     :create_at,
     :handle_status,
     :handle_msg,
-    :handle_at
+    :handle_at,
+    :org_status,
+    :org_msg,
+    :org_at
 )`,
 			gin.H{
 				"id":            row.ID,
@@ -6979,6 +6985,9 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
 				"handle_status": row.HandleStatus,
 				"handle_msg":    row.HandleMsg,
 				"handle_at":     row.HandleAt,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_at":        row.OrgAt,
 			},
 		)
 	} else {
@@ -6997,7 +7006,10 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 ) VALUES (
     :token_index,
     :token_symbol,
@@ -7010,7 +7022,10 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
     :create_at,
     :handle_status,
     :handle_msg,
-    :handle_at
+    :handle_at,
+    :org_status,
+    :org_msg,
+    :org_at
 )`,
 			gin.H{
 				"token_index":   row.TokenIndex,
@@ -7025,6 +7040,9 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
 				"handle_status": row.HandleStatus,
 				"handle_msg":    row.HandleMsg,
 				"handle_at":     row.HandleAt,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_at":        row.OrgAt,
 			},
 		)
 	}
@@ -7055,7 +7073,10 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 ) VALUES (
     :id,
     :token_index,
@@ -7069,7 +7090,10 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
     :create_at,
     :handle_status,
     :handle_msg,
-    :handle_at
+    :handle_at,
+    :org_status,
+    :org_msg,
+    :org_at
 )`,
 			gin.H{
 				"id":            row.ID,
@@ -7085,6 +7109,9 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
 				"handle_status": row.HandleStatus,
 				"handle_msg":    row.HandleMsg,
 				"handle_at":     row.HandleAt,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_at":        row.OrgAt,
 			},
 		)
 	} else {
@@ -7103,7 +7130,10 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 ) VALUES (
     :token_index,
     :token_symbol,
@@ -7116,7 +7146,10 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
     :create_at,
     :handle_status,
     :handle_msg,
-    :handle_at
+    :handle_at,
+    :org_status,
+    :org_msg,
+    :org_at
 )`,
 			gin.H{
 				"token_index":   row.TokenIndex,
@@ -7131,6 +7164,9 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
 				"handle_status": row.HandleStatus,
 				"handle_msg":    row.HandleMsg,
 				"handle_at":     row.HandleAt,
+				"org_status":    row.OrgStatus,
+				"org_msg":       row.OrgMsg,
+				"org_at":        row.OrgAt,
 			},
 		)
 	}
@@ -7164,6 +7200,9 @@ func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []
 					row.HandleStatus,
 					row.HandleMsg,
 					row.HandleAt,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgAt,
 				},
 			)
 		}
@@ -7184,6 +7223,9 @@ func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []
 					row.HandleStatus,
 					row.HandleMsg,
 					row.HandleAt,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgAt,
 				},
 			)
 		}
@@ -7207,7 +7249,10 @@ func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 ) VALUES
     %s`,
 			len(rows),
@@ -7229,7 +7274,10 @@ func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 ) VALUES
     %s`,
 			len(rows),
@@ -7266,6 +7314,9 @@ func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, r
 					row.HandleStatus,
 					row.HandleMsg,
 					row.HandleAt,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgAt,
 				},
 			)
 		}
@@ -7286,6 +7337,9 @@ func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, r
 					row.HandleStatus,
 					row.HandleMsg,
 					row.HandleAt,
+					row.OrgStatus,
+					row.OrgMsg,
+					row.OrgAt,
 				},
 			)
 		}
@@ -7309,7 +7363,10 @@ func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, r
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 ) VALUES
     %s`,
 			len(rows),
@@ -7331,7 +7388,10 @@ func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, r
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 ) VALUES
     %s`,
 			len(rows),
@@ -7364,7 +7424,10 @@ func SQLGetTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DB
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 FROM
 	t_tx_btc_token
 WHERE
@@ -7435,7 +7498,10 @@ func SQLSelectTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, ids []int64
     create_at,
     handle_status,
     handle_msg,
-    handle_at
+    handle_at,
+    org_status,
+    org_msg,
+    org_at
 FROM
 	t_tx_btc_token
 WHERE
@@ -7499,7 +7565,10 @@ SET
     create_at=:create_at,
     handle_status=:handle_status,
     handle_msg=:handle_msg,
-    handle_at=:handle_at
+    handle_at=:handle_at,
+    org_status=:org_status,
+    org_msg=:org_msg,
+    org_at=:org_at
 WHERE
 	id=:id`,
 		gin.H{
@@ -7516,6 +7585,9 @@ WHERE
 			"handle_status": row.HandleStatus,
 			"handle_msg":    row.HandleMsg,
 			"handle_at":     row.HandleAt,
+			"org_status":    row.OrgStatus,
+			"org_msg":       row.OrgMsg,
+			"org_at":        row.OrgAt,
 		},
 	)
 	if err != nil {
