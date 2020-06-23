@@ -678,8 +678,15 @@ func CheckRawTxSend() {
 		// 通知数据
 		var notifyRows []*model.DBTProductNotify
 		withdrawIDs = []int64{}
+		var tokenTxIDs []int64
 		now := time.Now().Unix()
 		addNotifyRow := func(sendRow *model.DBTSendBtc) error {
+			switch sendRow.RelatedType {
+			case app.SendRelationTypeOmniOrg:
+				if !hcommon.IsIntInSlice(tokenTxIDs, sendRow.RelatedID) {
+					tokenTxIDs = append(tokenTxIDs, sendRow.RelatedID)
+				}
+			}
 			// 如果是提币，创建通知信息
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 				withdrawRow, ok := withdrawMap[sendRow.RelatedID]
@@ -780,6 +787,22 @@ func CheckRawTxSend() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 更新整理状态
+		_, err = app.SQLUpdateTTxBtcTokenOrgStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			tokenTxIDs,
+			model.DBTTxBtcToken{
+				OrgStatus: app.TxOrgStatusSend,
+				OrgMsg:    "send",
+				OrgAt:     now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新发送状态
 		_, err = app.SQLUpdateTSendBtcByIDs(
 			context.Background(),
 			app.DbCon,
@@ -868,9 +891,16 @@ func CheckRawTxConfirm() {
 		}
 
 		var notifyRows []*model.DBTProductNotify
+		var tokenTxIDs []int64
 		withdrawIDs = []int64{}
 		now := time.Now().Unix()
 		addWithdrawNotify := func(sendRow *model.DBTSendBtc) error {
+			switch sendRow.RelatedType {
+			case app.SendRelationTypeOmniOrg:
+				if !hcommon.IsIntInSlice(tokenTxIDs, sendRow.RelatedID) {
+					tokenTxIDs = append(tokenTxIDs, sendRow.RelatedID)
+				}
+			}
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 				// 提币
 				withdrawRow, ok := withdrawMap[sendRow.RelatedID]
@@ -953,6 +983,7 @@ func CheckRawTxConfirm() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 添加通知
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
 			app.DbCon,
@@ -962,6 +993,22 @@ func CheckRawTxConfirm() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 更新整理状态
+		_, err = app.SQLUpdateTTxBtcTokenOrgStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			tokenTxIDs,
+			model.DBTTxBtcToken{
+				OrgStatus: app.TxOrgStatusConfirm,
+				OrgMsg:    "confirm",
+				OrgAt:     now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新发送状态
 		_, err = app.SQLUpdateTSendBtcByIDs(
 			context.Background(),
 			app.DbCon,
