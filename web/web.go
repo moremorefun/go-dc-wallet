@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
+	"go-dc-wallet/hbtc"
 	"go-dc-wallet/hcommon"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/btcsuite/btcutil"
 
 	"github.com/shopspring/decimal"
 
@@ -274,7 +277,7 @@ func postWithdraw(c *gin.Context) {
 		})
 		return
 	}
-	symbols := []string{"eth"}
+	ethSymbols := []string{"eth"}
 	tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 		c,
 		app.DbCon,
@@ -291,50 +294,107 @@ func postWithdraw(c *gin.Context) {
 		return
 	}
 	for _, tokenRow := range tokenRows {
-		symbols = append(symbols, tokenRow.TokenSymbol)
+		ethSymbols = append(ethSymbols, tokenRow.TokenSymbol)
 	}
-	if !hcommon.IsStringInSlice(symbols, req.Symbol) {
+	btcSymbols := []string{"btc"}
+	tokenBtcRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
+		c,
+		app.DbCon,
+		[]string{
+			model.DBColTAppConfigTokenBtcTokenSymbol,
+		},
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	for _, tokenRow := range tokenBtcRows {
+		btcSymbols = append(btcSymbols, tokenRow.TokenSymbol)
+	}
+	if hcommon.IsStringInSlice(ethSymbols, req.Symbol) {
+		// 验证地址
+		req.Address = strings.ToLower(req.Address)
+		re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
+		if !re.MatchString(req.Address) {
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorAddressWrong,
+				"err_msg": hcommon.ErrorAddressWrongMsg,
+			})
+			return
+		}
+		// 验证金额
+		balanceObj, err := decimal.NewFromString(req.Balance)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorBalanceFormat,
+				"err_msg": hcommon.ErrorBalanceFormatMsg,
+			})
+			return
+		}
+		if balanceObj.LessThanOrEqual(decimal.NewFromInt(0)) {
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorBalanceFormat,
+				"err_msg": hcommon.ErrorBalanceFormatMsg,
+			})
+			return
+		}
+		if balanceObj.Exponent() < -18 {
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorBalanceFormat,
+				"err_msg": hcommon.ErrorBalanceFormatMsg,
+			})
+			return
+		}
+	} else if hcommon.IsStringInSlice(btcSymbols, req.Symbol) {
+		// 验证地址
+		req.Address = strings.ToLower(req.Address)
+		_, err := btcutil.DecodeAddress(
+			req.Address,
+			hbtc.GetNetwork(app.Cfg.BtcNetworkType).Params,
+		)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorAddressWrong,
+				"err_msg": hcommon.ErrorAddressWrongMsg,
+			})
+			return
+		}
+		// 验证金额
+		balanceObj, err := decimal.NewFromString(req.Balance)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorBalanceFormat,
+				"err_msg": hcommon.ErrorBalanceFormatMsg,
+			})
+			return
+		}
+		if balanceObj.LessThanOrEqual(decimal.NewFromInt(0)) {
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorBalanceFormat,
+				"err_msg": hcommon.ErrorBalanceFormatMsg,
+			})
+			return
+		}
+		if balanceObj.Exponent() < -8 {
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorBalanceFormat,
+				"err_msg": hcommon.ErrorBalanceFormatMsg,
+			})
+			return
+		}
+	} else {
 		c.JSON(http.StatusOK, gin.H{
 			"error":   hcommon.ErrorSymbolNotSupport,
 			"err_msg": hcommon.ErrorSymbolNotSupportMsg,
 		})
 		return
 	}
-	// 验证地址
-	req.Address = strings.ToLower(req.Address)
-	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	if !re.MatchString(req.Address) {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorAddressWrong,
-			"err_msg": hcommon.ErrorAddressWrongMsg,
-		})
-		return
-	}
-	// 验证金额
-	balanceObj, err := decimal.NewFromString(req.Balance)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorBalanceFormat,
-			"err_msg": hcommon.ErrorBalanceFormatMsg,
-		})
-		return
-	}
-	if balanceObj.LessThanOrEqual(decimal.NewFromInt(0)) {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorBalanceFormat,
-			"err_msg": hcommon.ErrorBalanceFormatMsg,
-		})
-		return
-	}
-	if balanceObj.Exponent() < -18 {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorBalanceFormat,
-			"err_msg": hcommon.ErrorBalanceFormatMsg,
-		})
-		return
-	}
-
 	now := time.Now().Unix()
 	// 开始事物
 	isComment := false

@@ -35,12 +35,12 @@ type StBtxTxOut struct {
 }
 
 type Network struct {
-	params *chaincfg.Params
+	Params *chaincfg.Params
 }
 
 var network = map[string]Network{
-	"btc":      {params: &chaincfg.MainNetParams},
-	"btc-test": {params: &chaincfg.TestNet3Params},
+	"btc":      {Params: &chaincfg.MainNetParams},
+	"btc-test": {Params: &chaincfg.TestNet3Params},
 }
 
 func GetNetwork(coinType string) Network {
@@ -53,7 +53,7 @@ func GetNetwork(coinType string) Network {
 }
 
 func (network Network) GetNetworkParams() *chaincfg.Params {
-	return network.params
+	return network.Params
 }
 
 func (network Network) CreatePrivateKey() (*btcutil.WIF, error) {
@@ -70,7 +70,7 @@ func (network Network) ImportWIF(wifStr string) (*btcutil.WIF, error) {
 		return nil, err
 	}
 	if !wif.IsForNet(network.GetNetworkParams()) {
-		return nil, errors.New("The WIF string is not valid for the `" + network.params.Name + "` network")
+		return nil, errors.New("The WIF string is not valid for the `" + network.Params.Name + "` network")
 	}
 	return wif, nil
 }
@@ -82,7 +82,7 @@ func (network Network) GetAddress(wif *btcutil.WIF) (*btcutil.AddressPubKey, err
 func BtcAddTxOut(tx *wire.MsgTx, toAddress string, balance int64) error {
 	addrTo, err := btcutil.DecodeAddress(
 		toAddress,
-		GetNetwork(app.Cfg.BtcNetworkType).params,
+		GetNetwork(app.Cfg.BtcNetworkType).Params,
 	)
 	if err != nil {
 		return err

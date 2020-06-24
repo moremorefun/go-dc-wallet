@@ -2047,3 +2047,290 @@ func OmniCheckTxOrg() {
 		}
 	})
 }
+
+// OmniCheckWithdraw 检测提现
+func OmniCheckWithdraw() {
+	lockKey := "OmniCheckWithdraw"
+	app.LockWrap(lockKey, func() {
+		var symbols []string
+		var tokenHotAddresses []string
+		tokenMap := make(map[string]*model.DBTAppConfigTokenBtc)
+		tokenBtcRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTAppConfigTokenBtcID,
+				model.DBColTAppConfigTokenBtcTokenIndex,
+				model.DBColTAppConfigTokenBtcTokenSymbol,
+				model.DBColTAppConfigTokenBtcHotAddress,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		for _, tokenRow := range tokenBtcRows {
+			symbols = append(symbols, tokenRow.TokenSymbol)
+			tokenMap[tokenRow.TokenSymbol] = tokenRow
+			if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
+				tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
+			}
+		}
+		// 获取提币信息
+		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+				model.DBColTWithdrawProductID,
+				model.DBColTWithdrawOutSerial,
+				model.DBColTWithdrawToAddress,
+				model.DBColTWithdrawSymbol,
+				model.DBColTWithdrawBalanceReal,
+			},
+			app.WithdrawStatusInit,
+			symbols,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if len(withdrawRows) == 0 {
+			return
+		}
+		// 获取手续费配置
+		feeRow, err := app.SQLGetTAppStatusIntByK(
+			context.Background(),
+			app.DbCon,
+			"to_user_gas_price_btc",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if feeRow == nil {
+			hcommon.Log.Errorf("no config int of to_cold_gas_price_btc")
+			return
+		}
+		// 获取私钥
+		addressKeyMap, err := app.SQLGetAddressKeyMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTAddressKeyID,
+				model.DBColTAddressKeyAddress,
+				model.DBColTAddressKeyPwd,
+			},
+			tokenHotAddresses,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		addressWifMap := make(map[string]*btcutil.WIF)
+		for k, addressKey := range addressKeyMap {
+			key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
+			if len(key) == 0 {
+				hcommon.Log.Errorf("error key of: %s", k)
+				return
+			}
+			wif, err := btcutil.DecodeWIF(key)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			addressWifMap[k] = wif
+		}
+		omniHotUxtoMap := make(map[string][]*model.DBTTxBtcUxto)
+		omniHotUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndType(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTTxBtcUxtoID,
+				model.DBColTTxBtcUxtoTxID,
+				model.DBColTTxBtcUxtoVoutN,
+				model.DBColTTxBtcUxtoVoutAddress,
+				model.DBColTTxBtcUxtoVoutValue,
+				model.DBColTTxBtcUxtoVoutScript,
+			},
+			tokenHotAddresses,
+			app.UxtoTypeOmniHot,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		for _, omniHotUxtoRow := range omniHotUxtoRows {
+			omniHotUxtoMap[omniHotUxtoRow.VoutAddress] = append(
+				omniHotUxtoMap[omniHotUxtoRow.VoutAddress],
+				omniHotUxtoRow,
+			)
+		}
+		var sendRows []*model.DBTSendBtc
+		var updateUxtoRows []*model.DBTTxBtcUxto
+		var updateWithraws []*model.DBTWithdraw
+		now := time.Now().Unix()
+		for _, withdrawRow := range withdrawRows {
+			tokenRow, ok := tokenMap[withdrawRow.Symbol]
+			if !ok {
+				hcommon.Log.Errorf("no token: %s", withdrawRow.Symbol)
+				return
+			}
+			omniHotUxtoRows, ok := omniHotUxtoMap[tokenRow.HotAddress]
+			if !ok {
+				hcommon.Log.Errorf("no omni hot %s", tokenRow.HotAddress)
+				return
+			}
+			hcommon.Log.Debugf("omniHotUxtoRows: %#v", omniHotUxtoRows)
+			if len(omniHotUxtoRows) <= 0 {
+				hcommon.Log.Errorf("no omni hot uxto")
+				return
+			}
+			omniHotUxtoIndex := 0
+			isOmniInputOK := false
+			for {
+				if omniHotUxtoIndex >= len(omniHotUxtoRows) {
+					break
+				}
+				tmpUxtoHotRows := omniHotUxtoRows[:omniHotUxtoIndex+1]
+				// 计算手续费
+				txSize, err := GetEstimateTxSize(
+					int64(len(tmpUxtoHotRows)),
+					2,
+					true,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				fee := txSize * feeRow.V
+				hcommon.Log.Debugf("fee: %d", fee)
+
+				inBalance := int64(0)
+				outBalance := int64(0)
+				// 输入金额
+				for _, tmpUxtoHotRow := range tmpUxtoHotRows {
+					balance, err := decimal.NewFromString(tmpUxtoHotRow.VoutValue)
+					if err != nil {
+						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						return
+					}
+					inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
+				}
+				// 输出金额
+				// omni 输出
+				outBalance += MinNondustOutput
+				if inBalance >= outBalance+fee {
+					// 输入金额ok
+					isOmniInputOK = true
+					break
+				}
+				omniHotUxtoIndex++
+			}
+			if !isOmniInputOK {
+				break
+			}
+			// 生成交易
+			balance, err := decimal.NewFromString(withdrawRow.BalanceReal)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			tx, err := OmniTxMake(
+				omniHotUxtoRows[0],
+				withdrawRow.ToAddress,
+				tokenRow.HotAddress,
+				tokenRow.TokenIndex,
+				balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
+				feeRow.V,
+				addressWifMap,
+				omniHotUxtoRows[1:omniHotUxtoIndex+1],
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			txSize := tx.SerializeSize()
+			b := new(bytes.Buffer)
+			b.Grow(txSize)
+			err = tx.Serialize(b)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+			// 准备数据
+			// 发送数据
+			sendRows = append(sendRows, &model.DBTSendBtc{
+				RelatedType:  app.SendRelationTypeWithdraw,
+				RelatedID:    withdrawRow.ID,
+				TokenID:      tokenRow.TokenIndex,
+				TxID:         tx.TxHash().String(),
+				FromAddress:  tokenRow.HotAddress,
+				ToAddress:    withdrawRow.ToAddress,
+				Balance:      balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
+				BalanceReal:  withdrawRow.BalanceReal,
+				Gas:          int64(txSize),
+				GasPrice:     feeRow.V,
+				Hex:          hex.EncodeToString(b.Bytes()),
+				CreateTime:   now,
+				HandleStatus: 0,
+				HandleMsg:    "",
+				HandleTime:   0,
+			})
+			// 更新uxto
+			for i, uxtoRow := range omniHotUxtoRows[:omniHotUxtoIndex+1] {
+				updateUxtoRows = append(updateUxtoRows, &model.DBTTxBtcUxto{
+					ID:           uxtoRow.ID,
+					TxID:         uxtoRow.TxID,
+					VoutN:        uxtoRow.VoutN,
+					SpendTxID:    tx.TxHash().String(),
+					SpendN:       int64(i),
+					HandleStatus: app.UxtoHandleStatusUse,
+					HandleMsg:    "use",
+					HandleTime:   now,
+				})
+			}
+			// 更新withdraw
+			updateWithraws = append(updateWithraws, &model.DBTWithdraw{
+				ID:           withdrawRow.ID,
+				TxHash:       tx.TxHash().String(),
+				HandleStatus: app.WithdrawStatusHex,
+				HandleMsg:    "hex",
+				HandleTime:   now,
+			})
+			// 重置数据
+			omniHotUxtoMap[tokenRow.HotAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
+		}
+		// 插入发送
+		_, err = model.SQLCreateIgnoreManyTSendBtc(
+			context.Background(),
+			app.DbCon,
+			sendRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新uxto
+		_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
+			context.Background(),
+			app.DbCon,
+			updateUxtoRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新提币
+		_, err = app.SQLCreateManyTWithdrawUpdate(
+			context.Background(),
+			app.DbCon,
+			updateWithraws,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
+}
