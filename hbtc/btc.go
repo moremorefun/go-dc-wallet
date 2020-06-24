@@ -961,12 +961,12 @@ func CheckRawTxConfirm() {
 				}
 				confirmHashes = append(confirmHashes, sendRow.TxID)
 			}
-			// 已经确认
-			sendIDs = append(sendIDs, sendRow.ID)
 			err = addWithdrawNotify(sendRow)
 			if err != nil {
-				return
+				continue
 			}
+			// 已经确认
+			sendIDs = append(sendIDs, sendRow.ID)
 		}
 		// 更新提币状态
 		_, err = app.SQLUpdateTWithdrawStatusByIDs(
