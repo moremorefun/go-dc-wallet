@@ -2168,7 +2168,7 @@ func OmniCheckWithdraw() {
 		}
 		var sendRows []*model.DBTSendBtc
 		var updateUxtoRows []*model.DBTTxBtcUxto
-		var updateWithraws []*model.DBTWithdraw
+		var updateWithdraws []*model.DBTWithdraw
 		now := time.Now().Unix()
 		for _, withdrawRow := range withdrawRows {
 			tokenRow, ok := tokenMap[withdrawRow.Symbol]
@@ -2291,7 +2291,7 @@ func OmniCheckWithdraw() {
 				})
 			}
 			// 更新withdraw
-			updateWithraws = append(updateWithraws, &model.DBTWithdraw{
+			updateWithdraws = append(updateWithdraws, &model.DBTWithdraw{
 				ID:           withdrawRow.ID,
 				TxHash:       tx.TxHash().String(),
 				HandleStatus: app.WithdrawStatusHex,
@@ -2325,7 +2325,7 @@ func OmniCheckWithdraw() {
 		_, err = app.SQLCreateManyTWithdrawUpdate(
 			context.Background(),
 			app.DbCon,
-			updateWithraws,
+			updateWithdraws,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
