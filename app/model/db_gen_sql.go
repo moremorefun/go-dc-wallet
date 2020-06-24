@@ -3743,6 +3743,7 @@ func SQLCreateTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBT
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -3756,6 +3757,7 @@ func SQLCreateTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBT
     :item_type,
     :item_id,
     :notify_type,
+    :token_symbol,
     :url,
     :msg,
     :handle_status,
@@ -3770,6 +3772,7 @@ func SQLCreateTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBT
 				"item_type":     row.ItemType,
 				"item_id":       row.ItemID,
 				"notify_type":   row.NotifyType,
+				"token_symbol":  row.TokenSymbol,
 				"url":           row.URL,
 				"msg":           row.Msg,
 				"handle_status": row.HandleStatus,
@@ -3788,6 +3791,7 @@ func SQLCreateTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBT
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -3800,6 +3804,7 @@ func SQLCreateTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBT
     :item_type,
     :item_id,
     :notify_type,
+    :token_symbol,
     :url,
     :msg,
     :handle_status,
@@ -3813,6 +3818,7 @@ func SQLCreateTProductNotify(ctx context.Context, tx hcommon.DbExeAble, row *DBT
 				"item_type":     row.ItemType,
 				"item_id":       row.ItemID,
 				"notify_type":   row.NotifyType,
+				"token_symbol":  row.TokenSymbol,
 				"url":           row.URL,
 				"msg":           row.Msg,
 				"handle_status": row.HandleStatus,
@@ -3843,6 +3849,7 @@ func SQLCreateIgnoreTProductNotify(ctx context.Context, tx hcommon.DbExeAble, ro
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -3856,6 +3863,7 @@ func SQLCreateIgnoreTProductNotify(ctx context.Context, tx hcommon.DbExeAble, ro
     :item_type,
     :item_id,
     :notify_type,
+    :token_symbol,
     :url,
     :msg,
     :handle_status,
@@ -3870,6 +3878,7 @@ func SQLCreateIgnoreTProductNotify(ctx context.Context, tx hcommon.DbExeAble, ro
 				"item_type":     row.ItemType,
 				"item_id":       row.ItemID,
 				"notify_type":   row.NotifyType,
+				"token_symbol":  row.TokenSymbol,
 				"url":           row.URL,
 				"msg":           row.Msg,
 				"handle_status": row.HandleStatus,
@@ -3888,6 +3897,7 @@ func SQLCreateIgnoreTProductNotify(ctx context.Context, tx hcommon.DbExeAble, ro
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -3900,6 +3910,7 @@ func SQLCreateIgnoreTProductNotify(ctx context.Context, tx hcommon.DbExeAble, ro
     :item_type,
     :item_id,
     :notify_type,
+    :token_symbol,
     :url,
     :msg,
     :handle_status,
@@ -3913,6 +3924,7 @@ func SQLCreateIgnoreTProductNotify(ctx context.Context, tx hcommon.DbExeAble, ro
 				"item_type":     row.ItemType,
 				"item_id":       row.ItemID,
 				"notify_type":   row.NotifyType,
+				"token_symbol":  row.TokenSymbol,
 				"url":           row.URL,
 				"msg":           row.Msg,
 				"handle_status": row.HandleStatus,
@@ -3945,6 +3957,7 @@ func SQLCreateManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble, rows
 					row.ItemType,
 					row.ItemID,
 					row.NotifyType,
+					row.TokenSymbol,
 					row.URL,
 					row.Msg,
 					row.HandleStatus,
@@ -3964,6 +3977,7 @@ func SQLCreateManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble, rows
 					row.ItemType,
 					row.ItemID,
 					row.NotifyType,
+					row.TokenSymbol,
 					row.URL,
 					row.Msg,
 					row.HandleStatus,
@@ -3987,6 +4001,7 @@ func SQLCreateManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble, rows
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -4008,6 +4023,7 @@ func SQLCreateManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble, rows
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -4043,6 +4059,7 @@ func SQLCreateIgnoreManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble
 					row.ItemType,
 					row.ItemID,
 					row.NotifyType,
+					row.TokenSymbol,
 					row.URL,
 					row.Msg,
 					row.HandleStatus,
@@ -4062,6 +4079,7 @@ func SQLCreateIgnoreManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble
 					row.ItemType,
 					row.ItemID,
 					row.NotifyType,
+					row.TokenSymbol,
 					row.URL,
 					row.Msg,
 					row.HandleStatus,
@@ -4085,6 +4103,7 @@ func SQLCreateIgnoreManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -4106,6 +4125,7 @@ func SQLCreateIgnoreManyTProductNotify(ctx context.Context, tx hcommon.DbExeAble
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -4138,6 +4158,7 @@ func SQLGetTProductNotify(ctx context.Context, tx hcommon.DbExeAble, id int64) (
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -4208,6 +4229,7 @@ func SQLSelectTProductNotify(ctx context.Context, tx hcommon.DbExeAble, ids []in
     item_type,
     item_id,
     notify_type,
+    token_symbol,
     url,
     msg,
     handle_status,
@@ -4271,6 +4293,7 @@ SET
     item_type=:item_type,
     item_id=:item_id,
     notify_type=:notify_type,
+    token_symbol=:token_symbol,
     url=:url,
     msg=:msg,
     handle_status=:handle_status,
@@ -4286,6 +4309,7 @@ WHERE
 			"item_type":     row.ItemType,
 			"item_id":       row.ItemID,
 			"notify_type":   row.NotifyType,
+			"token_symbol":  row.TokenSymbol,
 			"url":           row.URL,
 			"msg":           row.Msg,
 			"handle_status": row.HandleStatus,
@@ -6938,6 +6962,7 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
 			tx,
 			`INSERT INTO t_tx_btc_token (
     id,
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -6955,6 +6980,7 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
     org_at
 ) VALUES (
     :id,
+    :product_id,
     :token_index,
     :token_symbol,
     :block_hash,
@@ -6973,6 +6999,7 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
 )`,
 			gin.H{
 				"id":            row.ID,
+				"product_id":    row.ProductID,
 				"token_index":   row.TokenIndex,
 				"token_symbol":  row.TokenSymbol,
 				"block_hash":    row.BlockHash,
@@ -6995,6 +7022,7 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
 			ctx,
 			tx,
 			`INSERT INTO t_tx_btc_token (
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7011,6 +7039,7 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
     org_msg,
     org_at
 ) VALUES (
+    :product_id,
     :token_index,
     :token_symbol,
     :block_hash,
@@ -7028,6 +7057,7 @@ func SQLCreateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
     :org_at
 )`,
 			gin.H{
+				"product_id":    row.ProductID,
 				"token_index":   row.TokenIndex,
 				"token_symbol":  row.TokenSymbol,
 				"block_hash":    row.BlockHash,
@@ -7062,6 +7092,7 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
 			tx,
 			`INSERT IGNORE INTO t_tx_btc_token (
     id,
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7079,6 +7110,7 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
     org_at
 ) VALUES (
     :id,
+    :product_id,
     :token_index,
     :token_symbol,
     :block_hash,
@@ -7097,6 +7129,7 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
 )`,
 			gin.H{
 				"id":            row.ID,
+				"product_id":    row.ProductID,
 				"token_index":   row.TokenIndex,
 				"token_symbol":  row.TokenSymbol,
 				"block_hash":    row.BlockHash,
@@ -7119,6 +7152,7 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_tx_btc_token (
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7135,6 +7169,7 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
     org_msg,
     org_at
 ) VALUES (
+    :product_id,
     :token_index,
     :token_symbol,
     :block_hash,
@@ -7152,6 +7187,7 @@ func SQLCreateIgnoreTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *
     :org_at
 )`,
 			gin.H{
+				"product_id":    row.ProductID,
 				"token_index":   row.TokenIndex,
 				"token_symbol":  row.TokenSymbol,
 				"block_hash":    row.BlockHash,
@@ -7188,6 +7224,7 @@ func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []
 				args,
 				[]interface{}{
 					row.ID,
+					row.ProductID,
 					row.TokenIndex,
 					row.TokenSymbol,
 					row.BlockHash,
@@ -7211,6 +7248,7 @@ func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []
 			args = append(
 				args,
 				[]interface{}{
+					row.ProductID,
 					row.TokenIndex,
 					row.TokenSymbol,
 					row.BlockHash,
@@ -7238,6 +7276,7 @@ func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []
 			tx,
 			`INSERT INTO t_tx_btc_token (
     id,
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7263,6 +7302,7 @@ func SQLCreateManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, rows []
 			ctx,
 			tx,
 			`INSERT INTO t_tx_btc_token (
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7302,6 +7342,7 @@ func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, r
 				args,
 				[]interface{}{
 					row.ID,
+					row.ProductID,
 					row.TokenIndex,
 					row.TokenSymbol,
 					row.BlockHash,
@@ -7325,6 +7366,7 @@ func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, r
 			args = append(
 				args,
 				[]interface{}{
+					row.ProductID,
 					row.TokenIndex,
 					row.TokenSymbol,
 					row.BlockHash,
@@ -7352,6 +7394,7 @@ func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, r
 			tx,
 			`INSERT IGNORE INTO t_tx_btc_token (
     id,
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7377,6 +7420,7 @@ func SQLCreateIgnoreManyTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, r
 			ctx,
 			tx,
 			`INSERT IGNORE INTO t_tx_btc_token (
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7413,6 +7457,7 @@ func SQLGetTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DB
 		&row,
 		`SELECT
     id,
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7487,6 +7532,7 @@ func SQLSelectTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, ids []int64
 		&rows,
 		`SELECT
     id,
+    product_id,
     token_index,
     token_symbol,
     block_hash,
@@ -7554,6 +7600,7 @@ func SQLUpdateTTxBtcToken(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxB
 		`UPDATE
 	t_tx_btc_token
 SET
+    product_id=:product_id,
     token_index=:token_index,
     token_symbol=:token_symbol,
     block_hash=:block_hash,
@@ -7573,6 +7620,7 @@ WHERE
 	id=:id`,
 		gin.H{
 			"id":            row.ID,
+			"product_id":    row.ProductID,
 			"token_index":   row.TokenIndex,
 			"token_symbol":  row.TokenSymbol,
 			"block_hash":    row.BlockHash,

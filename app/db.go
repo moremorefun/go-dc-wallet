@@ -1526,6 +1526,33 @@ WHERE
 	return rows, nil
 }
 
+// SQLSelectTTxBtcTokenColByHandleStatus 根据ids获取
+func SQLSelectTTxBtcTokenColByHandleStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, handelStatus int64) ([]*model.DBTTxBtcToken, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_token
+WHERE
+	handle_status=:handle_status`)
+
+	var rows []*model.DBTTxBtcToken
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"handle_status": handelStatus,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // SQLSelectTAppConfigTokenBtcColByIndexes 根据ids获取
 func SQLSelectTAppConfigTokenBtcColByIndexes(ctx context.Context, tx hcommon.DbExeAble, cols []string, tokenIndexes []int64) ([]*model.DBTAppConfigTokenBtc, error) {
 	if len(tokenIndexes) == 0 {
@@ -1577,6 +1604,35 @@ WHERE
 			"org_status": row.OrgStatus,
 			"org_msg":    row.OrgMsg,
 			"org_at":     row.OrgAt,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLUpdateTTxBtcTokenHandleStatusByIDs 更新
+func SQLUpdateTTxBtcTokenHandleStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxBtcToken) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_btc_token
+SET
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_at=:handle_at
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids":           ids,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_at":     row.HandleAt,
 		},
 	)
 	if err != nil {

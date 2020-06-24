@@ -721,6 +721,7 @@ func CheckRawTxSend() {
 					ItemType:     app.SendRelationTypeWithdraw,
 					ItemID:       withdrawRow.ID,
 					NotifyType:   app.NotifyTypeWithdrawSend,
+					TokenSymbol:  CoinSymbol,
 					URL:          productRow.CbURL,
 					Msg:          string(req),
 					HandleStatus: app.NotifyStatusInit,
@@ -935,6 +936,7 @@ func CheckRawTxConfirm() {
 					ItemType:     app.SendRelationTypeWithdraw,
 					ItemID:       withdrawRow.ID,
 					NotifyType:   app.NotifyTypeWithdrawConfirm,
+					TokenSymbol:  withdrawRow.Symbol,
 					URL:          productRow.CbURL,
 					Msg:          string(req),
 					HandleStatus: app.NotifyStatusInit,
@@ -1407,6 +1409,7 @@ func CheckTxNotify() {
 				ItemType:     app.SendRelationTypeTx,
 				ItemID:       txRow.ID,
 				NotifyType:   app.NotifyTypeTx,
+				TokenSymbol:  CoinSymbol,
 				URL:          productRow.CbURL,
 				Msg:          string(req),
 				HandleStatus: app.NotifyStatusInit,
@@ -1620,6 +1623,7 @@ func OmniCheckBlockSeek() {
 								return
 							}
 							txTokenRows = append(txTokenRows, &model.DBTTxBtcToken{
+								ProductID:    dbAddressRow.UseTag,
 								TokenIndex:   rpcTx.Propertyid,
 								TokenSymbol:  tokenRow.TokenSymbol,
 								BlockHash:    rpcTx.Blockhash,
@@ -2333,4 +2337,116 @@ func OmniCheckWithdraw() {
 			return
 		}
 	})
+}
+
+// OmniCheckTxNotify 创建omni冲币通知
+func OmniCheckTxNotify() {
+	lockKey := "OmniCheckTxNotify"
+	app.LockWrap(lockKey, func() {
+		txRows, err := app.SQLSelectTTxBtcTokenColByHandleStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTTxBtcTokenID,
+				model.DBColTTxBtcTokenProductID,
+				model.DBColTTxBtcTokenTokenIndex,
+				model.DBColTTxBtcTokenTokenSymbol,
+				model.DBColTTxBtcTokenTxID,
+				model.DBColTTxBtcTokenFromAddress,
+				model.DBColTTxBtcTokenToAddress,
+				model.DBColTTxBtcTokenValue,
+			},
+			app.TxStatusInit,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var productIDs []int64
+		for _, txRow := range txRows {
+			if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+				productIDs = append(productIDs, txRow.ProductID)
+			}
+		}
+		productMap, err := app.SQLGetProductMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTProductID,
+				model.DBColTProductAppName,
+				model.DBColTProductCbURL,
+				model.DBColTProductAppSk,
+			},
+			productIDs,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var notifyTxIDs []int64
+		var notifyRows []*model.DBTProductNotify
+		now := time.Now().Unix()
+		for _, txRow := range txRows {
+			productRow, ok := productMap[txRow.ProductID]
+			if !ok {
+				hcommon.Log.Warnf("no productMap: %d", txRow.ProductID)
+				notifyTxIDs = append(notifyTxIDs, txRow.ID)
+				continue
+			}
+			nonce := hcommon.GetUUIDStr()
+			reqObj := gin.H{
+				"tx_hash":     txRow.TxID,
+				"app_name":    productRow.AppName,
+				"address":     txRow.ToAddress,
+				"balance":     txRow.Value,
+				"symbol":      txRow.TokenSymbol,
+				"notify_type": app.NotifyTypeTx,
+			}
+			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			req, err := json.Marshal(reqObj)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+			notifyRows = append(notifyRows, &model.DBTProductNotify{
+				Nonce:        nonce,
+				ProductID:    txRow.ProductID,
+				ItemType:     app.SendRelationTypeTx,
+				ItemID:       txRow.ID,
+				NotifyType:   app.NotifyTypeTx,
+				TokenSymbol:  txRow.TokenSymbol,
+				URL:          productRow.CbURL,
+				Msg:          string(req),
+				HandleStatus: app.NotifyStatusInit,
+				HandleMsg:    "",
+				CreateTime:   now,
+				UpdateTime:   now,
+			})
+			notifyTxIDs = append(notifyTxIDs, txRow.ID)
+		}
+		_, err = model.SQLCreateIgnoreManyTProductNotify(
+			context.Background(),
+			app.DbCon,
+			notifyRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		_, err = app.SQLUpdateTTxBtcTokenHandleStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			notifyTxIDs,
+			model.DBTTxBtcToken{
+				HandleStatus: app.TxStatusNotify,
+				HandleMsg:    "notify",
+				HandleAt:     now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
+
 }

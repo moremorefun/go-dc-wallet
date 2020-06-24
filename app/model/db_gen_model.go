@@ -221,6 +221,7 @@ const (
 	DBColTProductNotifyItemType     = "t_product_notify.item_type"
 	DBColTProductNotifyItemID       = "t_product_notify.item_id"
 	DBColTProductNotifyNotifyType   = "t_product_notify.notify_type"
+	DBColTProductNotifyTokenSymbol  = "t_product_notify.token_symbol"
 	DBColTProductNotifyURL          = "t_product_notify.url"
 	DBColTProductNotifyMsg          = "t_product_notify.msg"
 	DBColTProductNotifyHandleStatus = "t_product_notify.handle_status"
@@ -237,6 +238,7 @@ const (
    item_type,
    item_id,
    notify_type,
+   token_symbol,
    url,
    msg,
    handle_status,
@@ -251,6 +253,7 @@ type DBTProductNotify struct {
 	ItemType     int64  `db:"item_type" json:"item_type"`
 	ItemID       int64  `db:"item_id" json:"item_id"`
 	NotifyType   int64  `db:"notify_type" json:"notify_type"`
+	TokenSymbol  string `db:"token_symbol" json:"token_symbol"`
 	URL          string `db:"url" json:"url"`
 	Msg          string `db:"msg" json:"msg"`
 	HandleStatus int64  `db:"handle_status" json:"handle_status"`
@@ -476,6 +479,7 @@ type DBTTxBtc struct {
 // const TTxBtcToken
 const (
 	DBColTTxBtcTokenID           = "t_tx_btc_token.id"
+	DBColTTxBtcTokenProductID    = "t_tx_btc_token.product_id"
 	DBColTTxBtcTokenTokenIndex   = "t_tx_btc_token.token_index"
 	DBColTTxBtcTokenTokenSymbol  = "t_tx_btc_token.token_symbol"
 	DBColTTxBtcTokenBlockHash    = "t_tx_btc_token.block_hash"
@@ -496,6 +500,7 @@ const (
 // DBTTxBtcToken t_tx_btc_token 数据表
 /*
    id,
+   product_id,
    token_index,
    token_symbol,
    block_hash,
@@ -514,6 +519,7 @@ const (
 */
 type DBTTxBtcToken struct {
 	ID           int64  `db:"id" json:"id"`
+	ProductID    int64  `db:"product_id" json:"product_id"`
 	TokenIndex   int64  `db:"token_index" json:"token_index"`
 	TokenSymbol  string `db:"token_symbol" json:"token_symbol"`
 	BlockHash    string `db:"block_hash" json:"block_hash"`
