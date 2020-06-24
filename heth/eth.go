@@ -739,11 +739,11 @@ func CheckRawTxSend() {
 			return
 		}
 		// 更新erc20零钱整理状态
-		_, err = app.SQLUpdateTTxOrgStatusByIDs(
+		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
 			erc20TxIDs,
-			model.DBTTx{
+			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusSend,
 				OrgMsg:    "send",
 				OrgTime:   now,
@@ -754,11 +754,11 @@ func CheckRawTxSend() {
 			return
 		}
 		// 更新erc20手续费状态
-		_, err = app.SQLUpdateTTxOrgStatusByIDs(
+		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
 			erc20TxFeeIDs,
-			model.DBTTx{
+			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusFeeSend,
 				OrgMsg:    "send",
 				OrgTime:   now,
@@ -981,11 +981,11 @@ func CheckRawTxConfirm() {
 			return
 		}
 		// 更新erc20零钱整理状态
-		_, err = app.SQLUpdateTTxOrgStatusByIDs(
+		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
 			app.DbCon,
 			erc20TxIDs,
-			model.DBTTx{
+			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusConfirm,
 				OrgMsg:    "confirm",
 				OrgTime:   now,
