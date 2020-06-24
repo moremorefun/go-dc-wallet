@@ -1,10 +1,10 @@
 -- -------------------------------------------------------------
--- TablePlus 3.5.0(309)
+-- TablePlus 3.6.2(323)
 --
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-05-08 14:23:25.8730
+-- Generation Time: 2020-06-24 11:01:59.7020
 -- -------------------------------------------------------------
 
 
@@ -22,7 +22,9 @@ INSERT INTO `t_app_config_str` (`id`, `k`, `v`) VALUES
 ('3', 'cold_wallet_address', '0xba71da7d56322dba3348204735bd419de245ad04'),
 ('4', 'hot_wallet_address', '0x47284d23b4c375878a52e7a7e5f0d4fbfb60fe22'),
 ('5', 'fee_wallet_address', '0xd3ecd590bd35c49733ae2cb82b7ae3f6bcec9b8c'),
-('6', 'fee_wallet_address_list', '0xd3ecd590bd35c49733ae2cb82b7ae3f6bcec9b8c,0xd3ecd590bd35c49733ae2cb82b7ae3f6bcec9b8c');
+('6', 'fee_wallet_address_list', '0xd3ecd590bd35c49733ae2cb82b7ae3f6bcec9b8c,0xd3ecd590bd35c49733ae2cb82b7ae3f6bcec9b8c'),
+('7', 'cold_wallet_address_btc', 'n4LEjbHb2nFwKKrackfgoVCjpDKgDG9DZh'),
+('8', 'hot_wallet_address_btc', 'mqzW5o46yBj7vwz4HyZNe7PYL25FHisvG4');
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-06-24 11:01:48.4050
+-- Generation Time: 2020-06-24 11:02:20.5040
 -- -------------------------------------------------------------
 
 
@@ -18,11 +18,8 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 
-INSERT INTO `t_app_config_int` (`id`, `k`, `v`) VALUES
-('1', 'min_free_address', '100'),
-('2', 'block_confirm_num', '12'),
-('3', 'erc20_gas_use', '90000'),
-('4', 'btc_block_confirm_num', '0');
+INSERT INTO `t_app_config_token_btc` (`id`, `token_index`, `token_symbol`, `cold_address`, `hot_address`, `tx_org_min_balance`, `create_at`) VALUES
+('1', '2', 'omni_usdt', 'n4LEjbHb2nFwKKrackfgoVCjpDKgDG9DZh', 'myLjJXLWYF8Xc5stU2EbMF5rZz5zfTbfXU', '0', '0');
 
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
