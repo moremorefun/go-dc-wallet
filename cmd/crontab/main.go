@@ -133,6 +133,28 @@ func main() {
 		hcommon.Log.Errorf("cron add func error: %#v", err)
 	}
 
+	// --- omni ---
+	// 检测 omni 冲币
+	_, err = c.AddFunc("@every 5m", hbtc.OmniCheckBlockSeek)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 omni 零钱整理
+	_, err = c.AddFunc("@every 10m", hbtc.OmniCheckTxOrg)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 omni 提币
+	_, err = c.AddFunc("@every 3m", hbtc.OmniCheckWithdraw)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+	// 检测 omni 通知到账
+	_, err = c.AddFunc("@every 5s", hbtc.OmniCheckTxNotify)
+	if err != nil {
+		hcommon.Log.Errorf("cron add func error: %#v", err)
+	}
+
 	c.Start()
 	select {}
 }
