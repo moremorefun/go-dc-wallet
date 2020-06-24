@@ -499,7 +499,8 @@ func SQLSelectTSendColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols [
 FROM
 	t_send
 WHERE
-	handle_status=:handle_status`)
+	handle_status=:handle_status
+ORDER BY id`)
 
 	var rows []*model.DBTSend
 	err := hcommon.DbSelectNamedContent(

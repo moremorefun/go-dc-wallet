@@ -607,31 +607,8 @@ func CheckRawTxSend() {
 		// 通知数据
 		var notifyRows []*model.DBTProductNotify
 		now := time.Now().Unix()
-		for _, sendRow := range sendRows {
-			// 发送数据中需要排除占位数据
-			if sendRow.Hex != "" {
-				rawTxBytes, err := hex.DecodeString(sendRow.Hex)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					continue
-				}
-				tx := new(types.Transaction)
-				err = rlp.DecodeBytes(rawTxBytes, &tx)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					continue
-				}
-				err = ethclient.RpcSendTransaction(
-					context.Background(),
-					tx,
-				)
-				if err != nil {
-					if !strings.Contains(err.Error(), "known transaction") {
-						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-						continue
-					}
-				}
-			}
+		var sendTxHashes []string
+		onSendOk := func(sendRow *model.DBTSend) error {
 			// 将发送成功和占位数据计入数组
 			if !hcommon.IsIntInSlice(sendIDs, sendRow.ID) {
 				sendIDs = append(sendIDs, sendRow.ID)
@@ -659,12 +636,12 @@ func CheckRawTxSend() {
 				withdrawRow, ok := withdrawMap[sendRow.RelatedID]
 				if !ok {
 					hcommon.Log.Errorf("withdrawMap no: %d", sendRow.RelatedID)
-					continue
+					return nil
 				}
 				productRow, ok := productMap[withdrawRow.ProductID]
 				if !ok {
 					hcommon.Log.Errorf("productMap no: %d", withdrawRow.ProductID)
-					continue
+					return nil
 				}
 				nonce := hcommon.GetUUIDStr()
 				reqObj := gin.H{
@@ -680,7 +657,7 @@ func CheckRawTxSend() {
 				req, err := json.Marshal(reqObj)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
+					return err
 				}
 				notifyRows = append(notifyRows, &model.DBTProductNotify{
 					Nonce:        nonce,
@@ -696,6 +673,46 @@ func CheckRawTxSend() {
 					CreateTime:   now,
 					UpdateTime:   now,
 				})
+			}
+			return nil
+		}
+		for _, sendRow := range sendRows {
+			// 发送数据中需要排除占位数据
+			if sendRow.Hex != "" {
+				rawTxBytes, err := hex.DecodeString(sendRow.Hex)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					continue
+				}
+				tx := new(types.Transaction)
+				err = rlp.DecodeBytes(rawTxBytes, &tx)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					continue
+				}
+				err = ethclient.RpcSendTransaction(
+					context.Background(),
+					tx,
+				)
+				if err != nil {
+					if !strings.Contains(err.Error(), "known transaction") {
+						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						continue
+					}
+				}
+				sendTxHashes = append(sendTxHashes, sendRow.TxID)
+
+				err = onSendOk(sendRow)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+			} else if hcommon.IsStringInSlice(sendTxHashes, sendRow.TxID) {
+				err = onSendOk(sendRow)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
 			}
 		}
 		// 插入通知
