@@ -175,6 +175,7 @@ func CheckBlockSeek() {
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
 				// rpc获取block信息
+				//hcommon.Log.Debugf("eth check block: %d", i)
 				rpcBlock, err := ethclient.RpcBlockByNum(context.Background(), i)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1419,6 +1420,7 @@ func CheckErc20BlockSeek() {
 			}
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
+				//hcommon.Log.Debugf("erc20 check block: %d", i)
 				if len(configTokenRowAddresses) > 0 {
 					// rpc获取block信息
 					logs, err := ethclient.RpcFilterLogs(

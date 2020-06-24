@@ -139,7 +139,6 @@ func CheckBlockSeek() {
 		vinTxMap := make(map[string]*omniclient.StTxResult)
 		startI := seekRow.V + 1
 		endI := rpcBlockNum - confirmRow.V + 1
-		hcommon.Log.Debugf("btc block seek %d->%d", startI, endI)
 		if startI < endI {
 			// 获取所有token
 			var tokenHotAddresses []string
@@ -162,6 +161,7 @@ func CheckBlockSeek() {
 			}
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
+				//hcommon.Log.Debugf("btc check block: %d", i)
 				blockHash, err := omniclient.RpcGetBlockHash(i)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -227,7 +227,7 @@ func CheckBlockSeek() {
 						}
 					}
 				}
-				hcommon.Log.Debugf("rpc get block: %d to addresses: %d", i, len(toAddresses))
+				//hcommon.Log.Debugf("rpc get block: %d to addresses: %d", i, len(toAddresses))
 
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
@@ -1542,7 +1542,7 @@ func OmniCheckBlockSeek() {
 		}
 		startI := seekRow.V + 1
 		endI := rpcBlockNum - confirmRow.V + 1
-		hcommon.Log.Debugf("omni block seek %d->%d", startI, endI)
+		//hcommon.Log.Debugf("omni block seek %d->%d", startI, endI)
 		if startI < endI {
 			// 获取所有token
 			var tokenIndexes []int64
@@ -1566,7 +1566,7 @@ func OmniCheckBlockSeek() {
 			}
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
-				hcommon.Log.Debugf("omni check block: %d", i)
+				//hcommon.Log.Debugf("omni check block: %d", i)
 				rpcTransactionHashes, err := omniclient.RpcOmniListBlockTransactions(i)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
