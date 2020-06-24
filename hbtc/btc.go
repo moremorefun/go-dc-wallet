@@ -2228,6 +2228,7 @@ func OmniCheckWithdraw() {
 				omniHotUxtoIndex++
 			}
 			if !isOmniInputOK {
+				hcommon.Log.Errorf("omni withdraw fee limit")
 				break
 			}
 			// 生成交易
