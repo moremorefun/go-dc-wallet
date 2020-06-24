@@ -1648,7 +1648,7 @@ func OmniCheckBlockSeek() {
 					context.Background(),
 					app.DbCon,
 					&model.DBTAppStatusInt{
-						K: "btc_seek_num",
+						K: "omni_seek_num",
 						V: i,
 					},
 				)
