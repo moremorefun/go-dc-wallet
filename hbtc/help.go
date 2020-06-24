@@ -274,6 +274,9 @@ func BtcTxWithdrawSize(vins []*model.DBTTxBtcUxto, vouts []*model.DBTWithdraw, k
 			VoutAddress: vout.ToAddress,
 			Balance:     balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
 		})
+		if firstAddress == "" {
+			firstAddress = vout.ToAddress
+		}
 	}
 	argVouts = append(argVouts, &StBtxTxOut{
 		VoutAddress: firstAddress,

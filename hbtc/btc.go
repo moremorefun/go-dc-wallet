@@ -269,7 +269,7 @@ func CheckBlockSeek() {
 										return
 									}
 									vinTxMap[vin.Txid] = rpcVinTx
-									hcommon.Log.Debugf("get tx: %s", vin.Txid)
+									//hcommon.Log.Debugf("get tx: %s", vin.Txid)
 								}
 								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
 									omniVinAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
@@ -544,7 +544,7 @@ func CheckTxOrg() {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+			//hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 			// 准备插入数据
 			now := time.Now().Unix()
 			var sendRows []*model.DBTSendBtc
@@ -1197,7 +1197,15 @@ func CheckWithdraw() {
 				break
 			}
 		}
-		hcommon.Log.Debugf("inUxtoRows: %#v, outWithdrawRows: %#v", inUxtoRows, outWithdrawRows)
+		//hcommon.Log.Debugf("inUxtoRows: %#v, outWithdrawRows: %#v", inUxtoRows, outWithdrawRows)
+		if len(inUxtoRows) == 0 {
+			hcommon.Log.Errorf("btc hot balance limit")
+			return
+		}
+		if len(outWithdrawRows) == 0 {
+			hcommon.Log.Errorf("btc hot balance limit")
+			return
+		}
 		// 创建交易
 		var argVins []*StBtxTxIn
 		var argVouts []*StBtxTxOut
@@ -1243,7 +1251,7 @@ func CheckWithdraw() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+		//hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 		now := time.Now().Unix()
 		var sendRows []*model.DBTSendBtc
 		var updateUxtoRows []*model.DBTTxBtcUxto
@@ -1850,26 +1858,26 @@ func OmniCheckTxOrg() {
 				tokenRow, ok := tokenMap[orgItem.TokenIndex]
 				if !ok {
 					hcommon.Log.Errorf("no token: %d", orgItem.TokenIndex)
-					return
+					break
 				}
 				omniUxtoRows, ok := omniUxtoMap[orgItem.Address]
 				if !ok {
 					hcommon.Log.Errorf("no omni uxto %s", orgItem.Address)
-					return
+					break
 				}
 				omniHotUxtoRows, ok := omniHotUxtoMap[tokenRow.HotAddress]
 				if !ok {
-					hcommon.Log.Errorf("no omni hot %s", tokenRow.HotAddress)
-					return
+					hcommon.Log.Errorf("omni org fee limit")
+					break
 				}
-				hcommon.Log.Debugf("omniUxtoRows: %#v, omniHotUxtoRows: %#v", omniUxtoRows, omniHotUxtoRows)
+				//hcommon.Log.Debugf("omniUxtoRows: %#v, omniHotUxtoRows: %#v", omniUxtoRows, omniHotUxtoRows)
 				if len(omniUxtoRows) <= 0 {
-					hcommon.Log.Errorf("no omni uxto")
-					return
+					hcommon.Log.Errorf("omni org sender uxto limit")
+					break
 				}
 				if len(omniHotUxtoRows) <= 0 {
-					hcommon.Log.Errorf("no omni hot uxto")
-					return
+					hcommon.Log.Errorf("omni org fee limit")
+					break
 				}
 				omniHotUxtoIndex := 0
 				isOmniInputOK := false
@@ -1885,7 +1893,7 @@ func OmniCheckTxOrg() {
 						true,
 					)
 					fee := txSize * feeRow.V
-					hcommon.Log.Debugf("fee: %d", fee)
+					//hcommon.Log.Debugf("fee: %d", fee)
 
 					inBalance := int64(0)
 					outBalance := int64(0)
@@ -1915,6 +1923,7 @@ func OmniCheckTxOrg() {
 					omniHotUxtoIndex++
 				}
 				if !isOmniInputOK {
+					hcommon.Log.Errorf("omni org fee limit")
 					break
 				}
 				// 生成交易
@@ -1940,7 +1949,7 @@ func OmniCheckTxOrg() {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+				//hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 				for i, txRow := range orgItem.txRows {
 					gas := int64(0)
 					gasPrice := int64(0)
