@@ -103,12 +103,12 @@ func RpcTransactionReceipt(ctx context.Context, txHashStr string) (*types.Receip
 }
 
 // RpcBalanceAt 获取余额
-func RpcBalanceAt(ctx context.Context, address string) (int64, error) {
+func RpcBalanceAt(ctx context.Context, address string) (*big.Int, error) {
 	balance, err := client.BalanceAt(ctx, common.HexToAddress(address), nil)
 	if nil != err {
-		return 0, err
+		return nil, err
 	}
-	return balance.Int64(), nil
+	return balance, nil
 }
 
 // RpcFilterLogs 获取日志
@@ -133,15 +133,15 @@ func RpcFilterLogs(ctx context.Context, startBlock int64, endBlock int64, contra
 }
 
 // RpcTokenBalance 获取token余额
-func RpcTokenBalance(ctx context.Context, tokenAddress string, address string) (int64, error) {
+func RpcTokenBalance(ctx context.Context, tokenAddress string, address string) (*big.Int, error) {
 	tokenAddressHash := common.HexToAddress(tokenAddress)
 	instance, err := NewEth(tokenAddressHash, client)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
 	balance, err := instance.BalanceOf(&bind.CallOpts{}, common.HexToAddress(address))
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return balance.Int64(), nil
+	return balance, nil
 }

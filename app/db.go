@@ -229,15 +229,15 @@ LIMIT 1`,
 	return i + 1, nil
 }
 
-// SQLGetTSendPendingBalance 获取地址的打包数额
-func SQLGetTSendPendingBalance(ctx context.Context, tx hcommon.DbExeAble, address string) (int64, error) {
-	var i int64
+// SQLGetTSendPendingBalanceReal 获取地址的打包数额
+func SQLGetTSendPendingBalanceReal(ctx context.Context, tx hcommon.DbExeAble, address string) (string, error) {
+	var i string
 	ok, err := hcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&i,
 		`SELECT 
-	IFNULL(SUM(balance), 0)
+	IFNULL(SUM(CAST(balance_real as DECIMAL(65,18))), "0")
 FROM
 	t_send
 WHERE
@@ -249,10 +249,10 @@ LIMIT 1`,
 		},
 	)
 	if err != nil {
-		return 0, err
+		return "0", err
 	}
 	if !ok {
-		return 0, nil
+		return "0", nil
 	}
 	return i, nil
 }

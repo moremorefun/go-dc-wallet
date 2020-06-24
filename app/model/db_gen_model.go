@@ -271,7 +271,6 @@ const (
 	DBColTSendTxID         = "t_send.tx_id"         // tx hash
 	DBColTSendFromAddress  = "t_send.from_address"  // 打币地址
 	DBColTSendToAddress    = "t_send.to_address"    // 收币地址
-	DBColTSendBalance      = "t_send.balance"       // 打币金额 Wei
 	DBColTSendBalanceReal  = "t_send.balance_real"  // 打币金额 Ether
 	DBColTSendGas          = "t_send.gas"           // gas消耗
 	DBColTSendGasPrice     = "t_send.gas_price"     // gasPrice
@@ -292,7 +291,6 @@ const (
    tx_id,
    from_address,
    to_address,
-   balance,
    balance_real,
    gas,
    gas_price,
@@ -311,7 +309,6 @@ type DBTSend struct {
 	TxID         string `db:"tx_id" json:"tx_id"`                 // tx hash
 	FromAddress  string `db:"from_address" json:"from_address"`   // 打币地址
 	ToAddress    string `db:"to_address" json:"to_address"`       // 收币地址
-	Balance      int64  `db:"balance" json:"balance"`             // 打币金额 Wei
 	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 打币金额 Ether
 	Gas          int64  `db:"gas" json:"gas"`                     // gas消耗
 	GasPrice     int64  `db:"gas_price" json:"gas_price"`         // gasPrice
@@ -332,7 +329,6 @@ const (
 	DBColTSendBtcTxID         = "t_send_btc.tx_id"         // tx hash
 	DBColTSendBtcFromAddress  = "t_send_btc.from_address"  // 打币地址
 	DBColTSendBtcToAddress    = "t_send_btc.to_address"    // 收币地址
-	DBColTSendBtcBalance      = "t_send_btc.balance"       // 打币金额 Wei
 	DBColTSendBtcBalanceReal  = "t_send_btc.balance_real"  // 打币金额 Ether
 	DBColTSendBtcGas          = "t_send_btc.gas"           // gas消耗
 	DBColTSendBtcGasPrice     = "t_send_btc.gas_price"     // gasPrice
@@ -352,7 +348,6 @@ const (
    tx_id,
    from_address,
    to_address,
-   balance,
    balance_real,
    gas,
    gas_price,
@@ -370,7 +365,6 @@ type DBTSendBtc struct {
 	TxID         string `db:"tx_id" json:"tx_id"`                 // tx hash
 	FromAddress  string `db:"from_address" json:"from_address"`   // 打币地址
 	ToAddress    string `db:"to_address" json:"to_address"`       // 收币地址
-	Balance      int64  `db:"balance" json:"balance"`             // 打币金额 Wei
 	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 打币金额 Ether
 	Gas          int64  `db:"gas" json:"gas"`                     // gas消耗
 	GasPrice     int64  `db:"gas_price" json:"gas_price"`         // gasPrice
@@ -388,7 +382,6 @@ const (
 	DBColTTxTxID         = "t_tx.tx_id"         // 交易id
 	DBColTTxFromAddress  = "t_tx.from_address"  // 来源地址
 	DBColTTxToAddress    = "t_tx.to_address"    // 目标地址
-	DBColTTxBalance      = "t_tx.balance"       // 到账金额Wei
 	DBColTTxBalanceReal  = "t_tx.balance_real"  // 到账金额Ether
 	DBColTTxCreateTime   = "t_tx.create_time"   // 创建时间戳
 	DBColTTxHandleStatus = "t_tx.handle_status" // 处理状态
@@ -406,7 +399,6 @@ const (
    tx_id,
    from_address,
    to_address,
-   balance,
    balance_real,
    create_time,
    handle_status,
@@ -422,7 +414,6 @@ type DBTTx struct {
 	TxID         string `db:"tx_id" json:"tx_id"`                 // 交易id
 	FromAddress  string `db:"from_address" json:"from_address"`   // 来源地址
 	ToAddress    string `db:"to_address" json:"to_address"`       // 目标地址
-	Balance      int64  `db:"balance" json:"balance"`             // 到账金额Wei
 	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 到账金额Ether
 	CreateTime   int64  `db:"create_time" json:"create_time"`     // 创建时间戳
 	HandleStatus int64  `db:"handle_status" json:"handle_status"` // 处理状态
@@ -597,7 +588,6 @@ const (
 	DBColTTxErc20TxID         = "t_tx_erc20.tx_id"         // 交易id
 	DBColTTxErc20FromAddress  = "t_tx_erc20.from_address"  // 来源地址
 	DBColTTxErc20ToAddress    = "t_tx_erc20.to_address"    // 目标地址
-	DBColTTxErc20Balance      = "t_tx_erc20.balance"       // 到账金额Wei
 	DBColTTxErc20BalanceReal  = "t_tx_erc20.balance_real"  // 到账金额Ether
 	DBColTTxErc20CreateTime   = "t_tx_erc20.create_time"   // 创建时间戳
 	DBColTTxErc20HandleStatus = "t_tx_erc20.handle_status" // 处理状态
@@ -616,7 +606,6 @@ const (
    tx_id,
    from_address,
    to_address,
-   balance,
    balance_real,
    create_time,
    handle_status,
@@ -633,7 +622,6 @@ type DBTTxErc20 struct {
 	TxID         string `db:"tx_id" json:"tx_id"`                 // 交易id
 	FromAddress  string `db:"from_address" json:"from_address"`   // 来源地址
 	ToAddress    string `db:"to_address" json:"to_address"`       // 目标地址
-	Balance      int64  `db:"balance" json:"balance"`             // 到账金额Wei
 	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 到账金额Ether
 	CreateTime   int64  `db:"create_time" json:"create_time"`     // 创建时间戳
 	HandleStatus int64  `db:"handle_status" json:"handle_status"` // 处理状态

@@ -2,12 +2,16 @@ package heth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
+	"math/big"
 	"regexp"
 	"strings"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -61,4 +65,54 @@ func StrToAddressBytes(str string) (common.Address, error) {
 		return common.HexToAddress("0x0"), fmt.Errorf("str not address: %s", str)
 	}
 	return common.HexToAddress(str), nil
+}
+
+// EthStrToWeiBigInit 转换金额 eth to wei
+func EthStrToWeiBigInit(balanceRealStr string) (*big.Int, error) {
+	balanceReal, err := decimal.NewFromString(balanceRealStr)
+	if err != nil {
+		return nil, err
+	}
+	balanceStr := balanceReal.Mul(ethToWeiDecimal).StringFixed(0)
+	b := new(big.Int)
+	_, ok := b.SetString(balanceStr, 10)
+	if !ok {
+		return nil, errors.New("error str to bigint")
+	}
+	return b, nil
+}
+
+// WeiBigIntToEthStr 转换金额 wei to eth
+func WeiBigIntToEthStr(wei *big.Int) (string, error) {
+	balance, err := decimal.NewFromString(wei.String())
+	if err != nil {
+		return "0", err
+	}
+	balanceStr := balance.Div(ethToWeiDecimal).StringFixed(18)
+	return balanceStr, nil
+}
+
+// TokenEthStrToWeiBigInit 转换金额 eth to wei
+func TokenEthStrToWeiBigInit(balanceRealStr string, tokenDecimals int64) (*big.Int, error) {
+	balanceReal, err := decimal.NewFromString(balanceRealStr)
+	if err != nil {
+		return nil, err
+	}
+	balanceStr := balanceReal.Mul(decimal.NewFromInt(10).Pow(decimal.NewFromInt(tokenDecimals))).StringFixed(0)
+	b := new(big.Int)
+	_, ok := b.SetString(balanceStr, 10)
+	if !ok {
+		return nil, errors.New("error str to bigint")
+	}
+	return b, nil
+}
+
+// TokenWeiBigIntToEthStr 转换金额 wei to eth
+func TokenWeiBigIntToEthStr(wei *big.Int, tokenDecimals int64) (string, error) {
+	balance, err := decimal.NewFromString(wei.String())
+	if err != nil {
+		return "0", err
+	}
+	balanceStr := balance.Div(decimal.NewFromInt(10).Pow(decimal.NewFromInt(tokenDecimals))).StringFixed(int32(tokenDecimals))
+	return balanceStr, nil
 }

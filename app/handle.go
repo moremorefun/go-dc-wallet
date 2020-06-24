@@ -148,7 +148,7 @@ func CheckDoNotify() {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			}
 		} else {
-			hcommon.Log.Errorf("no error in resp")
+			//hcommon.Log.Errorf("no error in resp")
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
 				DbCon,

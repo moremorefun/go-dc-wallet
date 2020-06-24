@@ -518,7 +518,6 @@ func CheckTxOrg() {
 					hcommon.Log.Errorf("no address key: %s", uxtoRow.VoutAddress)
 					return
 				}
-
 				balance, err := decimal.NewFromString(uxtoRow.VoutValue)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -552,13 +551,11 @@ func CheckTxOrg() {
 			var updateUxtoRows []*model.DBTTxBtcUxto
 			for i, uxtoRow := range uxtoRows {
 				sendHex := ""
-				balance := int64(0)
 				balanceReal := "0"
 				gas := int64(0)
 				gasPrice := int64(0)
 				if i == 0 {
 					sendHex = hex.EncodeToString(b.Bytes())
-					balance = tx.TxOut[0].Value
 					balanceReal = (decimal.NewFromInt(tx.TxOut[0].Value).Div(decimal.NewFromInt(1e8))).String()
 					gas = int64(txSize)
 					gasPrice = feeRow.V
@@ -570,7 +567,6 @@ func CheckTxOrg() {
 					TxID:         tx.TxHash().String(),
 					FromAddress:  uxtoRow.VoutAddress,
 					ToAddress:    coldRow.V,
-					Balance:      balance,
 					BalanceReal:  balanceReal,
 					Gas:          gas,
 					GasPrice:     gasPrice,
@@ -1253,11 +1249,6 @@ func CheckWithdraw() {
 		var updateUxtoRows []*model.DBTTxBtcUxto
 		var updateWithdrawRows []*model.DBTWithdraw
 		for i, outWithdrawRow := range outWithdrawRows {
-			balance, err := decimal.NewFromString(outWithdrawRow.BalanceReal)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
 			gas := int64(0)
 			gasPrice := int64(0)
 			sendHex := ""
@@ -1273,7 +1264,6 @@ func CheckWithdraw() {
 				TxID:         tx.TxHash().String(),
 				FromAddress:  hotAddress,
 				ToAddress:    outWithdrawRow.ToAddress,
-				Balance:      balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
 				BalanceReal:  outWithdrawRow.BalanceReal,
 				Gas:          gas,
 				GasPrice:     gasPrice,
@@ -1955,13 +1945,11 @@ func OmniCheckTxOrg() {
 					gas := int64(0)
 					gasPrice := int64(0)
 					txHex := ""
-					balance := int64(0)
 					balanceReal := "0"
 					if i == 0 {
 						gas = int64(tx.SerializeSize())
 						gasPrice = feeRow.V
 						txHex = hex.EncodeToString(b.Bytes())
-						balance = orgItem.Balance
 						balanceReal = decimal.NewFromInt(orgItem.Balance).Div(decimal.NewFromInt(1e8)).String()
 					}
 					// 发送数据
@@ -1972,7 +1960,6 @@ func OmniCheckTxOrg() {
 						TxID:         tx.TxHash().String(),
 						FromAddress:  txRow.ToAddress,
 						ToAddress:    tokenRow.ColdAddress,
-						Balance:      balance,
 						BalanceReal:  balanceReal,
 						Gas:          gas,
 						GasPrice:     gasPrice,
@@ -2272,7 +2259,6 @@ func OmniCheckWithdraw() {
 				TxID:         tx.TxHash().String(),
 				FromAddress:  tokenRow.HotAddress,
 				ToAddress:    withdrawRow.ToAddress,
-				Balance:      balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
 				BalanceReal:  withdrawRow.BalanceReal,
 				Gas:          int64(txSize),
 				GasPrice:     feeRow.V,

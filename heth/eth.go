@@ -35,6 +35,17 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+const (
+	EthToWei = 1e18
+)
+
+// ethToWeiDecimal 转换单位
+var ethToWeiDecimal decimal.Decimal
+
+func init() {
+	ethToWeiDecimal = decimal.NewFromInt(EthToWei)
+}
+
 // CheckAddressFree 检测是否有充足的备用地址
 func CheckAddressFree() {
 	lockKey := "EthCheckAddressFree"
@@ -243,14 +254,17 @@ func CheckBlockSeek() {
 						}
 						fromAddress := AddressBytesToStr(msg.From())
 						toAddress := AddressBytesToStr(*(tx.To()))
-						balanceReal := decimal.NewFromInt(tx.Value().Int64()).Div(decimal.NewFromInt(1e18))
+						balanceReal, err := WeiBigIntToEthStr(tx.Value())
+						if err != nil {
+							hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+							return
+						}
 						dbTxRows = append(dbTxRows, &model.DBTTx{
 							ProductID:    addressProductMap[toAddress],
 							TxID:         tx.Hash().String(),
 							FromAddress:  fromAddress,
 							ToAddress:    toAddress,
-							Balance:      tx.Value().Int64(),
-							BalanceReal:  balanceReal.String(),
+							BalanceReal:  balanceReal,
 							CreateTime:   now,
 							HandleStatus: app.TxStatusInit,
 							HandleMsg:    "",
@@ -319,7 +333,7 @@ func CheckAddressOrg() {
 			[]string{
 				model.DBColTTxID,
 				model.DBColTTxToAddress,
-				model.DBColTTxBalance,
+				model.DBColTTxBalanceReal,
 			},
 			app.TxOrgStatusInit,
 		)
@@ -333,8 +347,8 @@ func CheckAddressOrg() {
 		}
 		// 将待整理地址按地址做归并处理
 		type OrgInfo struct {
-			RowIDs  []int64 // db t_tx.id
-			Balance int64   // 金额
+			RowIDs  []int64  // db t_tx.id
+			Balance *big.Int // 金额
 		}
 		// addressMap map[地址] = []整理信息
 		addressMap := make(map[string]*OrgInfo)
@@ -354,7 +368,7 @@ func CheckAddressOrg() {
 		}
 		gasPrice := gasRow.V
 		gasLimit := int64(21000)
-		feeValue := gasLimit * gasPrice
+		feeValue := big.NewInt(gasLimit * gasPrice)
 		// addresses 需要整理的地址列表
 		var addresses []string
 		for _, txRow := range txRows {
@@ -362,12 +376,18 @@ func CheckAddressOrg() {
 			if info == nil {
 				info = &OrgInfo{
 					RowIDs:  []int64{},
-					Balance: 0,
+					Balance: new(big.Int),
 				}
 				addressMap[txRow.ToAddress] = info
 			}
 			info.RowIDs = append(info.RowIDs, txRow.ID)
-			info.Balance += txRow.Balance
+			txWei, err := EthStrToWeiBigInit(txRow.BalanceReal)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			info.Balance.Add(info.Balance, txWei)
+
 			if !hcommon.IsStringInSlice(addresses, txRow.ToAddress) {
 				addresses = append(addresses, txRow.ToAddress)
 			}
@@ -416,17 +436,23 @@ func CheckAddressOrg() {
 				return
 			}
 			// 发送数量
-			sendBalance := info.Balance - feeValue
-			if sendBalance <= 0 {
+			sendBalance := new(big.Int)
+			sendBalance.Sub(info.Balance, feeValue)
+			if sendBalance.Cmp(new(big.Int)) <= 0 {
+				// 数额不足
 				continue
 			}
-			sendBalanceReal := decimal.NewFromInt(sendBalance).Div(decimal.NewFromInt(1e18))
+			sendBalanceReal, err := WeiBigIntToEthStr(sendBalance)
+			if err != nil {
+				hcommon.Log.Errorf("GetNonce err: [%T] %s", err, err.Error())
+				return
+			}
 			// 生成tx
 			var data []byte
 			tx := types.NewTransaction(
 				uint64(nonce),
 				coldAddress,
-				big.NewInt(sendBalance),
+				sendBalance,
 				uint64(gasLimit),
 				big.NewInt(gasPrice),
 				data,
@@ -452,8 +478,7 @@ func CheckAddressOrg() {
 						TxID:         txHash,
 						FromAddress:  address,
 						ToAddress:    coldRow.V,
-						Balance:      sendBalance,
-						BalanceReal:  sendBalanceReal.String(),
+						BalanceReal:  sendBalanceReal,
 						Gas:          gasLimit,
 						GasPrice:     gasPrice,
 						Nonce:        nonce,
@@ -471,8 +496,7 @@ func CheckAddressOrg() {
 						TxID:         txHash,
 						FromAddress:  address,
 						ToAddress:    coldRow.V,
-						Balance:      0,
-						BalanceReal:  "",
+						BalanceReal:  "0",
 						Gas:          0,
 						GasPrice:     0,
 						Nonce:        -1,
@@ -1077,7 +1101,7 @@ func CheckWithdraw() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		pendingBalance, err := app.SQLGetTSendPendingBalance(
+		pendingBalanceRealStr, err := app.SQLGetTSendPendingBalanceReal(
 			context.Background(),
 			app.DbCon,
 			hotRow.V,
@@ -1086,7 +1110,12 @@ func CheckWithdraw() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		hotAddressBalance -= pendingBalance
+		pendingBalance, err := EthStrToWeiBigInit(pendingBalanceRealStr)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		hotAddressBalance.Sub(hotAddressBalance, pendingBalance)
 		// 获取gap price
 		gasRow, err := app.SQLGetTAppStatusIntByK(
 			context.Background(),
@@ -1110,7 +1139,7 @@ func CheckWithdraw() {
 			return
 		}
 		for _, withdrawRow := range withdrawRows {
-			err = handleWithdraw(withdrawRow.ID, chainID, hotRow.V, privateKey, &hotAddressBalance, gasLimit, gasPrice, feeValue)
+			err = handleWithdraw(withdrawRow.ID, chainID, hotRow.V, privateKey, hotAddressBalance, gasLimit, gasPrice, feeValue)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
@@ -1119,7 +1148,7 @@ func CheckWithdraw() {
 	})
 }
 
-func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateKey *ecdsa.PrivateKey, hotAddressBalance *int64, gasLimit, gasPrice, feeValue int64) error {
+func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateKey *ecdsa.PrivateKey, hotAddressBalance *big.Int, gasLimit, gasPrice, feeValue int64) error {
 	isComment := false
 	dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
 	if err != nil {
@@ -1148,13 +1177,13 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 	if withdrawRow == nil {
 		return nil
 	}
-	balanceObj, err := decimal.NewFromString(withdrawRow.BalanceReal)
+	balanceBigInt, err := EthStrToWeiBigInit(withdrawRow.BalanceReal)
 	if err != nil {
 		return err
 	}
-	balance := balanceObj.Mul(decimal.NewFromInt(1e18)).IntPart()
-	*hotAddressBalance -= balance + feeValue
-	if *hotAddressBalance < 0 {
+	hotAddressBalance.Sub(hotAddressBalance, balanceBigInt)
+	hotAddressBalance.Sub(hotAddressBalance, big.NewInt(feeValue))
+	if hotAddressBalance.Cmp(new(big.Int)) < 0 {
 		hcommon.Log.Errorf("hot balance limit")
 		return nil
 	}
@@ -1175,7 +1204,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 	tx := types.NewTransaction(
 		uint64(nonce),
 		toAddress,
-		big.NewInt(balance),
+		balanceBigInt,
 		uint64(gasLimit),
 		big.NewInt(gasPrice),
 		data,
@@ -1212,7 +1241,6 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 			TxID:         txHash,
 			FromAddress:  hotAddress,
 			ToAddress:    withdrawRow.ToAddress,
-			Balance:      balance,
 			BalanceReal:  withdrawRow.BalanceReal,
 			Gas:          gasLimit,
 			GasPrice:     gasPrice,
@@ -1534,7 +1562,11 @@ func CheckErc20BlockSeek() {
 								// input 不匹配
 								continue
 							}
-							balanceReal := decimal.NewFromInt(transferEvent.Tokens.Int64()).Div(decimal.NewFromInt(int64(math.Pow10(int(configTokenRow.TokenDecimals))))).String()
+							balanceReal, err := TokenWeiBigIntToEthStr(transferEvent.Tokens, configTokenRow.TokenDecimals)
+							if err != nil {
+								hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+								return
+							}
 							// 放入待插入数组
 							txErc20Rows = append(txErc20Rows, &model.DBTTxErc20{
 								TokenID:      configTokenRow.ID,
@@ -1542,7 +1574,6 @@ func CheckErc20BlockSeek() {
 								TxID:         log.TxHash.Hex(),
 								FromAddress:  transferEvent.From,
 								ToAddress:    transferEvent.To,
-								Balance:      transferEvent.Tokens.Int64(),
 								BalanceReal:  balanceReal,
 								CreateTime:   now,
 								HandleStatus: app.TxStatusInit,
@@ -1726,7 +1757,7 @@ func CheckErc20TxOrg() {
 				model.DBColTTxErc20TokenID,
 				model.DBColTTxErc20ProductID,
 				model.DBColTTxErc20ToAddress,
-				model.DBColTTxErc20Balance,
+				model.DBColTTxErc20BalanceReal,
 			},
 			[]int64{app.TxOrgStatusInit, app.TxOrgStatusFeeConfirm},
 		)
@@ -1737,54 +1768,21 @@ func CheckErc20TxOrg() {
 		if len(txRows) <= 0 {
 			return
 		}
-		addressEthBalanceMap := make(map[string]int64)
+		addressEthBalanceMap := make(map[string]*big.Int)
 		txMap := make(map[int64]*model.DBTTxErc20)
 		type StOrgInfo struct {
 			TxIDs        []int64
 			ToAddress    string
 			TokenID      int64
-			TokenBalance int64
+			TokenBalance *big.Int
 		}
 		orgMap := make(map[string]*StOrgInfo)
 
 		var tokenIDs []int64
 		var toAddresses []string
-
 		for _, txRow := range txRows {
-			// 转换为map
-			txMap[txRow.ID] = txRow
-			// 读取eth余额
-			_, ok := addressEthBalanceMap[txRow.ToAddress]
-			if !ok {
-				balance, err := ethclient.RpcBalanceAt(
-					context.Background(),
-					txRow.ToAddress,
-				)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				addressEthBalanceMap[txRow.ToAddress] = balance
-			}
-			// 整理信息
-			orgKey := fmt.Sprintf("%s-%d", txRow.ToAddress, txRow.TokenID)
-			orgInfo, ok := orgMap[orgKey]
-			if !ok {
-				orgInfo = &StOrgInfo{
-					TokenID:   txRow.TokenID,
-					ToAddress: txRow.ToAddress,
-				}
-				orgMap[orgKey] = orgInfo
-			}
-			orgInfo.TxIDs = append(orgInfo.TxIDs, txRow.ID)
-			orgInfo.TokenBalance += txRow.Balance
-
-			// 待查询id
 			if !hcommon.IsIntInSlice(tokenIDs, txRow.TokenID) {
 				tokenIDs = append(tokenIDs, txRow.TokenID)
-			}
-			if !hcommon.IsStringInSlice(toAddresses, txRow.ToAddress) {
-				toAddresses = append(toAddresses, txRow.ToAddress)
 			}
 		}
 		tokenMap, err := app.SQLGetAppConfigTokenMap(
@@ -1804,6 +1802,53 @@ func CheckErc20TxOrg() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+
+		for _, txRow := range txRows {
+			tokenRow, ok := tokenMap[txRow.TokenID]
+			if !ok {
+				hcommon.Log.Errorf("no token of: %d", txRow.TokenID)
+				return
+			}
+
+			// 转换为map
+			txMap[txRow.ID] = txRow
+			// 读取eth余额
+			_, ok = addressEthBalanceMap[txRow.ToAddress]
+			if !ok {
+				balance, err := ethclient.RpcBalanceAt(
+					context.Background(),
+					txRow.ToAddress,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				addressEthBalanceMap[txRow.ToAddress] = balance
+			}
+			// 整理信息
+			orgKey := fmt.Sprintf("%s-%d", txRow.ToAddress, txRow.TokenID)
+			orgInfo, ok := orgMap[orgKey]
+			if !ok {
+				orgInfo = &StOrgInfo{
+					TokenID:      txRow.TokenID,
+					ToAddress:    txRow.ToAddress,
+					TokenBalance: new(big.Int),
+				}
+				orgMap[orgKey] = orgInfo
+			}
+			orgInfo.TxIDs = append(orgInfo.TxIDs, txRow.ID)
+			txBalance, err := TokenEthStrToWeiBigInit(txRow.BalanceReal, tokenRow.TokenDecimals)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			orgInfo.TokenBalance.Add(orgInfo.TokenBalance, txBalance)
+			// 待查询id
+			if !hcommon.IsStringInSlice(toAddresses, txRow.ToAddress) {
+				toAddresses = append(toAddresses, txRow.ToAddress)
+			}
+		}
+
 		addressMap, err := app.SQLGetAddressKeyMap(
 			context.Background(),
 			app.DbCon,
@@ -1850,13 +1895,13 @@ func CheckErc20TxOrg() {
 			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 			return
 		}
-		erc20Fee := erc20GasRow.V * gasPriceRow.V
+		erc20Fee := big.NewInt(erc20GasRow.V * gasPriceRow.V)
 		// 需要手续费的整理信息
 		needEthFeeMap := make(map[string]*StOrgInfo)
 		for k, orgInfo := range orgMap {
 			toAddress := orgInfo.ToAddress
-			addressEthBalanceMap[toAddress] -= erc20Fee
-			if addressEthBalanceMap[toAddress] < 0 {
+			addressEthBalanceMap[toAddress] = addressEthBalanceMap[toAddress].Sub(addressEthBalanceMap[toAddress], erc20Fee)
+			if addressEthBalanceMap[toAddress].Cmp(new(big.Int)) < 0 {
 				// eth手续费不足
 				// 处理添加手续费
 				needEthFeeMap[k] = orgInfo
@@ -1867,13 +1912,13 @@ func CheckErc20TxOrg() {
 				hcommon.Log.Errorf("no tokenMap: %d", orgInfo.TokenID)
 				continue
 			}
-			orgMinBalanceObj, err := decimal.NewFromString(tokenRow.OrgMinBalance)
+
+			orgMinBalance, err := TokenEthStrToWeiBigInit(tokenRow.OrgMinBalance, tokenRow.TokenDecimals)
 			if err != nil {
 				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 				continue
 			}
-			orgMinBalance := orgMinBalanceObj.Mul(decimal.NewFromInt(int64(math.Pow10(int(tokenRow.TokenDecimals))))).IntPart()
-			if orgInfo.TokenBalance < orgMinBalance {
+			if orgInfo.TokenBalance.Cmp(orgMinBalance) < 0 {
 				hcommon.Log.Errorf("token balance < org min balance")
 				continue
 			}
@@ -1911,7 +1956,7 @@ func CheckErc20TxOrg() {
 			input, err := contractAbi.Pack(
 				"transfer",
 				common.HexToAddress(tokenRow.ColdAddress),
-				big.NewInt(orgInfo.TokenBalance),
+				orgInfo.TokenBalance,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1936,7 +1981,11 @@ func CheckErc20TxOrg() {
 			txHash := strings.ToLower(signedTx.Hash().Hex())
 			// 创建存入数据
 			now := time.Now().Unix()
-			balanceReal := decimal.NewFromInt(orgInfo.TokenBalance).Div(decimal.NewFromInt(int64(math.Pow10(int(tokenRow.TokenDecimals))))).String()
+			balanceReal, err := TokenWeiBigIntToEthStr(orgInfo.TokenBalance, tokenRow.TokenDecimals)
+			if err != nil {
+				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+				continue
+			}
 			// 待插入数据
 			var sendRows []*model.DBTSend
 			for rowIndex, txID := range orgInfo.TxIDs {
@@ -1948,7 +1997,6 @@ func CheckErc20TxOrg() {
 						TxID:         txHash,
 						FromAddress:  toAddress,
 						ToAddress:    tokenRow.ColdAddress,
-						Balance:      orgInfo.TokenBalance,
 						BalanceReal:  balanceReal,
 						Gas:          erc20GasRow.V,
 						GasPrice:     gasPriceRow.V,
@@ -1967,7 +2015,6 @@ func CheckErc20TxOrg() {
 						TxID:         txHash,
 						FromAddress:  toAddress,
 						ToAddress:    tokenRow.ColdAddress,
-						Balance:      0,
 						BalanceReal:  "",
 						Gas:          0,
 						GasPrice:     0,
@@ -2065,7 +2112,7 @@ func CheckErc20TxOrg() {
 				hcommon.Log.Errorf("RpcBalanceAt err: [%T] %s", err, err.Error())
 				return
 			}
-			pendingBalance, err := app.SQLGetTSendPendingBalance(
+			pendingBalanceReal, err := app.SQLGetTSendPendingBalanceReal(
 				context.Background(),
 				app.DbCon,
 				feeRow.V,
@@ -2074,7 +2121,12 @@ func CheckErc20TxOrg() {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			feeAddressBalance -= pendingBalance
+			pendingBalance, err := EthStrToWeiBigInit(pendingBalanceReal)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			feeAddressBalance.Sub(feeAddressBalance, pendingBalance)
 			// 获取gap price
 			gasRow, err := app.SQLGetTAppStatusIntByK(
 				context.Background(),
@@ -2091,11 +2143,12 @@ func CheckErc20TxOrg() {
 			}
 			gasPrice := gasRow.V
 			gasLimit := int64(21000)
-			ethFee := gasLimit * gasPrice
-			tokenFee := erc20GasRow.V * gasPrice
+			ethFee := big.NewInt(gasLimit * gasPrice)
+			tokenFee := big.NewInt(erc20GasRow.V * gasPrice)
 			for _, orgInfo := range needEthFeeMap {
-				feeAddressBalance -= ethFee + tokenFee
-				if feeAddressBalance < 0 {
+				feeAddressBalance.Sub(feeAddressBalance, ethFee)
+				feeAddressBalance.Sub(feeAddressBalance, tokenFee)
+				if feeAddressBalance.Cmp(new(big.Int)) < 0 {
 					hcommon.Log.Errorf("eth fee balance limit")
 					return
 				}
@@ -2113,7 +2166,7 @@ func CheckErc20TxOrg() {
 				tx := types.NewTransaction(
 					uint64(nonce),
 					common.HexToAddress(orgInfo.ToAddress),
-					big.NewInt(tokenFee),
+					tokenFee,
 					uint64(gasLimit),
 					big.NewInt(gasPrice),
 					data,
@@ -2128,7 +2181,11 @@ func CheckErc20TxOrg() {
 				rawTxHex := hex.EncodeToString(rawTxBytes)
 				txHash := strings.ToLower(signedTx.Hash().Hex())
 				now := time.Now().Unix()
-				balanceReal := decimal.NewFromInt(tokenFee).Div(decimal.NewFromInt(int64(math.Pow10(18)))).String()
+				balanceReal, err := WeiBigIntToEthStr(tokenFee)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
 				// 待插入数据
 				var sendRows []*model.DBTSend
 				for rowIndex, txID := range orgInfo.TxIDs {
@@ -2140,7 +2197,6 @@ func CheckErc20TxOrg() {
 							TxID:         txHash,
 							FromAddress:  feeRow.V,
 							ToAddress:    orgInfo.ToAddress,
-							Balance:      feeAddressBalance,
 							BalanceReal:  balanceReal,
 							Gas:          gasLimit,
 							GasPrice:     gasPriceRow.V,
@@ -2159,7 +2215,6 @@ func CheckErc20TxOrg() {
 							TxID:         txHash,
 							FromAddress:  feeRow.V,
 							ToAddress:    orgInfo.ToAddress,
-							Balance:      0,
 							BalanceReal:  "",
 							Gas:          0,
 							GasPrice:     0,
@@ -2207,8 +2262,8 @@ func CheckErc20Withdraw() {
 		var tokenSymbols []string
 		tokenMap := make(map[string]*model.DBTAppConfigToken)
 		addressKeyMap := make(map[string]*ecdsa.PrivateKey)
-		addressEthBalanceMap := make(map[string]int64)
-		addressTokenBalanceMap := make(map[string]int64)
+		addressEthBalanceMap := make(map[string]*big.Int)
+		addressTokenBalanceMap := make(map[string]*big.Int)
 		tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 			context.Background(),
 			app.DbCon,
@@ -2280,7 +2335,7 @@ func CheckErc20Withdraw() {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				pendingBalance, err := app.SQLGetTSendPendingBalance(
+				pendingBalanceReal, err := app.SQLGetTSendPendingBalanceReal(
 					context.Background(),
 					app.DbCon,
 					hotAddress,
@@ -2289,7 +2344,12 @@ func CheckErc20Withdraw() {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				hotAddressBalance -= pendingBalance
+				pendingBalance, err := EthStrToWeiBigInit(pendingBalanceReal)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				hotAddressBalance.Sub(hotAddressBalance, pendingBalance)
 				addressEthBalanceMap[hotAddress] = hotAddressBalance
 			}
 			tokenBalanceKey := fmt.Sprintf("%s-%s", tokenRow.HotAddress, tokenRow.TokenSymbol)
@@ -2354,7 +2414,7 @@ func CheckErc20Withdraw() {
 		}
 		gasLimit := erc20GasRow.V
 		// eth fee
-		feeValue := gasLimit * gasPrice
+		feeValue := big.NewInt(gasLimit * gasPrice)
 		chainID, err := ethclient.RpcNetworkID(context.Background())
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2370,7 +2430,7 @@ func CheckErc20Withdraw() {
 	})
 }
 
-func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*model.DBTAppConfigToken, addressKeyMap *map[string]*ecdsa.PrivateKey, addressEthBalanceMap *map[string]int64, addressTokenBalanceMap *map[string]int64, gasLimit, gasPrice, feeValue int64) error {
+func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*model.DBTAppConfigToken, addressKeyMap *map[string]*ecdsa.PrivateKey, addressEthBalanceMap *map[string]*big.Int, addressTokenBalanceMap *map[string]*big.Int, gasLimit, gasPrice int64, feeValue *big.Int) error {
 	isComment := false
 	dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
 	if err != nil {
@@ -2411,19 +2471,24 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 		hcommon.Log.Errorf("no addressKeyMap: %s", hotAddress)
 		return nil
 	}
-	(*addressEthBalanceMap)[hotAddress] -= feeValue
-	if (*addressEthBalanceMap)[hotAddress] < 0 {
+	(*addressEthBalanceMap)[hotAddress] = (*addressEthBalanceMap)[hotAddress].Sub(
+		(*addressEthBalanceMap)[hotAddress],
+		feeValue,
+	)
+	if (*addressEthBalanceMap)[hotAddress].Cmp(new(big.Int)) < 0 {
 		hcommon.Log.Errorf("%s eth limit", hotAddress)
 		return nil
 	}
 	tokenBalanceKey := fmt.Sprintf("%s-%s", tokenRow.HotAddress, tokenRow.TokenSymbol)
-	tokenBalanceObj, err := decimal.NewFromString(withdrawRow.BalanceReal)
+	tokenBalance, err := TokenEthStrToWeiBigInit(withdrawRow.BalanceReal, tokenRow.TokenDecimals)
 	if err != nil {
 		return err
 	}
-	tokenBalance := tokenBalanceObj.Mul(decimal.NewFromInt(int64(math.Pow10(int(tokenRow.TokenDecimals))))).IntPart()
-	(*addressTokenBalanceMap)[tokenBalanceKey] -= tokenBalance
-	if (*addressTokenBalanceMap)[tokenBalanceKey] < 0 {
+	(*addressTokenBalanceMap)[tokenBalanceKey] = (*addressTokenBalanceMap)[tokenBalanceKey].Sub(
+		(*addressTokenBalanceMap)[tokenBalanceKey],
+		tokenBalance,
+	)
+	if (*addressTokenBalanceMap)[tokenBalanceKey].Cmp(new(big.Int)) < 0 {
 		hcommon.Log.Errorf("%s token limit", tokenBalanceKey)
 		return nil
 	}
@@ -2441,7 +2506,7 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 	input, err := contractAbi.Pack(
 		"transfer",
 		common.HexToAddress(withdrawRow.ToAddress),
-		big.NewInt(tokenBalance),
+		tokenBalance,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2487,7 +2552,6 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 			TxID:         txHash,
 			FromAddress:  hotAddress,
 			ToAddress:    withdrawRow.ToAddress,
-			Balance:      tokenBalance,
 			BalanceReal:  withdrawRow.BalanceReal,
 			Gas:          gasLimit,
 			GasPrice:     gasPrice,
