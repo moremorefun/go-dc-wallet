@@ -9,7 +9,8 @@ COPY ./go.mod ./
 RUN go mod download
 COPY . ./
 RUN CGO_ENABLED=0 go build -o app-cron ./cmd/crontab/main.go && \
-    CGO_ENABLED=0 go build -o app-api ./cmd/api/main.go
+    CGO_ENABLED=0 go build -o app-api ./cmd/api/main.go && \
+    CGO_ENABLED=0 go build -o app-db ./cmd/db/main.go
 
 ############################
 # STEP 2 build a small image
@@ -17,5 +18,6 @@ RUN CGO_ENABLED=0 go build -o app-cron ./cmd/crontab/main.go && \
 FROM scratch
 WORKDIR /app
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
+COPY --from=builder /src/init/* ./init/
 COPY --from=builder /src/app-* ./
 CMD ["./app-cron"]
