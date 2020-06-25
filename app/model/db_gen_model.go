@@ -1,5 +1,8 @@
 package model
 
+// TableNames 所有表名
+var TableNames = []string{"t_address_key", "t_app_config_int", "t_app_config_str", "t_app_config_token", "t_app_config_token_btc", "t_app_lock", "t_app_status_int", "t_product", "t_product_nonce", "t_product_notify", "t_send", "t_send_btc", "t_tx", "t_tx_btc", "t_tx_btc_token", "t_tx_btc_uxto", "t_tx_erc20", "t_withdraw"}
+
 // const TAddressKey
 const (
 	DBColTAddressKeyID      = "t_address_key.id"
