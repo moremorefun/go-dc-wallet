@@ -17,6 +17,7 @@ require (
 	github.com/myesui/uuid v1.0.0 // indirect
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/schemalex/schemalex v0.1.1
 	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
