@@ -37,6 +37,7 @@
 ## 维护者
 
 [@moremorefun](https://github.com/moremorefun)
+[那些年我们De过的Bug](https://www.jidangeng.com)
 
 ## 使用许可
 
