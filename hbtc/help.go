@@ -607,3 +607,13 @@ func GetEstimateTxSize(fromAddressCount int64, toAddressCount int64, isOmniScrip
 	txSize := int64(tx.SerializeSize()) + fromAddressCount*2
 	return txSize, nil
 }
+
+// RealStrToBalanceInt64 转换金额 real to balance
+func RealStrToBalanceInt64(balanceRealStr string) (int64, error) {
+	balanceReal, err := decimal.NewFromString(balanceRealStr)
+	if err != nil {
+		return 0, err
+	}
+	balance := balanceReal.Mul(decimal.NewFromInt(1e8))
+	return balance.IntPart(), nil
+}

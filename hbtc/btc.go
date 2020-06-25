@@ -2055,6 +2055,7 @@ func OmniCheckWithdraw() {
 		var symbols []string
 		var tokenHotAddresses []string
 		tokenMap := make(map[string]*model.DBTAppConfigTokenBtc)
+		tokenHotBalance := make(map[int64]int64)
 		tokenBtcRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 			context.Background(),
 			app.DbCon,
@@ -2075,6 +2076,28 @@ func OmniCheckWithdraw() {
 			if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
 				tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
 			}
+			balanceRealStr, err := omniclient.RpcOmniGetBalance(
+				tokenRow.HotAddress,
+				tokenRow.TokenIndex,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			balance, err := RealStrToBalanceInt64(balanceRealStr.Balance)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			pendingRealStr, err := app.SQLGetTSendBtcPendingBalanceReal(
+				context.Background(),
+				app.DbCon,
+				tokenRow.HotAddress,
+				tokenRow.TokenIndex,
+			)
+			pending, err := RealStrToBalanceInt64(pendingRealStr)
+			balance -= pending
+			tokenHotBalance[tokenRow.TokenIndex] = balance
 		}
 		// 获取提币信息
 		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
@@ -2176,12 +2199,24 @@ func OmniCheckWithdraw() {
 				hcommon.Log.Errorf("no token: %s", withdrawRow.Symbol)
 				return
 			}
+			// 检测token余额
+			withdrawBalance, err := RealStrToBalanceInt64(withdrawRow.BalanceReal)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			tmp := tokenHotBalance[tokenRow.TokenIndex] - withdrawBalance
+			if tmp < 0 {
+				hcommon.Log.Errorf("omni token balance limit %d", tokenRow.TokenIndex)
+				continue
+			}
+			tokenHotBalance[tokenRow.TokenIndex] -= withdrawBalance
 			omniHotUxtoRows, ok := omniHotUxtoMap[tokenRow.HotAddress]
 			if !ok {
 				hcommon.Log.Errorf("no omni hot %s", tokenRow.HotAddress)
 				return
 			}
-			hcommon.Log.Debugf("omniHotUxtoRows: %#v", omniHotUxtoRows)
+			//hcommon.Log.Debugf("omniHotUxtoRows: %#v", omniHotUxtoRows)
 			if len(omniHotUxtoRows) <= 0 {
 				hcommon.Log.Errorf("no omni hot uxto")
 				return
@@ -2204,7 +2239,7 @@ func OmniCheckWithdraw() {
 					return
 				}
 				fee := txSize * feeRow.V
-				hcommon.Log.Debugf("fee: %d", fee)
+				//hcommon.Log.Debugf("fee: %d", fee)
 
 				inBalance := int64(0)
 				outBalance := int64(0)
@@ -2259,7 +2294,7 @@ func OmniCheckWithdraw() {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+			//hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 			// 准备数据
 			// 发送数据
 			sendRows = append(sendRows, &model.DBTSendBtc{

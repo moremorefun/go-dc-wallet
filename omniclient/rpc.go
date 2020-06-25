@@ -111,6 +111,12 @@ type StOmniTx struct {
 	Confirmations    int64  `json:"confirmations"`
 }
 
+type StOmniBalanceResult struct {
+	Balance  string `json:"balance"`
+	Reserved string `json:"reserved"`
+	Frozen   string `json:"frozen"`
+}
+
 // InitClient 初始化客户端
 func InitClient(omniRPCHost, omniRPCUser, omniRPCPwd string) {
 	rpcURI = omniRPCHost
@@ -283,6 +289,26 @@ func RpcOmniGetTransaction(txHash string) (*StOmniTx, error) {
 	err := doReq(
 		"omni_gettransaction",
 		[]interface{}{txHash},
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Result, nil
+}
+
+// RpcOmniGetBalance 查询交易
+func RpcOmniGetBalance(address string, tokenIndex int64) (*StOmniBalanceResult, error) {
+	resp := struct {
+		StRpcResp
+		Result *StOmniBalanceResult `json:"result"`
+	}{}
+	err := doReq(
+		"omni_getbalance",
+		[]interface{}{address, tokenIndex},
 		&resp,
 	)
 	if err != nil {

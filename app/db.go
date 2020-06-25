@@ -1641,3 +1641,33 @@ WHERE
 	}
 	return count, nil
 }
+
+// SQLGetTSendBtcPendingBalanceReal 获取地址的打包数额
+func SQLGetTSendBtcPendingBalanceReal(ctx context.Context, tx hcommon.DbExeAble, address string, tokenIndex int64) (string, error) {
+	var i string
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&i,
+		`SELECT 
+	IFNULL(SUM(CAST(value as DECIMAL(65,8))), "0")
+FROM
+	t_tx_btc_token
+WHERE
+	from_address=:address
+	AND token_index=:token_index
+	AND handle_status<3
+LIMIT 1`,
+		gin.H{
+			"address":     address,
+			"token_index": tokenIndex,
+		},
+	)
+	if err != nil {
+		return "0", err
+	}
+	if !ok {
+		return "0", nil
+	}
+	return i, nil
+}
