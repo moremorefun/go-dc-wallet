@@ -16,7 +16,6 @@ import (
 
 	"github.com/parnurzeal/gorequest"
 
-	"github.com/btcsuite/btcutil"
 	"github.com/gin-gonic/gin"
 
 	"github.com/shopspring/decimal"
@@ -2109,10 +2108,22 @@ func OmniCheckWithdraw() {
 			balance -= pending
 			tokenHotBalance[tokenRow.TokenIndex] = balance
 		}
+		// 开始事物
+		isComment := false
+		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		defer func() {
+			if !isComment {
+				_ = dbTx.Rollback()
+			}
+		}()
 		// 获取提币信息
-		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+		withdrawRows, err := app.SQLSelectTWithdrawColByStatusForUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawProductID,
@@ -2132,52 +2143,30 @@ func OmniCheckWithdraw() {
 			return
 		}
 		// 获取手续费配置
-		feeRow, err := app.SQLGetTAppStatusIntByK(
+		feePriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			"to_user_gas_price_btc",
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if feeRow == nil {
-			hcommon.Log.Errorf("no config int of to_cold_gas_price_btc")
-			return
-		}
 		// 获取私钥
-		addressKeyMap, err := app.SQLGetAddressKeyMap(
+		addressWifMap, err := GetWifMapByAddresses(
 			context.Background(),
-			app.DbCon,
-			[]string{
-				model.DBColTAddressKeyID,
-				model.DBColTAddressKeyAddress,
-				model.DBColTAddressKeyPwd,
-			},
+			dbTx,
 			tokenHotAddresses,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		addressWifMap := make(map[string]*btcutil.WIF)
-		for k, addressKey := range addressKeyMap {
-			key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
-			if len(key) == 0 {
-				hcommon.Log.Errorf("error key of: %s", k)
-				return
-			}
-			wif, err := btcutil.DecodeWIF(key)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
-			addressWifMap[k] = wif
-		}
+
 		omniHotUxtoMap := make(map[string][]*model.DBTTxBtcUxto)
-		omniHotUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndType(
+		omniHotUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndTypeForUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			[]string{
 				model.DBColTTxBtcUxtoID,
 				model.DBColTTxBtcUxtoTxID,
@@ -2248,7 +2237,7 @@ func OmniCheckWithdraw() {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				fee := txSize * feeRow.V
+				fee := txSize * feePriceValue
 				//hcommon.Log.Debugf("fee: %d", fee)
 
 				inBalance := int64(0)
@@ -2288,7 +2277,7 @@ func OmniCheckWithdraw() {
 				tokenRow.HotAddress,
 				tokenRow.TokenIndex,
 				balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
-				feeRow.V,
+				feePriceValue,
 				addressWifMap,
 				omniHotUxtoRows[1:omniHotUxtoIndex+1],
 			)
@@ -2316,7 +2305,7 @@ func OmniCheckWithdraw() {
 				ToAddress:    withdrawRow.ToAddress,
 				BalanceReal:  withdrawRow.BalanceReal,
 				Gas:          int64(txSize),
-				GasPrice:     feeRow.V,
+				GasPrice:     feePriceValue,
 				Hex:          hex.EncodeToString(b.Bytes()),
 				CreateTime:   now,
 				HandleStatus: 0,
@@ -2350,7 +2339,7 @@ func OmniCheckWithdraw() {
 		// 插入发送
 		_, err = model.SQLCreateIgnoreManyTSendBtc(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			sendRows,
 		)
 		if err != nil {
@@ -2360,7 +2349,7 @@ func OmniCheckWithdraw() {
 		// 更新uxto
 		_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			updateUxtoRows,
 		)
 		if err != nil {
@@ -2370,13 +2359,20 @@ func OmniCheckWithdraw() {
 		// 更新提币
 		_, err = app.SQLCreateManyTWithdrawUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			updateWithdraws,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 提交事物
+		err = dbTx.Commit()
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		isComment = true
 	})
 }
 
