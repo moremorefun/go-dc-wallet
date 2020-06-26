@@ -1231,8 +1231,8 @@ ON DUPLICATE KEY UPDATE
 	return count, nil
 }
 
-// SQLSelectTTxBtcUxtoColToOrg 根据ids获取
-func SQLSelectTTxBtcUxtoColToOrg(ctx context.Context, tx hcommon.DbExeAble, cols []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+// SQLSelectTTxBtcUxtoColToOrgForUpdate 根据ids获取
+func SQLSelectTTxBtcUxtoColToOrgForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1242,12 +1242,14 @@ FROM
 WHERE
 	handle_status=0
 	AND uxto_type=:uxto_type
-ORDER BY`)
+ORDER BY
+`)
 	if uxtoType == UxtoTypeTx {
-		query.WriteString(" id")
+		query.WriteString("	id")
 	} else {
-		query.WriteString(" CAST(vout_value as DECIMAL(65,8)) DESC")
+		query.WriteString("	CAST(vout_value as DECIMAL(65,8)) DESC")
 	}
+	query.WriteString("\nFOR UPDATE")
 
 	var rows []*model.DBTTxBtcUxto
 	err := hcommon.DbSelectNamedContent(

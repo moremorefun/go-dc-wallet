@@ -138,7 +138,7 @@ func CheckBlockSeek() {
 	lockKey := "BtcCheckBlockSeek"
 	app.LockWrap(lockKey, func() {
 		// 获取配置 延迟确认数
-		confirmRow, err := app.SQLGetTAppConfigIntByK(
+		confirmValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"btc_block_confirm_num",
@@ -147,12 +147,8 @@ func CheckBlockSeek() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if confirmRow == nil {
-			hcommon.Log.Errorf("no config int of btc_block_confirm_num")
-			return
-		}
 		// 获取状态 当前处理完成的最新的block number
-		seekRow, err := app.SQLGetTAppStatusIntByK(
+		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"btc_seek_num",
@@ -161,18 +157,14 @@ func CheckBlockSeek() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if seekRow == nil {
-			hcommon.Log.Errorf("no config int of btc_seek_num")
-			return
-		}
 		rpcBlockNum, err := omniclient.RpcGetBlockCount()
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		vinTxMap := make(map[string]*omniclient.StTxResult)
-		startI := seekRow.V + 1
-		endI := rpcBlockNum - confirmRow.V + 1
+		startI := seekValue + 1
+		endI := rpcBlockNum - confirmValue + 1
 		if startI < endI {
 			// 获取所有token
 			var tokenHotAddresses []string
@@ -454,9 +446,22 @@ func CheckBlockSeek() {
 func CheckTxOrg() {
 	lockKey := "BtcCheckTxOrg"
 	app.LockWrap(lockKey, func() {
-		allUxtoRows, err := app.SQLSelectTTxBtcUxtoColToOrg(
+		// 开始事物
+		isComment := false
+		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		defer func() {
+			if !isComment {
+				_ = dbTx.Rollback()
+			}
+		}()
+		// 获取所有需要整理的uxto
+		allUxtoRows, err := app.SQLSelectTTxBtcUxtoColToOrgForUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			[]string{
 				model.DBColTTxBtcUxtoID,
 				model.DBColTTxBtcUxtoTxID,
@@ -475,31 +480,23 @@ func CheckTxOrg() {
 			return
 		}
 		// 获取冷包地址
-		coldRow, err := app.SQLGetTAppConfigStrByK(
+		coldAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			"cold_wallet_address_btc",
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if coldRow == nil {
-			hcommon.Log.Errorf("no config int of cold_wallet_address_btc")
-			return
-		}
 		// 获取手续费配置
-		feeRow, err := app.SQLGetTAppStatusIntByK(
+		feePriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			"to_cold_gas_price_btc",
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if feeRow == nil {
-			hcommon.Log.Errorf("no config int of to_cold_gas_price_btc")
 			return
 		}
 		// 获取私钥
@@ -507,33 +504,14 @@ func CheckTxOrg() {
 		for _, uxtoRow := range allUxtoRows {
 			addresses = append(addresses, uxtoRow.VoutAddress)
 		}
-		addressKeyMap, err := app.SQLGetAddressKeyMap(
+		addressWifMap, err := GetWifMapByAddresses(
 			context.Background(),
-			app.DbCon,
-			[]string{
-				model.DBColTAddressKeyID,
-				model.DBColTAddressKeyAddress,
-				model.DBColTAddressKeyPwd,
-			},
+			dbTx,
 			addresses,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
-		}
-		addressWifMap := make(map[string]*btcutil.WIF)
-		for k, addressKey := range addressKeyMap {
-			key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
-			if len(key) == 0 {
-				hcommon.Log.Errorf("error key of: %s", k)
-				return
-			}
-			wif, err := btcutil.DecodeWIF(key)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
-			addressWifMap[k] = wif
 		}
 		// 按5000个in拆分
 		step := 5000
@@ -565,7 +543,7 @@ func CheckTxOrg() {
 					Wif:       wif,
 				})
 			}
-			tx, err := BtcMakeTx(inItems, outItems, feeRow.V, coldRow.V)
+			tx, err := BtcMakeTx(inItems, outItems, feePriceValue, coldAddressValue)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
@@ -592,7 +570,7 @@ func CheckTxOrg() {
 					sendHex = hex.EncodeToString(b.Bytes())
 					balanceReal = (decimal.NewFromInt(tx.TxOut[0].Value).Div(decimal.NewFromInt(1e8))).String()
 					gas = int64(txSize)
-					gasPrice = feeRow.V
+					gasPrice = feePriceValue
 				}
 				sendRows = append(sendRows, &model.DBTSendBtc{
 					RelatedType:  app.SendRelationTypeUXTOOrg,
@@ -600,7 +578,7 @@ func CheckTxOrg() {
 					TokenID:      0,
 					TxID:         tx.TxHash().String(),
 					FromAddress:  uxtoRow.VoutAddress,
-					ToAddress:    coldRow.V,
+					ToAddress:    coldAddressValue,
 					BalanceReal:  balanceReal,
 					Gas:          gas,
 					GasPrice:     gasPrice,
@@ -622,7 +600,7 @@ func CheckTxOrg() {
 			// 插入数据
 			_, err = model.SQLCreateIgnoreManyTSendBtc(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				sendRows,
 			)
 			if err != nil {
@@ -632,7 +610,7 @@ func CheckTxOrg() {
 			// 更新uxto状态
 			_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				updateUxtoRows,
 			)
 			if err != nil {
@@ -640,6 +618,13 @@ func CheckTxOrg() {
 				return
 			}
 		}
+
+		err = dbTx.Commit()
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		isComment = true
 	})
 }
 

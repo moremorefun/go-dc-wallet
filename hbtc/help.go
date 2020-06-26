@@ -1,6 +1,7 @@
 package hbtc
 
 import (
+	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -616,4 +617,35 @@ func RealStrToBalanceInt64(balanceRealStr string) (int64, error) {
 	}
 	balance := balanceReal.Mul(decimal.NewFromInt(1e8))
 	return balance.IntPart(), nil
+}
+
+// GetWifMapByAddresses 获取私钥
+func GetWifMapByAddresses(ctx context.Context, db hcommon.DbExeAble, addresses []string) (map[string]*btcutil.WIF, error) {
+	addressKeyMap, err := app.SQLGetAddressKeyMap(
+		ctx,
+		db,
+		[]string{
+			model.DBColTAddressKeyID,
+			model.DBColTAddressKeyAddress,
+			model.DBColTAddressKeyPwd,
+		},
+		addresses,
+	)
+	if err != nil {
+		return nil, err
+	}
+	addressWifMap := make(map[string]*btcutil.WIF)
+	for k, addressKey := range addressKeyMap {
+		key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
+		if len(key) == 0 {
+			return nil, err
+		}
+		wif, err := btcutil.DecodeWIF(key)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return nil, err
+		}
+		addressWifMap[k] = wif
+	}
+	return addressWifMap, nil
 }
