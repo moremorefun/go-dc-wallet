@@ -1049,8 +1049,8 @@ WHERE
 	return rows, nil
 }
 
-// SQLSelectTTxErc20ColByOrg 获取未整理交易
-func SQLSelectTTxErc20ColByOrg(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatuses []int64) ([]*model.DBTTxErc20, error) {
+// SQLSelectTTxErc20ColByOrgForUpdate 获取未整理交易
+func SQLSelectTTxErc20ColByOrgForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatuses []int64) ([]*model.DBTTxErc20, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1058,7 +1058,8 @@ func SQLSelectTTxErc20ColByOrg(ctx context.Context, tx hcommon.DbExeAble, cols [
 FROM
 	t_tx_erc20
 WHERE
-	org_status IN (:org_status)`)
+	org_status IN (:org_status)
+FOR UPDATE`)
 
 	var rows []*model.DBTTxErc20
 	err := hcommon.DbSelectNamedContent(

@@ -1760,9 +1760,51 @@ func CheckErc20TxNotify() {
 func CheckErc20TxOrg() {
 	lockKey := "Erc20CheckTxOrg"
 	app.LockWrap(lockKey, func() {
-		txRows, err := app.SQLSelectTTxErc20ColByOrg(
+		// 计算转账token所需的手续费
+		erc20GasUseValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			app.DbCon,
+			"erc20_gas_use",
+		)
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
+		}
+		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
+			context.Background(),
+			app.DbCon,
+			"to_cold_gas_price",
+		)
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
+		}
+		erc20Fee := big.NewInt(erc20GasUseValue * gasPriceValue)
+		ethGasUse := int64(21000)
+		ethFee := big.NewInt(ethGasUse * gasPriceValue)
+		// chainID
+		chainID, err := ethclient.RpcNetworkID(context.Background())
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
+		}
+
+		// 开始事物
+		isComment := false
+		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		if err != nil {
+			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+			return
+		}
+		defer func() {
+			if !isComment {
+				_ = dbTx.Rollback()
+			}
+		}()
+		// 查询需要处理的交易
+		txRows, err := app.SQLSelectTTxErc20ColByOrgForUpdate(
+			context.Background(),
+			dbTx,
 			[]string{
 				model.DBColTTxErc20ID,
 				model.DBColTTxErc20TokenID,
@@ -1779,18 +1821,15 @@ func CheckErc20TxOrg() {
 		if len(txRows) <= 0 {
 			return
 		}
-		addressEthBalanceMap := make(map[string]*big.Int)
-		txMap := make(map[int64]*model.DBTTxErc20)
+		// 整理信息
 		type StOrgInfo struct {
 			TxIDs        []int64
 			ToAddress    string
 			TokenID      int64
 			TokenBalance *big.Int
 		}
-		orgMap := make(map[string]*StOrgInfo)
 
 		var tokenIDs []int64
-		var toAddresses []string
 		for _, txRow := range txRows {
 			if !hcommon.IsIntInSlice(tokenIDs, txRow.TokenID) {
 				tokenIDs = append(tokenIDs, txRow.TokenID)
@@ -1798,7 +1837,7 @@ func CheckErc20TxOrg() {
 		}
 		tokenMap, err := app.SQLGetAppConfigTokenMap(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			[]string{
 				model.DBColTAppConfigTokenID,
 				model.DBColTAppConfigTokenTokenAddress,
@@ -1814,13 +1853,19 @@ func CheckErc20TxOrg() {
 			return
 		}
 
+		txMap := make(map[int64]*model.DBTTxErc20)
+		// 地址eth余额
+		addressEthBalanceMap := make(map[string]*big.Int)
+		// 整理信息map
+		orgMap := make(map[string]*StOrgInfo)
+		// 整理地址
+		var toAddresses []string
 		for _, txRow := range txRows {
 			tokenRow, ok := tokenMap[txRow.TokenID]
 			if !ok {
 				hcommon.Log.Errorf("no token of: %d", txRow.TokenID)
 				return
 			}
-
 			// 转换为map
 			txMap[txRow.ID] = txRow
 			// 读取eth余额
@@ -1859,58 +1904,22 @@ func CheckErc20TxOrg() {
 				toAddresses = append(toAddresses, txRow.ToAddress)
 			}
 		}
-
-		addressMap, err := app.SQLGetAddressKeyMap(
+		// 整理地址key
+		addressPKMap, err := GetPKMapOfAddresses(
 			context.Background(),
-			app.DbCon,
-			[]string{
-				model.DBColTAddressKeyAddress,
-				model.DBColTAddressKeyPwd,
-			},
+			dbTx,
 			toAddresses,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-
-		// 计算转账token所需的手续费
-		erc20GasRow, err := app.SQLGetTAppConfigIntByK(
-			context.Background(),
-			app.DbCon,
-			"erc20_gas_use",
-		)
-		if err != nil {
-			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if erc20GasRow == nil {
-			hcommon.Log.Errorf("no config int of erc20_gas_use")
-			return
-		}
-		gasPriceRow, err := app.SQLGetTAppStatusIntByK(
-			context.Background(),
-			app.DbCon,
-			"to_cold_gas_price",
-		)
-		if err != nil {
-			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if gasPriceRow == nil {
-			hcommon.Log.Errorf("no config int of to_cold_gas_price")
-			return
-		}
-		chainID, err := ethclient.RpcNetworkID(context.Background())
-		if err != nil {
-			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-			return
-		}
-		erc20Fee := big.NewInt(erc20GasRow.V * gasPriceRow.V)
 		// 需要手续费的整理信息
+		now := time.Now().Unix()
 		needEthFeeMap := make(map[string]*StOrgInfo)
 		for k, orgInfo := range orgMap {
 			toAddress := orgInfo.ToAddress
+			// 计算eth费用
 			addressEthBalanceMap[toAddress] = addressEthBalanceMap[toAddress].Sub(addressEthBalanceMap[toAddress], erc20Fee)
 			if addressEthBalanceMap[toAddress].Cmp(new(big.Int)) < 0 {
 				// eth手续费不足
@@ -1934,26 +1943,13 @@ func CheckErc20TxOrg() {
 				continue
 			}
 			// 处理token转账
-			addressRow, ok := addressMap[toAddress]
+			privateKey, ok := addressPKMap[toAddress]
 			if !ok {
 				hcommon.Log.Errorf("addressMap no: %s", toAddress)
 				continue
 			}
-			key := hcommon.AesDecrypt(addressRow.Pwd, app.Cfg.AESKey)
-			if len(key) == 0 {
-				hcommon.Log.Errorf("error key of: %s", toAddress)
-				continue
-			}
-			if strings.HasPrefix(key, "0x") {
-				key = key[2:]
-			}
-			privateKey, err := crypto.HexToECDSA(key)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				continue
-			}
 			// 获取nonce值
-			nonce, err := GetNonce(app.DbCon, toAddress)
+			nonce, err := GetNonce(dbTx, toAddress)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
@@ -1977,8 +1973,8 @@ func CheckErc20TxOrg() {
 				uint64(nonce),
 				common.HexToAddress(tokenRow.TokenAddress),
 				big.NewInt(0),
-				uint64(erc20GasRow.V),
-				big.NewInt(gasPriceRow.V),
+				uint64(erc20GasUseValue),
+				big.NewInt(gasPriceValue),
 				input,
 			)
 			signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
@@ -1991,7 +1987,6 @@ func CheckErc20TxOrg() {
 			rawTxHex := hex.EncodeToString(rawTxBytes)
 			txHash := strings.ToLower(signedTx.Hash().Hex())
 			// 创建存入数据
-			now := time.Now().Unix()
 			balanceReal, err := TokenWeiBigIntToEthStr(orgInfo.TokenBalance, tokenRow.TokenDecimals)
 			if err != nil {
 				hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
@@ -2009,8 +2004,8 @@ func CheckErc20TxOrg() {
 						FromAddress:  toAddress,
 						ToAddress:    tokenRow.ColdAddress,
 						BalanceReal:  balanceReal,
-						Gas:          erc20GasRow.V,
-						GasPrice:     gasPriceRow.V,
+						Gas:          erc20GasUseValue,
+						GasPrice:     gasPriceValue,
 						Nonce:        nonce,
 						Hex:          rawTxHex,
 						CreateTime:   now,
@@ -2041,7 +2036,7 @@ func CheckErc20TxOrg() {
 			// 插入发送队列
 			_, err = model.SQLCreateIgnoreManyTSend(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				sendRows,
 			)
 			if err != nil {
@@ -2051,7 +2046,7 @@ func CheckErc20TxOrg() {
 			// 更新整理状态
 			_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				orgInfo.TxIDs,
 				model.DBTTxErc20{
 					OrgStatus: app.TxOrgStatusHex,
@@ -2067,57 +2062,33 @@ func CheckErc20TxOrg() {
 		// 生成eth转账
 		if len(needEthFeeMap) > 0 {
 			// 获取热钱包地址
-			feeRow, err := app.SQLGetTAppConfigStrByK(
+			feeAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				"fee_wallet_address",
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			if feeRow == nil {
-				hcommon.Log.Errorf("no config int of fee_wallet_address")
-				return
-			}
-			_, err = StrToAddressBytes(feeRow.V)
+			_, err = StrToAddressBytes(feeAddressValue)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			// 获取私钥
-			keyRow, err := app.SQLGetTAddressKeyColByAddress(
+			privateKey, err := GetPkOfAddress(
 				context.Background(),
-				app.DbCon,
-				[]string{
-					model.DBColTAddressKeyPwd,
-				},
-				feeRow.V,
+				dbTx,
+				feeAddressValue,
 			)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
-			if keyRow == nil {
-				hcommon.Log.Errorf("no key of: %s", feeRow.V)
-				return
-			}
-			key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
-			if len(key) == 0 {
-				hcommon.Log.Errorf("error key of: %s", feeRow.V)
-				return
-			}
-			if strings.HasPrefix(key, "0x") {
-				key = key[2:]
-			}
-			privateKey, err := crypto.HexToECDSA(key)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			feeAddressBalance, err := ethclient.RpcBalanceAt(
 				context.Background(),
-				feeRow.V,
+				feeAddressValue,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("RpcBalanceAt err: [%T] %s", err, err.Error())
@@ -2125,8 +2096,8 @@ func CheckErc20TxOrg() {
 			}
 			pendingBalanceReal, err := app.SQLGetTSendPendingBalanceReal(
 				context.Background(),
-				app.DbCon,
-				feeRow.V,
+				dbTx,
+				feeAddressValue,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2138,35 +2109,18 @@ func CheckErc20TxOrg() {
 				return
 			}
 			feeAddressBalance.Sub(feeAddressBalance, pendingBalance)
-			// 获取gap price
-			gasRow, err := app.SQLGetTAppStatusIntByK(
-				context.Background(),
-				app.DbCon,
-				"to_cold_gas_price",
-			)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
-			if gasRow == nil {
-				hcommon.Log.Errorf("no config int of to_cold_gas_price")
-				return
-			}
-			gasPrice := gasRow.V
-			gasLimit := int64(21000)
-			ethFee := big.NewInt(gasLimit * gasPrice)
-			tokenFee := big.NewInt(erc20GasRow.V * gasPrice)
+			// 生成手续费交易
 			for _, orgInfo := range needEthFeeMap {
 				feeAddressBalance.Sub(feeAddressBalance, ethFee)
-				feeAddressBalance.Sub(feeAddressBalance, tokenFee)
+				feeAddressBalance.Sub(feeAddressBalance, erc20Fee)
 				if feeAddressBalance.Cmp(new(big.Int)) < 0 {
 					hcommon.Log.Errorf("eth fee balance limit")
 					return
 				}
 				// nonce
 				nonce, err := GetNonce(
-					app.DbCon,
-					feeRow.V,
+					dbTx,
+					feeAddressValue,
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2177,9 +2131,9 @@ func CheckErc20TxOrg() {
 				tx := types.NewTransaction(
 					uint64(nonce),
 					common.HexToAddress(orgInfo.ToAddress),
-					tokenFee,
-					uint64(gasLimit),
-					big.NewInt(gasPrice),
+					erc20Fee,
+					uint64(ethGasUse),
+					big.NewInt(gasPriceValue),
 					data,
 				)
 				signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
@@ -2192,7 +2146,7 @@ func CheckErc20TxOrg() {
 				rawTxHex := hex.EncodeToString(rawTxBytes)
 				txHash := strings.ToLower(signedTx.Hash().Hex())
 				now := time.Now().Unix()
-				balanceReal, err := WeiBigIntToEthStr(tokenFee)
+				balanceReal, err := WeiBigIntToEthStr(erc20Fee)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
@@ -2206,11 +2160,11 @@ func CheckErc20TxOrg() {
 							RelatedID:    txID,
 							TokenID:      0,
 							TxID:         txHash,
-							FromAddress:  feeRow.V,
+							FromAddress:  feeAddressValue,
 							ToAddress:    orgInfo.ToAddress,
 							BalanceReal:  balanceReal,
-							Gas:          gasLimit,
-							GasPrice:     gasPriceRow.V,
+							Gas:          ethGasUse,
+							GasPrice:     gasPriceValue,
 							Nonce:        nonce,
 							Hex:          rawTxHex,
 							CreateTime:   now,
@@ -2224,7 +2178,7 @@ func CheckErc20TxOrg() {
 							RelatedID:    txID,
 							TokenID:      0,
 							TxID:         txHash,
-							FromAddress:  feeRow.V,
+							FromAddress:  feeAddressValue,
 							ToAddress:    orgInfo.ToAddress,
 							BalanceReal:  "",
 							Gas:          0,
@@ -2238,18 +2192,20 @@ func CheckErc20TxOrg() {
 						})
 					}
 				}
+				// 插入发送数据
 				_, err = model.SQLCreateIgnoreManyTSend(
 					context.Background(),
-					app.DbCon,
+					dbTx,
 					sendRows,
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
+				// 更新整理状态
 				_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 					context.Background(),
-					app.DbCon,
+					dbTx,
 					orgInfo.TxIDs,
 					model.DBTTxErc20{
 						OrgStatus: app.TxOrgStatusFeeHex,
@@ -2263,6 +2219,13 @@ func CheckErc20TxOrg() {
 				}
 			}
 		}
+
+		err = dbTx.Commit()
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		isComment = true
 	})
 }
 
