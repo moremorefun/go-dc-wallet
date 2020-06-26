@@ -1390,7 +1390,6 @@ func CheckTxNotify() {
 			return
 		}
 	})
-
 }
 
 // CheckErc20BlockSeek 检测erc20到账
@@ -1398,7 +1397,7 @@ func CheckErc20BlockSeek() {
 	lockKey := "Erc20CheckBlockSeek"
 	app.LockWrap(lockKey, func() {
 		// 获取配置 延迟确认数
-		confirmRow, err := app.SQLGetTAppConfigIntByK(
+		confirmValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"block_confirm_num",
@@ -1407,12 +1406,8 @@ func CheckErc20BlockSeek() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if confirmRow == nil {
-			hcommon.Log.Errorf("no config int of block_confirm_num")
-			return
-		}
 		// 获取状态 当前处理完成的最新的block number
-		seekRow, err := app.SQLGetTAppStatusIntByK(
+		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"erc20_seek_num",
@@ -1421,18 +1416,14 @@ func CheckErc20BlockSeek() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if seekRow == nil {
-			hcommon.Log.Errorf("no config int of erc20_seek_num")
-			return
-		}
 		// rpc 获取当前最新区块数
 		rpcBlockNum, err := ethclient.RpcBlockNumber(context.Background())
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		startI := seekRow.V + 1
-		endI := rpcBlockNum - confirmRow.V + 1
+		startI := seekValue + 1
+		endI := rpcBlockNum - confirmValue + 1
 		if startI < endI {
 			// 读取abi
 			type LogTransfer struct {
