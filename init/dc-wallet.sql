@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-06-25 21:09:46.7120
+-- Generation Time: 2020-06-26 22:03:25.0850
 -- -------------------------------------------------------------
 
 
@@ -27,7 +27,7 @@ CREATE TABLE `t_address_key` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `t_address_key_address_idx` (`address`,`symbol`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=229 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=329 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -35,7 +35,7 @@ CREATE TABLE `t_app_config_int` (
   `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_str` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -43,7 +43,7 @@ CREATE TABLE `t_app_config_str` (
   `v` varchar(1024) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_token` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -56,7 +56,7 @@ CREATE TABLE `t_app_config_token` (
   `create_time` bigint(20) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_address` (`token_address`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_token_btc` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -68,7 +68,7 @@ CREATE TABLE `t_app_config_token_btc` (
   `create_at` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_symbol` (`token_symbol`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_lock` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -86,7 +86,7 @@ CREATE TABLE `t_app_status_int` (
   `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_product` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -184,7 +184,8 @@ CREATE TABLE `t_tx` (
   `org_msg` varchar(128) NOT NULL COMMENT '零钱整理消息',
   `org_time` bigint(20) unsigned NOT NULL COMMENT '零钱整理时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `tx_id` (`tx_id`)
+  UNIQUE KEY `tx_id` (`tx_id`),
+  KEY `t_tx_org_status_idx` (`org_status`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_btc` (
@@ -242,8 +243,8 @@ CREATE TABLE `t_tx_btc_uxto` (
   `handle_time` bigint(22) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tx_id` (`tx_id`,`vout_n`),
-  KEY `handle_status` (`handle_status`),
-  KEY `vout_address` (`vout_address`)
+  KEY `vout_address` (`vout_address`),
+  KEY `handle_status` (`handle_status`,`uxto_type`,`id`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_erc20` (
@@ -262,7 +263,8 @@ CREATE TABLE `t_tx_erc20` (
   `org_msg` varchar(128) NOT NULL COMMENT '零钱整理消息',
   `org_time` bigint(20) unsigned NOT NULL COMMENT '零钱整理时间',
   PRIMARY KEY (`id`),
-  UNIQUE KEY `tx_id` (`tx_id`)
+  UNIQUE KEY `tx_id` (`tx_id`),
+  KEY `t_tx_erc20_org_status_idx` (`org_status`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_withdraw` (
@@ -279,7 +281,8 @@ CREATE TABLE `t_withdraw` (
   `handle_time` bigint(20) unsigned NOT NULL COMMENT '处理时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `out_serial` (`out_serial`,`product_id`) USING BTREE,
-  KEY `t_withdraw_tx_hash_idx` (`tx_hash`) USING BTREE
+  KEY `t_withdraw_tx_hash_idx` (`tx_hash`) USING BTREE,
+  KEY `t_withdraw_handle_status_symbol_idx` (`handle_status`,`symbol`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4;
 
 
