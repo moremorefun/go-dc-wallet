@@ -2,14 +2,18 @@ package heth
 
 import (
 	"context"
+	"crypto/ecdsa"
 	"errors"
 	"fmt"
 	"go-dc-wallet/app"
+	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
 	"math/big"
 	"regexp"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/shopspring/decimal"
 
@@ -115,4 +119,40 @@ func TokenWeiBigIntToEthStr(wei *big.Int, tokenDecimals int64) (string, error) {
 	}
 	balanceStr := balance.Div(decimal.NewFromInt(10).Pow(decimal.NewFromInt(tokenDecimals))).StringFixed(int32(tokenDecimals))
 	return balanceStr, nil
+}
+
+// GetPKMapOfAddresses 获取地址私钥
+func GetPKMapOfAddresses(ctx context.Context, db hcommon.DbExeAble, addresses []string) (map[string]*ecdsa.PrivateKey, error) {
+	addressPKMap := make(map[string]*ecdsa.PrivateKey)
+	addressKeyMap, err := app.SQLGetAddressKeyMap(
+		ctx,
+		db,
+		[]string{
+			model.DBColTAddressKeyID,
+			model.DBColTAddressKeyAddress,
+			model.DBColTAddressKeyPwd,
+		},
+		addresses,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return nil, err
+	}
+	for k, v := range addressKeyMap {
+		key := hcommon.AesDecrypt(v.Pwd, app.Cfg.AESKey)
+		if len(key) == 0 {
+			hcommon.Log.Errorf("error key of: %s", k)
+			continue
+		}
+		if strings.HasPrefix(key, "0x") {
+			key = key[2:]
+		}
+		privateKey, err := crypto.HexToECDSA(key)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			continue
+		}
+		addressPKMap[k] = privateKey
+	}
+	return addressPKMap, nil
 }

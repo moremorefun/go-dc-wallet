@@ -257,8 +257,8 @@ WHERE
 	return count, nil
 }
 
-// SQLSelectTTxColByOrg 获取未整理交易
-func SQLSelectTTxColByOrg(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTx, error) {
+// SQLSelectTTxColByOrgForUpdate 获取未整理交易
+func SQLSelectTTxColByOrgForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTx, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -266,7 +266,8 @@ func SQLSelectTTxColByOrg(ctx context.Context, tx hcommon.DbExeAble, cols []stri
 FROM
 	t_tx
 WHERE
-	org_status=:org_status`)
+	org_status=:org_status
+FOR UPDATE`)
 
 	var rows []*model.DBTTx
 	err := hcommon.DbSelectNamedContent(

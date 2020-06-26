@@ -342,13 +342,25 @@ func CheckAddressOrg() {
 		}
 		coldAddress, err := StrToAddressBytes(coldAddressValue)
 		if err != nil {
+			hcommon.Log.Errorf("eth organize cold address err: [%T] %s", err, err.Error())
+			return
+		}
+		// 开启事物
+		isComment := false
+		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		// 获取待整理的地址列表
-		txRows, err := app.SQLSelectTTxColByOrg(
+		defer func() {
+			if !isComment {
+				_ = dbTx.Rollback()
+			}
+		}()
+		// 获取待整理的交易列表
+		txRows, err := app.SQLSelectTTxColByOrgForUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			[]string{
 				model.DBColTTxID,
 				model.DBColTTxToAddress,
@@ -367,7 +379,7 @@ func CheckAddressOrg() {
 		// 获取gap price
 		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			"to_cold_gas_price",
 		)
 		if err != nil {
@@ -377,6 +389,14 @@ func CheckAddressOrg() {
 		gasPrice := gasPriceValue
 		gasLimit := int64(21000)
 		feeValue := big.NewInt(gasLimit * gasPrice)
+		// chain id
+		chainID, err := ethclient.RpcNetworkID(context.Background())
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 当前时间
+		now := time.Now().Unix()
 		// 将待整理地址按地址做归并处理
 		type OrgInfo struct {
 			RowIDs  []int64  // db t_tx.id
@@ -407,45 +427,25 @@ func CheckAddressOrg() {
 				addresses = append(addresses, txRow.ToAddress)
 			}
 		}
-		chainID, err := ethclient.RpcNetworkID(context.Background())
+		// 获取地址私钥
+		addressPKMap, err := GetPKMapOfAddresses(
+			context.Background(),
+			dbTx,
+			addresses,
+		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		now := time.Now().Unix()
 		for address, info := range addressMap {
 			// 获取私钥
-			keyRow, err := app.SQLGetTAddressKeyColByAddress(
-				context.Background(),
-				app.DbCon,
-				[]string{
-					model.DBColTAddressKeyPwd,
-				},
-				address,
-			)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
-			if keyRow == nil {
+			privateKey, ok := addressPKMap[address]
+			if !ok {
 				hcommon.Log.Errorf("no key of: %s", address)
 				continue
 			}
-			key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
-			if len(key) == 0 {
-				hcommon.Log.Errorf("error key of: %s", address)
-				continue
-			}
-			if strings.HasPrefix(key, "0x") {
-				key = key[2:]
-			}
-			privateKey, err := crypto.HexToECDSA(key)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				continue
-			}
 			// 获取nonce值
-			nonce, err := GetNonce(app.DbCon, address)
+			nonce, err := GetNonce(dbTx, address)
 			if err != nil {
 				hcommon.Log.Errorf("GetNonce err: [%T] %s", err, err.Error())
 				return
@@ -523,20 +523,20 @@ func CheckAddressOrg() {
 					})
 				}
 			}
-			// 插入数据
+			// 插入发送数据
 			_, err = model.SQLCreateIgnoreManyTSend(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				sendRows,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			// 更改状态
+			// 更改tx整理状态
 			_, err = app.SQLUpdateTTxOrgStatusByIDs(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				info.RowIDs,
 				model.DBTTx{
 					OrgStatus: app.TxOrgStatusHex,
@@ -548,6 +548,13 @@ func CheckAddressOrg() {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
+			// 提交事物
+			err = dbTx.Commit()
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			isComment = true
 		}
 	})
 }
