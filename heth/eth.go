@@ -36,7 +36,8 @@ import (
 )
 
 const (
-	EthToWei = 1e18
+	EthToWei   = 1e18
+	CoinSymbol = "eth"
 )
 
 // ethToWeiDecimal 转换单位
@@ -71,7 +72,7 @@ func CreateHotAddress(num int64) ([]string, error) {
 		address := AddressBytesToStr(crypto.PubkeyToAddress(*publicKeyECDSA))
 		// 存入待添加队列
 		rows = append(rows, &model.DBTAddressKey{
-			Symbol:  "eth",
+			Symbol:  CoinSymbol,
 			Address: address,
 			Pwd:     privateKeyStrEn,
 			UseTag:  -1,
@@ -112,7 +113,7 @@ func CheckAddressFree() {
 		freeCount, err := app.SQLGetTAddressKeyFreeCount(
 			context.Background(),
 			app.DbCon,
-			"eth",
+			CoinSymbol,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -144,7 +145,7 @@ func CheckAddressFree() {
 				address := AddressBytesToStr(crypto.PubkeyToAddress(*publicKeyECDSA))
 				// 存入待添加队列
 				rows = append(rows, &model.DBTAddressKey{
-					Symbol:  "eth",
+					Symbol:  CoinSymbol,
 					Address: address,
 					Pwd:     privateKeyStrEn,
 					UseTag:  0,
@@ -694,7 +695,7 @@ func CheckRawTxSend() {
 					"app_name":    productRow.AppName,
 					"out_serial":  withdrawRow.OutSerial,
 					"address":     withdrawRow.ToAddress,
-					"symbol":      "eth",
+					"symbol":      CoinSymbol,
 					"notify_type": app.NotifyTypeWithdrawSend,
 				}
 				reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
@@ -709,7 +710,7 @@ func CheckRawTxSend() {
 					ItemType:     app.SendRelationTypeWithdraw,
 					ItemID:       withdrawRow.ID,
 					NotifyType:   app.NotifyTypeWithdrawSend,
-					TokenSymbol:  "eth",
+					TokenSymbol:  CoinSymbol,
 					URL:          productRow.CbURL,
 					Msg:          string(req),
 					HandleStatus: app.NotifyStatusInit,
@@ -1145,7 +1146,7 @@ func CheckWithdraw() {
 				model.DBColTWithdrawID,
 			},
 			app.WithdrawStatusInit,
-			[]string{"eth"},
+			[]string{CoinSymbol},
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1382,7 +1383,7 @@ func CheckTxNotify() {
 				"app_name":    productRow.AppName,
 				"address":     txRow.ToAddress,
 				"balance":     txRow.BalanceReal,
-				"symbol":      "eth",
+				"symbol":      CoinSymbol,
 				"notify_type": app.NotifyTypeTx,
 			}
 			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
@@ -1397,7 +1398,7 @@ func CheckTxNotify() {
 				ItemType:     app.SendRelationTypeTx,
 				ItemID:       txRow.ID,
 				NotifyType:   app.NotifyTypeTx,
-				TokenSymbol:  "eth",
+				TokenSymbol:  CoinSymbol,
 				URL:          productRow.CbURL,
 				Msg:          string(req),
 				HandleStatus: app.NotifyStatusInit,

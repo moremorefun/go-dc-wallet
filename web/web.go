@@ -6,6 +6,7 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hbtc"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/heth"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -278,8 +279,8 @@ func postWithdraw(c *gin.Context) {
 		return
 	}
 	tokenDecimalsMap := make(map[string]int64)
-	ethSymbols := []string{"eth"}
-	tokenDecimalsMap["eth"] = 18
+	ethSymbols := []string{heth.CoinSymbol}
+	tokenDecimalsMap[heth.CoinSymbol] = 18
 	tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 		c,
 		app.DbCon,
@@ -302,8 +303,8 @@ func postWithdraw(c *gin.Context) {
 		ethSymbols = append(ethSymbols, tokenRow.TokenSymbol)
 		tokenDecimalsMap[tokenRow.TokenSymbol] = tokenRow.TokenDecimals
 	}
-	btcSymbols := []string{"btc"}
-	tokenDecimalsMap["btc"] = 8
+	btcSymbols := []string{hbtc.CoinSymbol}
+	tokenDecimalsMap[hbtc.CoinSymbol] = 8
 	tokenBtcRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 		c,
 		app.DbCon,

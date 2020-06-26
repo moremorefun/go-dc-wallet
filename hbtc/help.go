@@ -47,7 +47,7 @@ func GetNetwork(coinType string) Network {
 	n, ok := network[coinType]
 	if !ok {
 		hcommon.Log.Errorf("no network: %s get btc for replace", coinType)
-		return network["btc"]
+		return network[CoinSymbol]
 	}
 	return n
 }

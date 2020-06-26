@@ -1079,7 +1079,7 @@ func CheckWithdraw() {
 				model.DBColTWithdrawBalanceReal,
 			},
 			app.WithdrawStatusInit,
-			[]string{"btc"},
+			[]string{CoinSymbol},
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
