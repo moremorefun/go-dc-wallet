@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
@@ -47,29 +48,37 @@ func init() {
 	ethToWeiDecimal = decimal.NewFromInt(EthToWei)
 }
 
+func genAddressAndAesKey() (string, string, error) {
+	// 生成私钥
+	privateKey, err := crypto.GenerateKey()
+	if err != nil {
+		return "", "", err
+	}
+	privateKeyBytes := crypto.FromECDSA(privateKey)
+	privateKeyStr := hexutil.Encode(privateKeyBytes)
+	// 加密密钥
+	privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, app.Cfg.AESKey)
+	// 获取地址
+	publicKey := privateKey.Public()
+	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return "", "", errors.New("can't change public key")
+	}
+	// 地址全部储存为小写方便处理
+	address := AddressBytesToStr(crypto.PubkeyToAddress(*publicKeyECDSA))
+	return address, privateKeyStrEn, nil
+}
+
 // CreateHotAddress 创建自用地址
 func CreateHotAddress(num int64) ([]string, error) {
 	var rows []*model.DBTAddressKey
 	var addresses []string
 	// 遍历差值次数
 	for i := int64(0); i < num; i++ {
-		// 生成私钥
-		privateKey, err := crypto.GenerateKey()
+		address, privateKeyStrEn, err := genAddressAndAesKey()
 		if err != nil {
 			return nil, err
 		}
-		privateKeyBytes := crypto.FromECDSA(privateKey)
-		privateKeyStr := hexutil.Encode(privateKeyBytes)
-		// 加密密钥
-		privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, app.Cfg.AESKey)
-		// 获取地址
-		publicKey := privateKey.Public()
-		publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-		if !ok {
-			return nil, err
-		}
-		// 地址全部储存为小写方便处理
-		address := AddressBytesToStr(crypto.PubkeyToAddress(*publicKeyECDSA))
 		// 存入待添加队列
 		rows = append(rows, &model.DBTAddressKey{
 			Symbol:  CoinSymbol,
@@ -124,25 +133,10 @@ func CheckAddressFree() {
 			var rows []*model.DBTAddressKey
 			// 遍历差值次数
 			for i := int64(0); i < minFreeRow.V-freeCount; i++ {
-				// 生成私钥
-				privateKey, err := crypto.GenerateKey()
+				address, privateKeyStrEn, err := genAddressAndAesKey()
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
 				}
-				privateKeyBytes := crypto.FromECDSA(privateKey)
-				privateKeyStr := hexutil.Encode(privateKeyBytes)
-				// 加密密钥
-				privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, app.Cfg.AESKey)
-				// 获取地址
-				publicKey := privateKey.Public()
-				publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
-				if !ok {
-					hcommon.Log.Errorf("cannot assert type: publicKey is not of type *ecdsa.PublicKey")
-					return
-				}
-				// 地址全部储存为小写方便处理
-				address := AddressBytesToStr(crypto.PubkeyToAddress(*publicKeyECDSA))
 				// 存入待添加队列
 				rows = append(rows, &model.DBTAddressKey{
 					Symbol:  CoinSymbol,
