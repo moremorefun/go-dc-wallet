@@ -2359,7 +2359,7 @@ func CheckErc20Withdraw() {
 			return
 		}
 		// 获取gap price
-		gasRow, err := app.SQLGetTAppStatusIntByK(
+		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"to_user_gas_price",
@@ -2368,12 +2368,8 @@ func CheckErc20Withdraw() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if gasRow == nil {
-			hcommon.Log.Errorf("no config int of to_user_gas_price")
-			return
-		}
-		gasPrice := gasRow.V
-		erc20GasRow, err := app.SQLGetTAppConfigIntByK(
+		gasPrice := gasPriceValue
+		erc20GasUseValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"erc20_gas_use",
@@ -2382,11 +2378,7 @@ func CheckErc20Withdraw() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if erc20GasRow == nil {
-			hcommon.Log.Errorf("no config int of erc20_gas_use")
-			return
-		}
-		gasLimit := erc20GasRow.V
+		gasLimit := erc20GasUseValue
 		// eth fee
 		feeValue := big.NewInt(gasLimit * gasPrice)
 		chainID, err := ethclient.RpcNetworkID(context.Background())
