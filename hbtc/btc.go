@@ -168,12 +168,14 @@ func CheckBlockSeek() {
 		if startI < endI {
 			// 获取所有token
 			var tokenHotAddresses []string
+			var tokenFeeAddresses []string
 			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 				context.Background(),
 				app.DbCon,
 				[]string{
 					model.DBColTAppConfigTokenBtcID,
 					model.DBColTAppConfigTokenBtcHotAddress,
+					model.DBColTAppConfigTokenBtcFeeAddress,
 				},
 			)
 			if err != nil {
@@ -183,6 +185,9 @@ func CheckBlockSeek() {
 			for _, tokenRow := range tokenRows {
 				if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
 					tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
+				}
+				if !hcommon.IsStringInSlice(tokenFeeAddresses, tokenRow.FeeAddress) {
+					tokenFeeAddresses = append(tokenFeeAddresses, tokenRow.FeeAddress)
 				}
 			}
 			// 遍历获取需要查询的block信息
@@ -329,6 +334,9 @@ func CheckBlockSeek() {
 						}
 						if hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
 							uxtoType = app.UxtoTypeOmniHot
+						}
+						if hcommon.IsStringInSlice(tokenFeeAddresses, voutAddress) {
+							uxtoType = app.UxtoTypeOmniOrgFee
 						}
 						if rpcTxWithIndex.IsOmniTx {
 							omniOutAddress := ""
@@ -1757,7 +1765,7 @@ func OmniCheckTxOrg() {
 				return
 			}
 			tokenMap := make(map[int64]*model.DBTAppConfigTokenBtc)
-			var tokenHotAddresses []string
+			var tokenFeeAddresses []string
 			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColByIndexes(
 				context.Background(),
 				app.DbCon,
@@ -1765,6 +1773,7 @@ func OmniCheckTxOrg() {
 					model.DBColTAppConfigTokenBtcID,
 					model.DBColTAppConfigTokenBtcTokenIndex,
 					model.DBColTAppConfigTokenBtcHotAddress,
+					model.DBColTAppConfigTokenBtcFeeAddress,
 					model.DBColTAppConfigTokenBtcColdAddress,
 					model.DBColTAppConfigTokenBtcTxOrgMinBalance,
 				},
@@ -1776,8 +1785,8 @@ func OmniCheckTxOrg() {
 			}
 			for _, tokenRow := range tokenRows {
 				tokenMap[tokenRow.TokenIndex] = tokenRow
-				if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
-					tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
+				if !hcommon.IsStringInSlice(tokenFeeAddresses, tokenRow.FeeAddress) {
+					tokenFeeAddresses = append(tokenFeeAddresses, tokenRow.FeeAddress)
 				}
 				if !hcommon.IsStringInSlice(keyAddresses, tokenRow.HotAddress) {
 					keyAddresses = append(keyAddresses, tokenRow.HotAddress)
@@ -1848,7 +1857,7 @@ func OmniCheckTxOrg() {
 					model.DBColTTxBtcUxtoVoutValue,
 					model.DBColTTxBtcUxtoVoutScript,
 				},
-				tokenHotAddresses,
+				tokenFeeAddresses,
 				app.UxtoTypeOmniHot,
 			)
 			if err != nil {

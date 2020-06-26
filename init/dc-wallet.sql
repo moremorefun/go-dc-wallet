@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-06-26 22:03:25.0850
+-- Generation Time: 2020-06-26 22:11:40.5620
 -- -------------------------------------------------------------
 
 
@@ -64,6 +64,7 @@ CREATE TABLE `t_app_config_token_btc` (
   `token_symbol` varchar(128) NOT NULL DEFAULT '',
   `cold_address` varchar(128) NOT NULL DEFAULT '',
   `hot_address` varchar(128) NOT NULL DEFAULT '',
+  `fee_address` varchar(128) NOT NULL,
   `tx_org_min_balance` varchar(128) NOT NULL DEFAULT '',
   `create_at` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`),

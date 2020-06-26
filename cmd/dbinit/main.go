@@ -140,6 +140,7 @@ func main() {
 			TokenSymbol:     "omni_usdt",
 			ColdAddress:     "",
 			HotAddress:      btcAddresses[1],
+			FeeAddress:      btcAddresses[2],
 			TxOrgMinBalance: "0.0",
 			CreateAt:        now,
 		},

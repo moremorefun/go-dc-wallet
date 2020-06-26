@@ -1694,6 +1694,7 @@ func SQLCreateTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row 
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 ) VALUES (
@@ -1702,6 +1703,7 @@ func SQLCreateTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row 
     :token_symbol,
     :cold_address,
     :hot_address,
+    :fee_address,
     :tx_org_min_balance,
     :create_at
 )`,
@@ -1711,6 +1713,7 @@ func SQLCreateTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row 
 				"token_symbol":       row.TokenSymbol,
 				"cold_address":       row.ColdAddress,
 				"hot_address":        row.HotAddress,
+				"fee_address":        row.FeeAddress,
 				"tx_org_min_balance": row.TxOrgMinBalance,
 				"create_at":          row.CreateAt,
 			},
@@ -1724,6 +1727,7 @@ func SQLCreateTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row 
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 ) VALUES (
@@ -1731,6 +1735,7 @@ func SQLCreateTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row 
     :token_symbol,
     :cold_address,
     :hot_address,
+    :fee_address,
     :tx_org_min_balance,
     :create_at
 )`,
@@ -1739,6 +1744,7 @@ func SQLCreateTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, row 
 				"token_symbol":       row.TokenSymbol,
 				"cold_address":       row.ColdAddress,
 				"hot_address":        row.HotAddress,
+				"fee_address":        row.FeeAddress,
 				"tx_org_min_balance": row.TxOrgMinBalance,
 				"create_at":          row.CreateAt,
 			},
@@ -1764,6 +1770,7 @@ func SQLCreateIgnoreTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 ) VALUES (
@@ -1772,6 +1779,7 @@ func SQLCreateIgnoreTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble
     :token_symbol,
     :cold_address,
     :hot_address,
+    :fee_address,
     :tx_org_min_balance,
     :create_at
 )`,
@@ -1781,6 +1789,7 @@ func SQLCreateIgnoreTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble
 				"token_symbol":       row.TokenSymbol,
 				"cold_address":       row.ColdAddress,
 				"hot_address":        row.HotAddress,
+				"fee_address":        row.FeeAddress,
 				"tx_org_min_balance": row.TxOrgMinBalance,
 				"create_at":          row.CreateAt,
 			},
@@ -1794,6 +1803,7 @@ func SQLCreateIgnoreTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 ) VALUES (
@@ -1801,6 +1811,7 @@ func SQLCreateIgnoreTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble
     :token_symbol,
     :cold_address,
     :hot_address,
+    :fee_address,
     :tx_org_min_balance,
     :create_at
 )`,
@@ -1809,6 +1820,7 @@ func SQLCreateIgnoreTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble
 				"token_symbol":       row.TokenSymbol,
 				"cold_address":       row.ColdAddress,
 				"hot_address":        row.HotAddress,
+				"fee_address":        row.FeeAddress,
 				"tx_org_min_balance": row.TxOrgMinBalance,
 				"create_at":          row.CreateAt,
 			},
@@ -1836,6 +1848,7 @@ func SQLCreateManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, 
 					row.TokenSymbol,
 					row.ColdAddress,
 					row.HotAddress,
+					row.FeeAddress,
 					row.TxOrgMinBalance,
 					row.CreateAt,
 				},
@@ -1850,6 +1863,7 @@ func SQLCreateManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, 
 					row.TokenSymbol,
 					row.ColdAddress,
 					row.HotAddress,
+					row.FeeAddress,
 					row.TxOrgMinBalance,
 					row.CreateAt,
 				},
@@ -1868,6 +1882,7 @@ func SQLCreateManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, 
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 ) VALUES
@@ -1884,6 +1899,7 @@ func SQLCreateManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, 
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 ) VALUES
@@ -1914,6 +1930,7 @@ func SQLCreateIgnoreManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExe
 					row.TokenSymbol,
 					row.ColdAddress,
 					row.HotAddress,
+					row.FeeAddress,
 					row.TxOrgMinBalance,
 					row.CreateAt,
 				},
@@ -1928,6 +1945,7 @@ func SQLCreateIgnoreManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExe
 					row.TokenSymbol,
 					row.ColdAddress,
 					row.HotAddress,
+					row.FeeAddress,
 					row.TxOrgMinBalance,
 					row.CreateAt,
 				},
@@ -1946,6 +1964,7 @@ func SQLCreateIgnoreManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExe
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 ) VALUES
@@ -1962,6 +1981,7 @@ func SQLCreateIgnoreManyTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExe
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 ) VALUES
@@ -1989,6 +2009,7 @@ func SQLGetTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, id int6
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 FROM
@@ -2054,6 +2075,7 @@ func SQLSelectTAppConfigTokenBtc(ctx context.Context, tx hcommon.DbExeAble, ids 
     token_symbol,
     cold_address,
     hot_address,
+    fee_address,
     tx_org_min_balance,
     create_at
 FROM
@@ -2112,6 +2134,7 @@ SET
     token_symbol=:token_symbol,
     cold_address=:cold_address,
     hot_address=:hot_address,
+    fee_address=:fee_address,
     tx_org_min_balance=:tx_org_min_balance,
     create_at=:create_at
 WHERE
@@ -2122,6 +2145,7 @@ WHERE
 			"token_symbol":       row.TokenSymbol,
 			"cold_address":       row.ColdAddress,
 			"hot_address":        row.HotAddress,
+			"fee_address":        row.FeeAddress,
 			"tx_org_min_balance": row.TxOrgMinBalance,
 			"create_at":          row.CreateAt,
 		},

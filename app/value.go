@@ -58,10 +58,11 @@ const (
 
 // uxto 类型
 const (
-	UxtoTypeTx      = 1
-	UxtoTypeHot     = 2
-	UxtoTypeOmni    = 3
-	UxtoTypeOmniHot = 4
+	UxtoTypeTx         = 1
+	UxtoTypeHot        = 2
+	UxtoTypeOmni       = 3
+	UxtoTypeOmniHot    = 4
+	UxtoTypeOmniOrgFee = 5
 )
 
 // uxto 处理类型

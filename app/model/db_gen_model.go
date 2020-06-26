@@ -107,6 +107,7 @@ const (
 	DBColTAppConfigTokenBtcTokenSymbol     = "t_app_config_token_btc.token_symbol"
 	DBColTAppConfigTokenBtcColdAddress     = "t_app_config_token_btc.cold_address"
 	DBColTAppConfigTokenBtcHotAddress      = "t_app_config_token_btc.hot_address"
+	DBColTAppConfigTokenBtcFeeAddress      = "t_app_config_token_btc.fee_address"
 	DBColTAppConfigTokenBtcTxOrgMinBalance = "t_app_config_token_btc.tx_org_min_balance"
 	DBColTAppConfigTokenBtcCreateAt        = "t_app_config_token_btc.create_at"
 )
@@ -118,6 +119,7 @@ const (
    token_symbol,
    cold_address,
    hot_address,
+   fee_address,
    tx_org_min_balance,
    create_at
 */
@@ -127,6 +129,7 @@ type DBTAppConfigTokenBtc struct {
 	TokenSymbol     string `db:"token_symbol" json:"token_symbol"`
 	ColdAddress     string `db:"cold_address" json:"cold_address"`
 	HotAddress      string `db:"hot_address" json:"hot_address"`
+	FeeAddress      string `db:"fee_address" json:"fee_address"`
 	TxOrgMinBalance string `db:"tx_org_min_balance" json:"tx_org_min_balance"`
 	CreateAt        int64  `db:"create_at" json:"create_at"`
 }
