@@ -218,7 +218,7 @@ func main() {
 		return
 	}
 	var respBtc BtcStRespGasPrice
-	err = json.Unmarshal([]byte(body), &resp)
+	err = json.Unmarshal([]byte(body), &respBtc)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return

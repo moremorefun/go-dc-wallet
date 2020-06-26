@@ -53,7 +53,7 @@ func CreateHotAddress(num int64) ([]string, error) {
 			Symbol:  CoinSymbol,
 			Address: address.EncodeAddress(),
 			Pwd:     wifStrEn,
-			UseTag:  0,
+			UseTag:  -1,
 		})
 		addresses = append(addresses, address.EncodeAddress())
 	}
