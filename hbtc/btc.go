@@ -1047,10 +1047,22 @@ func CheckRawTxConfirm() {
 func CheckWithdraw() {
 	lockKey := "BtcCheckWithdraw"
 	app.LockWrap(lockKey, func() {
+		// 开始事物
+		isComment := false
+		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		defer func() {
+			if !isComment {
+				_ = dbTx.Rollback()
+			}
+		}()
 		// 获取提币信息
-		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+		withdrawRows, err := app.SQLSelectTWithdrawColByStatusForUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawProductID,
@@ -1068,25 +1080,31 @@ func CheckWithdraw() {
 		if len(withdrawRows) == 0 {
 			return
 		}
-		// 获取热钱包地址
-		hotRow, err := app.SQLGetTAppConfigStrByK(
+		// 获取手续费配置
+		feePriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			dbTx,
+			"to_user_gas_price_btc",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 获取热钱包地址
+		hotAddressValue, err := app.SQLGetTAppConfigStrValueByK(
+			context.Background(),
+			dbTx,
 			"hot_wallet_address_btc",
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if hotRow == nil {
-			hcommon.Log.Errorf("no config int of hot_wallet_address_btc")
-			return
-		}
-		hotAddress := hotRow.V
+		hotAddress := hotAddressValue
 		// 获取热钱包uxto
-		uxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressAndType(
+		uxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressAndTypeForUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			[]string{
 				model.DBColTTxBtcUxtoID,
 				model.DBColTTxBtcUxtoTxID,
@@ -1102,50 +1120,18 @@ func CheckWithdraw() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 获取私钥
 		var addresses []string
 		for _, uxtoRow := range uxtoRows {
 			addresses = append(addresses, uxtoRow.VoutAddress)
 		}
-		addressKeyMap, err := app.SQLGetAddressKeyMap(
+		addressWifMap, err := GetWifMapByAddresses(
 			context.Background(),
-			app.DbCon,
-			[]string{
-				model.DBColTAddressKeyID,
-				model.DBColTAddressKeyAddress,
-				model.DBColTAddressKeyPwd,
-			},
+			dbTx,
 			addresses,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		addressWifMap := make(map[string]*btcutil.WIF)
-		for k, addressKey := range addressKeyMap {
-			key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
-			if len(key) == 0 {
-				hcommon.Log.Errorf("error key of: %s", k)
-				return
-			}
-			wif, err := btcutil.DecodeWIF(key)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
-			addressWifMap[k] = wif
-		}
-		// 获取手续费配置
-		feeRow, err := app.SQLGetTAppStatusIntByK(
-			context.Background(),
-			app.DbCon,
-			"to_user_gas_price_btc",
-		)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if feeRow == nil {
-			hcommon.Log.Errorf("no config int of to_user_gas_price_btc")
 			return
 		}
 		// 生成交易
@@ -1183,7 +1169,7 @@ func CheckWithdraw() {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				if inBalance >= outBalance+txSize*feeRow.V {
+				if inBalance >= outBalance+txSize*feePriceValue {
 					// input数额充足，继续添加withdraw
 					isInputBalanceOk = true
 					break
@@ -1258,7 +1244,7 @@ func CheckWithdraw() {
 				Balance:     balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
 			})
 		}
-		tx, err := BtcMakeTx(argVins, argVouts, feeRow.V, hotAddress)
+		tx, err := BtcMakeTx(argVins, argVouts, feePriceValue, hotAddress)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
@@ -1282,7 +1268,7 @@ func CheckWithdraw() {
 			if i == 0 {
 				sendHex = hex.EncodeToString(b.Bytes())
 				gas = int64(tx.SerializeSize())
-				gasPrice = feeRow.V
+				gasPrice = feePriceValue
 			}
 			sendRows = append(sendRows, &model.DBTSendBtc{
 				RelatedType:  app.SendRelationTypeWithdraw,
@@ -1323,7 +1309,7 @@ func CheckWithdraw() {
 		// 插入数据
 		_, err = model.SQLCreateIgnoreManyTSendBtc(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			sendRows,
 		)
 		if err != nil {
@@ -1333,7 +1319,7 @@ func CheckWithdraw() {
 		// 更新uxto状态
 		_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			updateUxtoRows,
 		)
 		if err != nil {
@@ -1343,13 +1329,20 @@ func CheckWithdraw() {
 		// 更新withdraw
 		_, err = app.SQLCreateManyTWithdrawUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			updateWithdrawRows,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 提交事物
+		err = dbTx.Commit()
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		isComment = true
 	})
 }
 

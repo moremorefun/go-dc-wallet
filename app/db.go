@@ -630,6 +630,36 @@ WHERE
 	return rows, nil
 }
 
+// SQLSelectTWithdrawColByStatusForUpdate 根据ids获取
+func SQLSelectTWithdrawColByStatusForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64, symbols []string) ([]*model.DBTWithdraw, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_withdraw
+WHERE
+	handle_status=:handle_status
+	AND symbol IN (:symbols)
+FOR UPDATE`)
+
+	var rows []*model.DBTWithdraw
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"handle_status": status,
+			"symbols":       symbols,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // SQLGetTWithdrawColForUpdate 根据id查询
 func SQLGetTWithdrawColForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64, status int64) (*model.DBTWithdraw, error) {
 	query := strings.Builder{}
@@ -1267,8 +1297,8 @@ ORDER BY
 	return rows, nil
 }
 
-// SQLSelectTTxBtcUxtoColByAddressAndType 根据ids获取
-func SQLSelectTTxBtcUxtoColByAddressAndType(ctx context.Context, tx hcommon.DbExeAble, cols []string, address string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+// SQLSelectTTxBtcUxtoColByAddressAndTypeForUpdate 根据ids获取
+func SQLSelectTTxBtcUxtoColByAddressAndTypeForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, address string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1279,7 +1309,8 @@ WHERE
 	vout_address=:vout_address
 	AND handle_status=0
 	AND uxto_type=:uxto_type
-ORDER BY `)
+ORDER BY
+`)
 	switch uxtoType {
 	case UxtoTypeTx:
 		query.WriteString(" id")
@@ -1290,6 +1321,7 @@ ORDER BY `)
 	default:
 		query.WriteString(" CAST(vout_value as DECIMAL(65,8)) DESC")
 	}
+	query.WriteString("\nFOR UPDATE")
 	var rows []*model.DBTTxBtcUxto
 	err := hcommon.DbSelectNamedContent(
 		ctx,
