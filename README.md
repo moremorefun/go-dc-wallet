@@ -1,6 +1,6 @@
 # go-dc-wallet
 
-## 内容列表
+![](https://github.com/moremorefun/go-dc-wallet/workflows/build/badge.svg)
 
 - [背景](背景)
 - [项目依赖](项目依赖)
