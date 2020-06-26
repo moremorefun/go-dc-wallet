@@ -160,7 +160,7 @@ func CheckBlockSeek() {
 	lockKey := "EthCheckBlockSeek"
 	app.LockWrap(lockKey, func() {
 		// 获取配置 延迟确认数
-		confirmRow, err := app.SQLGetTAppConfigIntByK(
+		confirmValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"block_confirm_num",
@@ -169,12 +169,8 @@ func CheckBlockSeek() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if confirmRow == nil {
-			hcommon.Log.Errorf("no config int of min_free_address")
-			return
-		}
 		// 获取状态 当前处理完成的最新的block number
-		seekRow, err := app.SQLGetTAppStatusIntByK(
+		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"seek_num",
@@ -183,21 +179,17 @@ func CheckBlockSeek() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if seekRow == nil {
-			hcommon.Log.Errorf("no config int of seek_num")
-			return
-		}
 		// rpc 获取当前最新区块数
 		rpcBlockNum, err := ethclient.RpcBlockNumber(context.Background())
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		startI := seekRow.V + 1
-		endI := rpcBlockNum - confirmRow.V + 1
+		startI := seekValue + 1
+		endI := rpcBlockNum - confirmValue + 1
 		if startI < endI {
 			// 手续费钱包列表
-			feeRow, err := app.SQLGetTAppConfigStrByK(
+			feeAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 				context.Background(),
 				app.DbCon,
 				"fee_wallet_address_list",
@@ -206,11 +198,7 @@ func CheckBlockSeek() {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			if feeRow == nil {
-				hcommon.Log.Errorf("no config int of fee_wallet_address_list")
-				return
-			}
-			addresses := strings.Split(feeRow.V, ",")
+			addresses := strings.Split(feeAddressValue, ",")
 			var feeAddresses []string
 			for _, address := range addresses {
 				if address == "" {
@@ -343,7 +331,7 @@ func CheckAddressOrg() {
 	lockKey := "EthCheckAddressOrg"
 	app.LockWrap(lockKey, func() {
 		// 获取冷钱包地址
-		coldRow, err := app.SQLGetTAppConfigStrByK(
+		coldAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 			context.Background(),
 			app.DbCon,
 			"cold_wallet_address",
@@ -352,11 +340,7 @@ func CheckAddressOrg() {
 			hcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
 			return
 		}
-		if coldRow == nil {
-			hcommon.Log.Errorf("no config int of cold_wallet_address")
-			return
-		}
-		coldAddress, err := StrToAddressBytes(coldRow.V)
+		coldAddress, err := StrToAddressBytes(coldAddressValue)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
@@ -380,15 +364,8 @@ func CheckAddressOrg() {
 			// 没有要处理的信息
 			return
 		}
-		// 将待整理地址按地址做归并处理
-		type OrgInfo struct {
-			RowIDs  []int64  // db t_tx.id
-			Balance *big.Int // 金额
-		}
-		// addressMap map[地址] = []整理信息
-		addressMap := make(map[string]*OrgInfo)
 		// 获取gap price
-		gasRow, err := app.SQLGetTAppStatusIntByK(
+		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"to_cold_gas_price",
@@ -397,13 +374,16 @@ func CheckAddressOrg() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if gasRow == nil {
-			hcommon.Log.Errorf("no config int of to_cold_gas_price")
-			return
-		}
-		gasPrice := gasRow.V
+		gasPrice := gasPriceValue
 		gasLimit := int64(21000)
 		feeValue := big.NewInt(gasLimit * gasPrice)
+		// 将待整理地址按地址做归并处理
+		type OrgInfo struct {
+			RowIDs  []int64  // db t_tx.id
+			Balance *big.Int // 金额
+		}
+		// addressMap map[地址] = []整理信息
+		addressMap := make(map[string]*OrgInfo)
 		// addresses 需要整理的地址列表
 		var addresses []string
 		for _, txRow := range txRows {
@@ -512,7 +492,7 @@ func CheckAddressOrg() {
 						RelatedID:    rowID,
 						TxID:         txHash,
 						FromAddress:  address,
-						ToAddress:    coldRow.V,
+						ToAddress:    coldAddressValue,
 						BalanceReal:  sendBalanceReal,
 						Gas:          gasLimit,
 						GasPrice:     gasPrice,
@@ -530,7 +510,7 @@ func CheckAddressOrg() {
 						RelatedID:    rowID,
 						TxID:         txHash,
 						FromAddress:  address,
-						ToAddress:    coldRow.V,
+						ToAddress:    coldAddressValue,
 						BalanceReal:  "0",
 						Gas:          0,
 						GasPrice:     0,
