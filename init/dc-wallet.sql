@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-06-26 22:11:40.5620
+-- Generation Time: 2020-06-26 22:33:00.5860
 -- -------------------------------------------------------------
 
 
@@ -224,7 +224,8 @@ CREATE TABLE `t_tx_btc_token` (
   `org_msg` varchar(128) NOT NULL,
   `org_at` bigint(22) unsigned NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `tx_id` (`tx_id`)
+  UNIQUE KEY `tx_id` (`tx_id`),
+  KEY `t_tx_btc_token_org_status_idx` (`org_status`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_btc_uxto` (
@@ -244,8 +245,8 @@ CREATE TABLE `t_tx_btc_uxto` (
   `handle_time` bigint(22) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `tx_id` (`tx_id`,`vout_n`),
-  KEY `vout_address` (`vout_address`),
-  KEY `handle_status` (`handle_status`,`uxto_type`,`id`) USING BTREE
+  KEY `handle_status` (`handle_status`,`uxto_type`,`id`) USING BTREE,
+  KEY `t_tx_btc_uxto_vout_address_handle_status_uxto_type_idx` (`vout_address`,`handle_status`,`uxto_type`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_erc20` (
