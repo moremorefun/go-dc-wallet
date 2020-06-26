@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
 	"strings"
@@ -38,6 +39,33 @@ LIMIT 1`,
 	return &row, nil
 }
 
+// SQLGetTAppConfigIntValueByK 查询配置
+func SQLGetTAppConfigIntValueByK(ctx context.Context, tx hcommon.DbExeAble, k string) (int64, error) {
+	var row model.DBTAppConfigInt
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    v
+FROM
+	t_app_config_int
+WHERE
+	k=:k
+LIMIT 1`,
+		gin.H{
+			"k": k,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, fmt.Errorf("no app config int of: %s", k)
+	}
+	return row.V, nil
+}
+
 // SQLGetTAppConfigStrByK 查询配置
 func SQLGetTAppConfigStrByK(ctx context.Context, tx hcommon.DbExeAble, k string) (*model.DBTAppConfigStr, error) {
 	var row model.DBTAppConfigStr
@@ -67,6 +95,33 @@ LIMIT 1`,
 	return &row, nil
 }
 
+// SQLGetTAppConfigStrValueByK 查询配置
+func SQLGetTAppConfigStrValueByK(ctx context.Context, tx hcommon.DbExeAble, k string) (string, error) {
+	var row model.DBTAppConfigStr
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    v
+FROM
+	t_app_config_str
+WHERE
+	k=:k
+LIMIT 1`,
+		gin.H{
+			"k": k,
+		},
+	)
+	if err != nil {
+		return "", err
+	}
+	if !ok {
+		return "", fmt.Errorf("no app config str of: %s", k)
+	}
+	return row.V, nil
+}
+
 // SQLGetTAppStatusIntByK 查询配置
 func SQLGetTAppStatusIntByK(ctx context.Context, tx hcommon.DbExeAble, k string) (*model.DBTAppStatusInt, error) {
 	var row model.DBTAppStatusInt
@@ -94,6 +149,33 @@ LIMIT 1`,
 		return nil, nil
 	}
 	return &row, nil
+}
+
+// SQLGetTAppStatusIntValueByK 查询配置
+func SQLGetTAppStatusIntValueByK(ctx context.Context, tx hcommon.DbExeAble, k string) (int64, error) {
+	var row model.DBTAppStatusInt
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    v
+FROM
+	t_app_status_int
+WHERE
+	k=:k
+LIMIT 1`,
+		gin.H{
+			"k": k,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, fmt.Errorf("no app status int of: %s", k)
+	}
+	return row.V, nil
 }
 
 // SQLGetTAddressKeyFreeCount 获取剩余可用地址数

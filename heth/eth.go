@@ -105,17 +105,13 @@ func CheckAddressFree() {
 	lockKey := "EthCheckAddressFree"
 	app.LockWrap(lockKey, func() {
 		// 获取配置 允许的最小剩余地址数
-		minFreeRow, err := app.SQLGetTAppConfigIntByK(
+		minFreeCount, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"min_free_address",
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if minFreeRow == nil {
-			hcommon.Log.Errorf("no config int of min_free_address")
 			return
 		}
 		// 获取当前剩余可用地址数
@@ -129,10 +125,10 @@ func CheckAddressFree() {
 			return
 		}
 		// 如果数据库中剩余可用地址小于最小允许可用地址
-		if freeCount < minFreeRow.V {
+		if freeCount < minFreeCount {
 			var rows []*model.DBTAddressKey
 			// 遍历差值次数
-			for i := int64(0); i < minFreeRow.V-freeCount; i++ {
+			for i := int64(0); i < minFreeCount-freeCount; i++ {
 				address, privateKeyStrEn, err := genAddressAndAesKey()
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
