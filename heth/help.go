@@ -156,3 +156,38 @@ func GetPKMapOfAddresses(ctx context.Context, db hcommon.DbExeAble, addresses []
 	}
 	return addressPKMap, nil
 }
+
+// GetPkOfAddress 获取地址私钥
+func GetPkOfAddress(ctx context.Context, db hcommon.DbExeAble, address string) (*ecdsa.PrivateKey, error) {
+	// 获取私钥
+	keyRow, err := app.SQLGetTAddressKeyColByAddress(
+		ctx,
+		db,
+		[]string{
+			model.DBColTAddressKeyPwd,
+		},
+		address,
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return nil, err
+	}
+	if keyRow == nil {
+		hcommon.Log.Errorf("no key of: %s", address)
+		return nil, fmt.Errorf("no key of: %s", address)
+	}
+	key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+	if len(key) == 0 {
+		hcommon.Log.Errorf("error key of: %s", address)
+		return nil, fmt.Errorf("no key of: %s", address)
+	}
+	if strings.HasPrefix(key, "0x") {
+		key = key[2:]
+	}
+	privateKey, err := crypto.HexToECDSA(key)
+	if err != nil {
+		hcommon.Log.Errorf("HexToECDSA err: [%T] %s", err, err.Error())
+		return nil, err
+	}
+	return privateKey, nil
+}

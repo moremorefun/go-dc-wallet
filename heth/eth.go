@@ -900,17 +900,21 @@ func CheckRawTxConfirm() {
 		var erc20TxIDs []int64
 		var erc20TxFeeIDs []int64
 		withdrawIDs = []int64{}
+		var sendHashes []string
 		for _, sendRow := range sendRows {
-			rpcTx, err := ethclient.RpcTransactionByHash(
-				context.Background(),
-				sendRow.TxID,
-			)
-			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				continue
-			}
-			if rpcTx == nil {
-				continue
+			if !hcommon.IsStringInSlice(sendHashes, sendRow.TxID) {
+				rpcTx, err := ethclient.RpcTransactionByHash(
+					context.Background(),
+					sendRow.TxID,
+				)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					continue
+				}
+				if rpcTx == nil {
+					continue
+				}
+				sendHashes = append(sendHashes, sendRow.TxID)
 			}
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 				// 提币
@@ -979,7 +983,7 @@ func CheckRawTxConfirm() {
 				}
 			}
 		}
-		// 通知信息
+		// 添加通知信息
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
 			app.DbCon,
@@ -1067,55 +1071,7 @@ func CheckRawTxConfirm() {
 func CheckWithdraw() {
 	lockKey := "EthCheckWithdraw"
 	app.LockWrap(lockKey, func() {
-		// 获取热钱包地址
-		hotRow, err := app.SQLGetTAppConfigStrByK(
-			context.Background(),
-			app.DbCon,
-			"hot_wallet_address",
-		)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if hotRow == nil {
-			hcommon.Log.Errorf("no config int of hot_wallet_address")
-			return
-		}
-		_, err = StrToAddressBytes(hotRow.V)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		// 获取私钥
-		keyRow, err := app.SQLGetTAddressKeyColByAddress(
-			context.Background(),
-			app.DbCon,
-			[]string{
-				model.DBColTAddressKeyPwd,
-			},
-			hotRow.V,
-		)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if keyRow == nil {
-			hcommon.Log.Errorf("no key of: %s", hotRow.V)
-			return
-		}
-		key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
-		if len(key) == 0 {
-			hcommon.Log.Errorf("error key of: %s", hotRow.V)
-			return
-		}
-		if strings.HasPrefix(key, "0x") {
-			key = key[2:]
-		}
-		privateKey, err := crypto.HexToECDSA(key)
-		if err != nil {
-			hcommon.Log.Errorf("HexToECDSA err: [%T] %s", err, err.Error())
-			return
-		}
+		// 获取需要处理的提币数据
 		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
 			context.Background(),
 			app.DbCon,
@@ -1130,11 +1086,38 @@ func CheckWithdraw() {
 			return
 		}
 		if len(withdrawRows) == 0 {
+			// 没有要处理的提币
 			return
 		}
+		// 获取热钱包地址
+		hotAddressValue, err := app.SQLGetTAppConfigStrValueByK(
+			context.Background(),
+			app.DbCon,
+			"hot_wallet_address",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		_, err = StrToAddressBytes(hotAddressValue)
+		if err != nil {
+			hcommon.Log.Errorf("eth hot address err: [%T] %s", err, err.Error())
+			return
+		}
+		// 获取私钥
+		privateKey, err := GetPkOfAddress(
+			context.Background(),
+			app.DbCon,
+			hotAddressValue,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 获取热钱包余额
 		hotAddressBalance, err := ethclient.RpcBalanceAt(
 			context.Background(),
-			hotRow.V,
+			hotAddressValue,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1143,7 +1126,7 @@ func CheckWithdraw() {
 		pendingBalanceRealStr, err := app.SQLGetTSendPendingBalanceReal(
 			context.Background(),
 			app.DbCon,
-			hotRow.V,
+			hotAddressValue,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1156,7 +1139,7 @@ func CheckWithdraw() {
 		}
 		hotAddressBalance.Sub(hotAddressBalance, pendingBalance)
 		// 获取gap price
-		gasRow, err := app.SQLGetTAppStatusIntByK(
+		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"to_user_gas_price",
@@ -1165,11 +1148,7 @@ func CheckWithdraw() {
 			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if gasRow == nil {
-			hcommon.Log.Errorf("no config int of to_user_gas_price")
-			return
-		}
-		gasPrice := gasRow.V
+		gasPrice := gasPriceValue
 		gasLimit := int64(21000)
 		feeValue := gasLimit * gasPrice
 		chainID, err := ethclient.RpcNetworkID(context.Background())
@@ -1178,7 +1157,7 @@ func CheckWithdraw() {
 			return
 		}
 		for _, withdrawRow := range withdrawRows {
-			err = handleWithdraw(withdrawRow.ID, chainID, hotRow.V, privateKey, hotAddressBalance, gasLimit, gasPrice, feeValue)
+			err = handleWithdraw(withdrawRow.ID, chainID, hotAddressValue, privateKey, hotAddressBalance, gasLimit, gasPrice, feeValue)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
@@ -1224,6 +1203,8 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 	hotAddressBalance.Sub(hotAddressBalance, big.NewInt(feeValue))
 	if hotAddressBalance.Cmp(new(big.Int)) < 0 {
 		hcommon.Log.Errorf("hot balance limit")
+		hotAddressBalance.Add(hotAddressBalance, balanceBigInt)
+		hotAddressBalance.Add(hotAddressBalance, big.NewInt(feeValue))
 		return nil
 	}
 	// nonce
