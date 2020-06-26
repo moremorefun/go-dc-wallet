@@ -2,12 +2,23 @@ name: build
 
 on:
   push:
-    branches: [ master ]
+    paths-ignore:
+      - "*.md"
+      - "*.sql"
+      - ".env-example"
+      - ".gitignore"
+      - "LICENSE"
+      - "docker-compose.yml"
   pull_request:
-    branches: [ master ]
+    paths-ignore:
+      - "*.md"
+      - "*.sql"
+      - ".env-example"
+      - ".gitignore"
+      - "LICENSE"
+      - "docker-compose.yml"
 
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -30,5 +41,6 @@ jobs:
       run: |
         CGO_ENABLED=0 go build -o app-cron ./cmd/crontab/main.go && \
         CGO_ENABLED=0 go build -o app-api ./cmd/api/main.go && \
-        CGO_ENABLED=0 go build -o app-db ./cmd/db/main.go
+        CGO_ENABLED=0 go build -o app-db ./cmd/db/main.go && \
+        CGO_ENABLED=0 go build -o app-dbinit ./cmd/dbinit/main.go
 
