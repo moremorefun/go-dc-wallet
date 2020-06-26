@@ -67,9 +67,9 @@ OMNI_RPC_PWD=omni
 
 ### 初始化数据库
 
-创建配置的数据库,例如上面的`.env`中设置的数据库名为`dc-wallet-prod`.
+#### 创建配置的数据库,例如上面的`.env`中设置的数据库名为`dc-wallet-prod`.
 
-运行数据库表差异SQL生成工具,生成数据库表结构SQL文件
+#### 运行数据库表差异SQL生成工具,生成数据库表结构SQL文件
 
 ```
 go run cmd/db/main.go
@@ -77,9 +77,40 @@ go run cmd/db/main.go
 
 确认生成的SQL无问题后在MySQL中执行,生成相应的表格.
 
+#### 初始化基础数据:
+
+```
+go run cmd/dbinit/main.go
+```
+
+#### 手动添加自身需要设置的数据,例如冷钱包数据
+```
+# eth冷钱包地址
+t_app_config_str.cold_wallet_address
+# btc冷钱包地址
+t_app_config_str.cold_wallet_address_btc
+
+# erc20 token 冷钱包地址
+t_app_config_token[].cold_address
+
+# omni token 冷钱包地址
+t_app_config_token_btc[].cold_address
+
+# 用于提供api服务的相关数据
+t_product
+```
+
 ### 运行定时任务
 
+```
+go run cmd/crontab/main.go
+```
+
 ### 运行API服务接口
+
+```
+go run cmd/api/main.go
+```
    
 ## 维护者
 
