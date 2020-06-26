@@ -46,6 +46,50 @@ func init() {
 	ethToWeiDecimal = decimal.NewFromInt(EthToWei)
 }
 
+// CreateHotAddress 创建自用地址
+func CreateHotAddress(num int64) ([]string, error) {
+	var rows []*model.DBTAddressKey
+	var addresses []string
+	// 遍历差值次数
+	for i := int64(0); i < num; i++ {
+		// 生成私钥
+		privateKey, err := crypto.GenerateKey()
+		if err != nil {
+			return nil, err
+		}
+		privateKeyBytes := crypto.FromECDSA(privateKey)
+		privateKeyStr := hexutil.Encode(privateKeyBytes)
+		// 加密密钥
+		privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, app.Cfg.AESKey)
+		// 获取地址
+		publicKey := privateKey.Public()
+		publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
+		if !ok {
+			return nil, err
+		}
+		// 地址全部储存为小写方便处理
+		address := AddressBytesToStr(crypto.PubkeyToAddress(*publicKeyECDSA))
+		// 存入待添加队列
+		rows = append(rows, &model.DBTAddressKey{
+			Symbol:  "eth",
+			Address: address,
+			Pwd:     privateKeyStrEn,
+			UseTag:  -1,
+		})
+		addresses = append(addresses, address)
+	}
+	// 一次性将生成的地址存入数据库
+	_, err := model.SQLCreateIgnoreManyTAddressKey(
+		context.Background(),
+		app.DbCon,
+		rows,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return addresses, nil
+}
+
 // CheckAddressFree 检测是否有充足的备用地址
 func CheckAddressFree() {
 	lockKey := "EthCheckAddressFree"

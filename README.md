@@ -10,7 +10,7 @@
 
 ## 背景
 
-很多数字货币相关的项目需要收提币的功能,这里提供了一个用于收提币服务的项目.目前支持的币种有
+很多加密货币相关的项目需要收提币的功能,这里提供了一个用于收提币服务的项目.目前支持的币种有:
 
 - Ethereum(以太坊)
 - Erc20(以太坊代币)
@@ -26,9 +26,56 @@
 
 ## 使用说明
 
+### 拉取代码并获取依赖库
+
+```
+# 拉取代吗
+git clone https://github.com/moremorefun/go-dc-wallet.git
+# 切换到项目目录
+cd go-dc-wallet
+# 获取依赖
+go mod download
+```
+
 ### 配置环境变量
+```
+cp .env-example .env
+```
+根据自身情况编辑 `.env` 文件
+```
+### 是否是debug,用来设置日志等级
+IS-DEBUG=true
+
+### mysql配置
+MYSQL=root:123456@tcp(127.0.0.1:3306)/dc-wallet-prod?parseTime=true&loc=Local&charset=utf8mb4&collation=utf8mb4_unicode_ci&tx_isolation=%27READ-COMMITTED%27&sql_mode=%27STRICT_TRANS_TABLES%2cNO_ZERO_IN_DATE%2cERROR_FOR_DIVISION_BY_ZERO%2cNO_AUTO_CREATE_USER%2cNO_ENGINE_SUBSTITUTION%27
+# 是否在日志中输出sql请求语句
+MYSQL-IS-SHOW-SQL=false
+
+### 私钥加密的key
+AES-KEY=123
+
+### eth rpc 接口
+ETH_RPC=https://mainnet.infura.io/v3/0b359d2406a6492fb53883d46921d775
+
+### btc rpc 接口
+# btc接口类型可选值为 btc 和 btc-test
+BTC-NETWORK-TYPE=btc
+OMNI_RPC_HOST=http://127.0.0.1:18332
+OMNI_RPC_USER=omni
+OMNI_RPC_PWD=omni
+```
 
 ### 初始化数据库
+
+创建配置的数据库,例如上面的`.env`中设置的数据库名为`dc-wallet-prod`.
+
+运行数据库表差异SQL生成工具,生成数据库表结构SQL文件
+
+```
+go run cmd/db/main.go
+```
+
+确认生成的SQL无问题后在MySQL中执行,生成相应的表格.
 
 ### 运行定时任务
 

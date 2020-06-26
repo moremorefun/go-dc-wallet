@@ -30,6 +30,45 @@ const (
 	MaxTxSize         = 1000000
 )
 
+// CreateHotAddress 创建自用地址
+func CreateHotAddress(num int64) ([]string, error) {
+	var rows []*model.DBTAddressKey
+	var addresses []string
+	// 遍历差值次数
+	for i := int64(0); i < num; i++ {
+		// 生成私钥
+		wif, err := GetNetwork(app.Cfg.BtcNetworkType).CreatePrivateKey()
+		if err != nil {
+			return nil, err
+		}
+		// 加密密钥
+		wifStrEn := hcommon.AesEncrypt(wif.String(), app.Cfg.AESKey)
+		// 获取地址
+		address, err := GetNetwork(app.Cfg.BtcNetworkType).GetAddress(wif)
+		if err != nil {
+			return nil, err
+		}
+		// 存入待添加队列
+		rows = append(rows, &model.DBTAddressKey{
+			Symbol:  CoinSymbol,
+			Address: address.EncodeAddress(),
+			Pwd:     wifStrEn,
+			UseTag:  0,
+		})
+		addresses = append(addresses, address.EncodeAddress())
+	}
+	// 一次性将生成的地址存入数据库
+	_, err := model.SQLCreateIgnoreManyTAddressKey(
+		context.Background(),
+		app.DbCon,
+		rows,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return addresses, nil
+}
+
 // CheckAddressFree 检测剩余地址数
 func CheckAddressFree() {
 	lockKey := "BtcCheckAddressFree"
