@@ -56,9 +56,10 @@ func main() {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
+	// 替换 AUTO_INCREMENT
 	r, _ := regexp.Compile(`AUTO_INCREMENT\s*=\s*(\d)*\s*,`)
 	sqlDiffWithoutInc := r.ReplaceAllStringFunc(sqlDiff.String(), func(s string) string {
 		return ""
 	})
-	hcommon.Log.Debugf("sql diff: %s", sqlDiffWithoutInc)
+	hcommon.Log.Debugf("sql diff: \n%s", sqlDiffWithoutInc)
 }

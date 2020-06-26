@@ -277,12 +277,15 @@ func postWithdraw(c *gin.Context) {
 		})
 		return
 	}
+	tokenDecimalsMap := make(map[string]int64)
 	ethSymbols := []string{"eth"}
+	tokenDecimalsMap["eth"] = 18
 	tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 		c,
 		app.DbCon,
 		[]string{
 			model.DBColTAppConfigTokenTokenSymbol,
+			model.DBColTAppConfigTokenTokenDecimals,
 		},
 	)
 	if err != nil {
@@ -295,8 +298,10 @@ func postWithdraw(c *gin.Context) {
 	}
 	for _, tokenRow := range tokenRows {
 		ethSymbols = append(ethSymbols, tokenRow.TokenSymbol)
+		tokenDecimalsMap[tokenRow.TokenSymbol] = tokenRow.TokenDecimals
 	}
 	btcSymbols := []string{"btc"}
+	tokenDecimalsMap["btc"] = 8
 	tokenBtcRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 		c,
 		app.DbCon,
@@ -314,6 +319,39 @@ func postWithdraw(c *gin.Context) {
 	}
 	for _, tokenRow := range tokenBtcRows {
 		btcSymbols = append(btcSymbols, tokenRow.TokenSymbol)
+		tokenDecimalsMap[tokenRow.TokenSymbol] = 8
+	}
+	tokenDecimals, ok := tokenDecimalsMap[req.Symbol]
+	if !ok {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorSymbolNotSupport,
+			"err_msg": hcommon.ErrorSymbolNotSupportMsg,
+		})
+		return
+	}
+	// 验证金额
+	balanceObj, err := decimal.NewFromString(req.Balance)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorBalanceFormat,
+			"err_msg": hcommon.ErrorBalanceFormatMsg,
+		})
+		return
+	}
+	if balanceObj.LessThanOrEqual(decimal.NewFromInt(0)) {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorBalanceFormat,
+			"err_msg": hcommon.ErrorBalanceFormatMsg,
+		})
+		return
+	}
+	if balanceObj.Exponent() < -int32(tokenDecimals) {
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorBalanceFormat,
+			"err_msg": hcommon.ErrorBalanceFormatMsg,
+		})
+		return
 	}
 	if hcommon.IsStringInSlice(ethSymbols, req.Symbol) {
 		// 验证地址
@@ -326,33 +364,9 @@ func postWithdraw(c *gin.Context) {
 			})
 			return
 		}
-		// 验证金额
-		balanceObj, err := decimal.NewFromString(req.Balance)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorBalanceFormat,
-				"err_msg": hcommon.ErrorBalanceFormatMsg,
-			})
-			return
-		}
-		if balanceObj.LessThanOrEqual(decimal.NewFromInt(0)) {
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorBalanceFormat,
-				"err_msg": hcommon.ErrorBalanceFormatMsg,
-			})
-			return
-		}
-		if balanceObj.Exponent() < -18 {
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorBalanceFormat,
-				"err_msg": hcommon.ErrorBalanceFormatMsg,
-			})
-			return
-		}
+
 	} else if hcommon.IsStringInSlice(btcSymbols, req.Symbol) {
 		// 验证地址
-		req.Address = strings.ToLower(req.Address)
 		_, err := btcutil.DecodeAddress(
 			req.Address,
 			hbtc.GetNetwork(app.Cfg.BtcNetworkType).Params,
@@ -361,30 +375,6 @@ func postWithdraw(c *gin.Context) {
 			c.JSON(http.StatusOK, gin.H{
 				"error":   hcommon.ErrorAddressWrong,
 				"err_msg": hcommon.ErrorAddressWrongMsg,
-			})
-			return
-		}
-		// 验证金额
-		balanceObj, err := decimal.NewFromString(req.Balance)
-		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorBalanceFormat,
-				"err_msg": hcommon.ErrorBalanceFormatMsg,
-			})
-			return
-		}
-		if balanceObj.LessThanOrEqual(decimal.NewFromInt(0)) {
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorBalanceFormat,
-				"err_msg": hcommon.ErrorBalanceFormatMsg,
-			})
-			return
-		}
-		if balanceObj.Exponent() < -8 {
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorBalanceFormat,
-				"err_msg": hcommon.ErrorBalanceFormatMsg,
 			})
 			return
 		}
