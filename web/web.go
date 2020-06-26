@@ -297,6 +297,8 @@ func postWithdraw(c *gin.Context) {
 		return
 	}
 	for _, tokenRow := range tokenRows {
+		tokenRow.TokenSymbol = strings.ToLower(tokenRow.TokenSymbol)
+
 		ethSymbols = append(ethSymbols, tokenRow.TokenSymbol)
 		tokenDecimalsMap[tokenRow.TokenSymbol] = tokenRow.TokenDecimals
 	}
@@ -318,6 +320,8 @@ func postWithdraw(c *gin.Context) {
 		return
 	}
 	for _, tokenRow := range tokenBtcRows {
+		tokenRow.TokenSymbol = strings.ToLower(tokenRow.TokenSymbol)
+
 		btcSymbols = append(btcSymbols, tokenRow.TokenSymbol)
 		tokenDecimalsMap[tokenRow.TokenSymbol] = 8
 	}
