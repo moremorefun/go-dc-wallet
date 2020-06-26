@@ -30,32 +30,40 @@ const (
 	MaxTxSize         = 1000000
 )
 
+func genAddressAndAesKey() (string, string, error) {
+	// 生成私钥
+	wif, err := GetNetwork(app.Cfg.BtcNetworkType).CreatePrivateKey()
+	if err != nil {
+		return "", "", err
+	}
+	// 加密密钥
+	wifStrEn := hcommon.AesEncrypt(wif.String(), app.Cfg.AESKey)
+	// 获取地址
+	address, err := GetNetwork(app.Cfg.BtcNetworkType).GetAddress(wif)
+	if err != nil {
+		return "", "", err
+	}
+	return address.EncodeAddress(), wifStrEn, nil
+}
+
 // CreateHotAddress 创建自用地址
 func CreateHotAddress(num int64) ([]string, error) {
 	var rows []*model.DBTAddressKey
 	var addresses []string
 	// 遍历差值次数
 	for i := int64(0); i < num; i++ {
-		// 生成私钥
-		wif, err := GetNetwork(app.Cfg.BtcNetworkType).CreatePrivateKey()
-		if err != nil {
-			return nil, err
-		}
-		// 加密密钥
-		wifStrEn := hcommon.AesEncrypt(wif.String(), app.Cfg.AESKey)
-		// 获取地址
-		address, err := GetNetwork(app.Cfg.BtcNetworkType).GetAddress(wif)
+		address, wifStrEn, err := genAddressAndAesKey()
 		if err != nil {
 			return nil, err
 		}
 		// 存入待添加队列
 		rows = append(rows, &model.DBTAddressKey{
 			Symbol:  CoinSymbol,
-			Address: address.EncodeAddress(),
+			Address: address,
 			Pwd:     wifStrEn,
 			UseTag:  -1,
 		})
-		addresses = append(addresses, address.EncodeAddress())
+		addresses = append(addresses, address)
 	}
 	// 一次性将生成的地址存入数据库
 	_, err := model.SQLCreateIgnoreManyTAddressKey(
@@ -74,17 +82,13 @@ func CheckAddressFree() {
 	lockKey := "BtcCheckAddressFree"
 	app.LockWrap(lockKey, func() {
 		// 获取配置 允许的最小剩余地址数
-		minFreeRow, err := app.SQLGetTAppConfigIntByK(
+		minFreeValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"min_free_address",
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if minFreeRow == nil {
-			hcommon.Log.Errorf("no config int of min_free_address")
 			return
 		}
 		// 获取当前剩余可用地址数
@@ -98,20 +102,11 @@ func CheckAddressFree() {
 			return
 		}
 		// 如果数据库中剩余可用地址小于最小允许可用地址
-		if freeCount < minFreeRow.V {
+		if freeCount < minFreeValue {
 			var rows []*model.DBTAddressKey
 			// 遍历差值次数
-			for i := int64(0); i < minFreeRow.V-freeCount; i++ {
-				// 生成私钥
-				wif, err := GetNetwork(app.Cfg.BtcNetworkType).CreatePrivateKey()
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				// 加密密钥
-				wifStrEn := hcommon.AesEncrypt(wif.String(), app.Cfg.AESKey)
-				// 获取地址
-				address, err := GetNetwork(app.Cfg.BtcNetworkType).GetAddress(wif)
+			for i := int64(0); i < minFreeValue-freeCount; i++ {
+				address, wifStrEn, err := genAddressAndAesKey()
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
@@ -119,7 +114,7 @@ func CheckAddressFree() {
 				// 存入待添加队列
 				rows = append(rows, &model.DBTAddressKey{
 					Symbol:  CoinSymbol,
-					Address: address.EncodeAddress(),
+					Address: address,
 					Pwd:     wifStrEn,
 					UseTag:  0,
 				})
