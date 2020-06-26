@@ -1379,6 +1379,48 @@ ORDER BY `)
 	return rows, nil
 }
 
+// SQLSelectTTxBtcUxtoColByAddressesAndTypeForUpdate 根据ids获取
+func SQLSelectTTxBtcUxtoColByAddressesAndTypeForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, addresses []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_btc_uxto
+WHERE
+	vout_address IN (:vout_address)
+	AND handle_status=0
+	AND uxto_type=:uxto_type
+ORDER BY
+`)
+	switch uxtoType {
+	case UxtoTypeTx:
+		query.WriteString(" vout_address, id")
+	case UxtoTypeOmni:
+		query.WriteString(" vout_address, CAST(vout_value as DECIMAL(65,8))")
+	case UxtoTypeOmniHot:
+		query.WriteString(" vout_address, CAST(vout_value as DECIMAL(65,8))")
+	default:
+		query.WriteString(" vout_address, CAST(vout_value as DECIMAL(65,8)) DESC")
+	}
+	query.WriteString("\nFOR UPDATE")
+	var rows []*model.DBTTxBtcUxto
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"vout_address": addresses,
+			"uxto_type":    uxtoType,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // SQLSelectTSendBtcColByStatus 根据ids获取
 func SQLSelectTSendBtcColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSendBtc, error) {
 	query := strings.Builder{}
@@ -1618,8 +1660,8 @@ FROM
 	return rows, nil
 }
 
-// SQLSelectTTxBtcTokenColByOrgStatus 根据ids获取
-func SQLSelectTTxBtcTokenColByOrgStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTxBtcToken, error) {
+// SQLSelectTTxBtcTokenColByOrgStatusForUpdate 根据ids获取
+func SQLSelectTTxBtcTokenColByOrgStatusForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTxBtcToken, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1627,7 +1669,8 @@ func SQLSelectTTxBtcTokenColByOrgStatus(ctx context.Context, tx hcommon.DbExeAbl
 FROM
 	t_tx_btc_token
 WHERE
-	org_status=:org_status`)
+	org_status=:org_status
+FOR UPDATE`)
 
 	var rows []*model.DBTTxBtcToken
 	err := hcommon.DbSelectNamedContent(

@@ -1526,7 +1526,7 @@ func OmniCheckBlockSeek() {
 	lockKey := "OmniCheckBlockSeek"
 	app.LockWrap(lockKey, func() {
 		// 获取配置 延迟确认数
-		confirmRow, err := app.SQLGetTAppConfigIntByK(
+		confirmValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"btc_block_confirm_num",
@@ -1535,12 +1535,8 @@ func OmniCheckBlockSeek() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if confirmRow == nil {
-			hcommon.Log.Errorf("no config int of btc_block_confirm_num")
-			return
-		}
 		// 获取状态 当前处理完成的最新的block number
-		seekRow, err := app.SQLGetTAppStatusIntByK(
+		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
 			app.DbCon,
 			"omni_seek_num",
@@ -1549,17 +1545,14 @@ func OmniCheckBlockSeek() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if seekRow == nil {
-			hcommon.Log.Errorf("no config int of omni_seek_num")
-			return
-		}
+
 		rpcBlockNum, err := omniclient.RpcGetBlockCount()
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		startI := seekRow.V + 1
-		endI := rpcBlockNum - confirmRow.V + 1
+		startI := seekValue + 1
+		endI := rpcBlockNum - confirmValue + 1
 		//hcommon.Log.Debugf("omni block seek %d->%d", startI, endI)
 		if startI < endI {
 			// 获取所有token
@@ -1693,9 +1686,22 @@ func OmniCheckBlockSeek() {
 func OmniCheckTxOrg() {
 	lockKey := "OmniCheckTxOrg"
 	app.LockWrap(lockKey, func() {
-		txRows, err := app.SQLSelectTTxBtcTokenColByOrgStatus(
+		// 开始事物
+		isComment := false
+		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		defer func() {
+			if !isComment {
+				_ = dbTx.Rollback()
+			}
+		}()
+		// 查找需要整理的交易
+		txRows, err := app.SQLSelectTTxBtcTokenColByOrgStatusForUpdate(
 			context.Background(),
-			app.DbCon,
+			dbTx,
 			[]string{
 				model.DBColTTxBtcTokenID,
 				model.DBColTTxBtcTokenTokenIndex,
@@ -1751,24 +1757,20 @@ func OmniCheckTxOrg() {
 		}
 		if len(orgMap) > 0 {
 			// 获取手续费配置
-			feeRow, err := app.SQLGetTAppStatusIntByK(
+			feePriceValue, err := app.SQLGetTAppStatusIntValueByK(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				"to_cold_gas_price_btc",
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			if feeRow == nil {
-				hcommon.Log.Errorf("no config int of to_cold_gas_price_btc")
-				return
-			}
 			tokenMap := make(map[int64]*model.DBTAppConfigTokenBtc)
 			var tokenFeeAddresses []string
 			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColByIndexes(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				[]string{
 					model.DBColTAppConfigTokenBtcID,
 					model.DBColTAppConfigTokenBtcTokenIndex,
@@ -1792,38 +1794,19 @@ func OmniCheckTxOrg() {
 					keyAddresses = append(keyAddresses, tokenRow.HotAddress)
 				}
 			}
-			addressKeyMap, err := app.SQLGetAddressKeyMap(
+			addressWifMap, err := GetWifMapByAddresses(
 				context.Background(),
-				app.DbCon,
-				[]string{
-					model.DBColTAddressKeyID,
-					model.DBColTAddressKeyAddress,
-					model.DBColTAddressKeyPwd,
-				},
+				dbTx,
 				keyAddresses,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			addressWifMap := make(map[string]*btcutil.WIF)
-			for k, addressKey := range addressKeyMap {
-				key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
-				if len(key) == 0 {
-					hcommon.Log.Errorf("error key of: %s", k)
-					return
-				}
-				wif, err := btcutil.DecodeWIF(key)
-				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-					return
-				}
-				addressWifMap[k] = wif
-			}
 			omniUxtoMap := make(map[string][]*model.DBTTxBtcUxto)
-			omniUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndType(
+			omniUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndTypeForUpdate(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				[]string{
 					model.DBColTTxBtcUxtoID,
 					model.DBColTTxBtcUxtoTxID,
@@ -1846,9 +1829,9 @@ func OmniCheckTxOrg() {
 				)
 			}
 			omniHotUxtoMap := make(map[string][]*model.DBTTxBtcUxto)
-			omniHotUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndType(
+			omniHotUxtoRows, err := app.SQLSelectTTxBtcUxtoColByAddressesAndTypeForUpdate(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				[]string{
 					model.DBColTTxBtcUxtoID,
 					model.DBColTTxBtcUxtoTxID,
@@ -1913,7 +1896,7 @@ func OmniCheckTxOrg() {
 						2,
 						true,
 					)
-					fee := txSize * feeRow.V
+					fee := txSize * feePriceValue
 					//hcommon.Log.Debugf("fee: %d", fee)
 
 					inBalance := int64(0)
@@ -1954,7 +1937,7 @@ func OmniCheckTxOrg() {
 					tokenRow.HotAddress,
 					tokenRow.TokenIndex,
 					orgItem.Balance,
-					feeRow.V,
+					feePriceValue,
 					addressWifMap,
 					omniHotUxtoRows[:omniHotUxtoIndex+1],
 				)
@@ -1978,7 +1961,7 @@ func OmniCheckTxOrg() {
 					balanceReal := "0"
 					if i == 0 {
 						gas = int64(tx.SerializeSize())
-						gasPrice = feeRow.V
+						gasPrice = feePriceValue
 						txHex = hex.EncodeToString(b.Bytes())
 						balanceReal = decimal.NewFromInt(orgItem.Balance).Div(decimal.NewFromInt(1e8)).String()
 					}
@@ -2033,7 +2016,7 @@ func OmniCheckTxOrg() {
 			// 添加发送
 			_, err = model.SQLCreateIgnoreManyTSendBtc(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				sendRows,
 			)
 			if err != nil {
@@ -2043,7 +2026,7 @@ func OmniCheckTxOrg() {
 			// 更新uxto状态
 			_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				usedUxtoRows,
 			)
 			if err != nil {
@@ -2053,7 +2036,7 @@ func OmniCheckTxOrg() {
 			// 更新整理状态
 			_, err = app.SQLUpdateTTxBtcTokenOrgStatusByIDs(
 				context.Background(),
-				app.DbCon,
+				dbTx,
 				sendTxIDs,
 				model.DBTTxBtcToken{
 					OrgStatus: app.TxOrgStatusHex,
@@ -2066,6 +2049,12 @@ func OmniCheckTxOrg() {
 				return
 			}
 		}
+		err = dbTx.Commit()
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		isComment = true
 	})
 }
 
