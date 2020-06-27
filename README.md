@@ -1,8 +1,8 @@
 # go-dc-wallet
 
-[![](https://github.com/moremorefun/go-dc-wallet/workflows/build/badge.svg)](https://github.com/moremorefun/go-dc-wallet/actions?query=workflow%3Abuild)
+[![build](https://github.com/moremorefun/go-dc-wallet/workflows/build/badge.svg)](https://github.com/moremorefun/go-dc-wallet/actions?query=workflow%3Abuild)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/moremorefun/go-dc-wallet/blob/master/LICENSE)
-[![](https://img.shields.io/badge/blog-@moremorefun-green.svg)](https://www.jidangeng.com)
+[![blog](https://img.shields.io/badge/blog-@moremorefun-green.svg)](https://www.jidangeng.com)
 
 
 ## 目录
