@@ -1,7 +1,7 @@
 package model
 
 // TableNames 所有表名
-var TableNames = []string{"t_address_key", "t_app_config_int", "t_app_config_str", "t_app_config_token", "t_app_config_token_btc", "t_app_lock", "t_app_status_int", "t_product", "t_product_nonce", "t_product_notify", "t_send", "t_send_btc", "t_tx", "t_tx_btc", "t_tx_btc_token", "t_tx_btc_uxto", "t_tx_erc20", "t_withdraw"}
+var TableNames = []string{"t_address_key", "t_app_config_int", "t_app_config_str", "t_app_config_token", "t_app_config_token_btc", "t_app_lock", "t_app_status_int", "t_product", "t_product_nonce", "t_product_notify", "t_send", "t_send_btc", "t_tx", "t_tx_btc", "t_tx_btc_token", "t_tx_btc_uxto", "t_tx_eos", "t_tx_erc20", "t_withdraw"}
 
 // const TAddressKey
 const (
@@ -9,7 +9,7 @@ const (
 	DBColTAddressKeySymbol  = "t_address_key.symbol"  // 币种
 	DBColTAddressKeyAddress = "t_address_key.address" // 地址
 	DBColTAddressKeyPwd     = "t_address_key.pwd"     // 加密私钥
-	DBColTAddressKeyUseTag  = "t_address_key.use_tag" // 占用标志-1 作为热钱包占用-0 未占用->0 作为用户冲币地址占用
+	DBColTAddressKeyUseTag  = "t_address_key.use_tag" // 占用标志 -1 作为热钱包占用-0 未占用->0 作为用户冲币地址占用
 )
 
 // DBTAddressKey t_address_key 数据表
@@ -25,7 +25,7 @@ type DBTAddressKey struct {
 	Symbol  string `db:"symbol" json:"symbol"`   // 币种
 	Address string `db:"address" json:"address"` // 地址
 	Pwd     string `db:"pwd" json:"pwd"`         // 加密私钥
-	UseTag  int64  `db:"use_tag" json:"use_tag"` // 占用标志-1 作为热钱包占用-0 未占用->0 作为用户冲币地址占用
+	UseTag  int64  `db:"use_tag" json:"use_tag"` // 占用标志 -1 作为热钱包占用-0 未占用->0 作为用户冲币地址占用
 }
 
 // const TAppConfigInt
@@ -584,6 +584,55 @@ type DBTTxBtcUxto struct {
 	HandleStatus int64  `db:"handle_status" json:"handle_status"`
 	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
 	HandleTime   int64  `db:"handle_time" json:"handle_time"`
+}
+
+// const TTxEos
+const (
+	DBColTTxEosID           = "t_tx_eos.id"
+	DBColTTxEosProductID    = "t_tx_eos.product_id"
+	DBColTTxEosBlockHash    = "t_tx_eos.block_hash"
+	DBColTTxEosTxHash       = "t_tx_eos.tx_hash"
+	DBColTTxEosLogIndex     = "t_tx_eos.log_index"
+	DBColTTxEosFromAddress  = "t_tx_eos.from_address"
+	DBColTTxEosToAddress    = "t_tx_eos.to_address"
+	DBColTTxEosMemo         = "t_tx_eos.memo"
+	DBColTTxEosBalanceReal  = "t_tx_eos.balance_real"
+	DBColTTxEosCreateAt     = "t_tx_eos.create_at"
+	DBColTTxEosHandleStatus = "t_tx_eos.handle_status"
+	DBColTTxEosHandleMsg    = "t_tx_eos.handle_msg"
+	DBColTTxEosHandleAt     = "t_tx_eos.handle_at"
+)
+
+// DBTTxEos t_tx_eos 数据表
+/*
+   id,
+   product_id,
+   block_hash,
+   tx_hash,
+   log_index,
+   from_address,
+   to_address,
+   memo,
+   balance_real,
+   create_at,
+   handle_status,
+   handle_msg,
+   handle_at
+*/
+type DBTTxEos struct {
+	ID           int64  `db:"id" json:"id"`
+	ProductID    int64  `db:"product_id" json:"product_id"`
+	BlockHash    string `db:"block_hash" json:"block_hash"`
+	TxHash       string `db:"tx_hash" json:"tx_hash"`
+	LogIndex     int64  `db:"log_index" json:"log_index"`
+	FromAddress  string `db:"from_address" json:"from_address"`
+	ToAddress    string `db:"to_address" json:"to_address"`
+	Memo         string `db:"memo" json:"memo"`
+	BalanceReal  string `db:"balance_real" json:"balance_real"`
+	CreateAt     int64  `db:"create_at" json:"create_at"`
+	HandleStatus int64  `db:"handle_status" json:"handle_status"`
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`
+	HandleAt     int64  `db:"handle_at" json:"handle_at"`
 }
 
 // const TTxErc20

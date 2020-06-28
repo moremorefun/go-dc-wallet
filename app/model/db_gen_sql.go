@@ -8256,6 +8256,622 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTTxEos 创建
+func SQLCreateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_eos (
+    id,
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :id,
+    :product_id,
+    :block_hash,
+    :tx_hash,
+    :log_index,
+    :from_address,
+    :to_address,
+    :memo,
+    :balance_real,
+    :create_at,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"id":            row.ID,
+				"product_id":    row.ProductID,
+				"block_hash":    row.BlockHash,
+				"tx_hash":       row.TxHash,
+				"log_index":     row.LogIndex,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
+				"balance_real":  row.BalanceReal,
+				"create_at":     row.CreateAt,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_eos (
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :product_id,
+    :block_hash,
+    :tx_hash,
+    :log_index,
+    :from_address,
+    :to_address,
+    :memo,
+    :balance_real,
+    :create_at,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"product_id":    row.ProductID,
+				"block_hash":    row.BlockHash,
+				"tx_hash":       row.TxHash,
+				"log_index":     row.LogIndex,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
+				"balance_real":  row.BalanceReal,
+				"create_at":     row.CreateAt,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTTxEos 创建
+func SQLCreateIgnoreTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_eos (
+    id,
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :id,
+    :product_id,
+    :block_hash,
+    :tx_hash,
+    :log_index,
+    :from_address,
+    :to_address,
+    :memo,
+    :balance_real,
+    :create_at,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"id":            row.ID,
+				"product_id":    row.ProductID,
+				"block_hash":    row.BlockHash,
+				"tx_hash":       row.TxHash,
+				"log_index":     row.LogIndex,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
+				"balance_real":  row.BalanceReal,
+				"create_at":     row.CreateAt,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_eos (
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :product_id,
+    :block_hash,
+    :tx_hash,
+    :log_index,
+    :from_address,
+    :to_address,
+    :memo,
+    :balance_real,
+    :create_at,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"product_id":    row.ProductID,
+				"block_hash":    row.BlockHash,
+				"tx_hash":       row.TxHash,
+				"log_index":     row.LogIndex,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
+				"balance_real":  row.BalanceReal,
+				"create_at":     row.CreateAt,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTTxEos 创建多个
+func SQLCreateManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxEos) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.ProductID,
+					row.BlockHash,
+					row.TxHash,
+					row.LogIndex,
+					row.FromAddress,
+					row.ToAddress,
+					row.Memo,
+					row.BalanceReal,
+					row.CreateAt,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ProductID,
+					row.BlockHash,
+					row.TxHash,
+					row.LogIndex,
+					row.FromAddress,
+					row.ToAddress,
+					row.Memo,
+					row.BalanceReal,
+					row.CreateAt,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_eos (
+    id,
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_tx_eos (
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTTxEos 创建多个
+func SQLCreateIgnoreManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTTxEos) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.ProductID,
+					row.BlockHash,
+					row.TxHash,
+					row.LogIndex,
+					row.FromAddress,
+					row.ToAddress,
+					row.Memo,
+					row.BalanceReal,
+					row.CreateAt,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ProductID,
+					row.BlockHash,
+					row.TxHash,
+					row.LogIndex,
+					row.FromAddress,
+					row.ToAddress,
+					row.Memo,
+					row.BalanceReal,
+					row.CreateAt,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_eos (
+    id,
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_tx_eos (
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTTxEos 根据id查询
+func SQLGetTTxEos(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTxEos, error) {
+	var row DBTTxEos
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+FROM
+	t_tx_eos
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTTxEosCol 根据id查询
+func SQLGetTTxEosCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTTxEos, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_eos
+WHERE
+	id=:id`)
+
+	var row DBTTxEos
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTTxEos 根据ids获取
+func SQLSelectTTxEos(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTTxEos, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTTxEos
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    product_id,
+    block_hash,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    create_at,
+    handle_status,
+    handle_msg,
+    handle_at
+FROM
+	t_tx_eos
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTTxEosCol 根据ids获取
+func SQLSelectTTxEosCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTTxEos, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_eos
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTTxEos
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTTxEos 更新
+func SQLUpdateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_eos
+SET
+    product_id=:product_id,
+    block_hash=:block_hash,
+    tx_hash=:tx_hash,
+    log_index=:log_index,
+    from_address=:from_address,
+    to_address=:to_address,
+    memo=:memo,
+    balance_real=:balance_real,
+    create_at=:create_at,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_at=:handle_at
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"product_id":    row.ProductID,
+			"block_hash":    row.BlockHash,
+			"tx_hash":       row.TxHash,
+			"log_index":     row.LogIndex,
+			"from_address":  row.FromAddress,
+			"to_address":    row.ToAddress,
+			"memo":          row.Memo,
+			"balance_real":  row.BalanceReal,
+			"create_at":     row.CreateAt,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_at":     row.HandleAt,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTTxEos 删除
+func SQLDeleteTTxEos(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_tx_eos
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTTxErc20 创建
 func SQLCreateTTxErc20(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxErc20) (int64, error) {
 	var lastID int64

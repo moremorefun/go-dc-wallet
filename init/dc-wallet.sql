@@ -4,7 +4,7 @@
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-06-26 22:33:00.5860
+-- Generation Time: 2020-06-28 16:31:30.5370
 -- -------------------------------------------------------------
 
 
@@ -27,7 +27,7 @@ CREATE TABLE `t_address_key` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `t_address_key_address_idx` (`address`,`symbol`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=329 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=429 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -35,7 +35,7 @@ CREATE TABLE `t_app_config_int` (
   `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_str` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -43,7 +43,7 @@ CREATE TABLE `t_app_config_str` (
   `v` varchar(1024) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_token` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -69,7 +69,7 @@ CREATE TABLE `t_app_config_token_btc` (
   `create_at` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_symbol` (`token_symbol`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_lock` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -87,7 +87,7 @@ CREATE TABLE `t_app_status_int` (
   `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_product` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -248,6 +248,24 @@ CREATE TABLE `t_tx_btc_uxto` (
   KEY `handle_status` (`handle_status`,`uxto_type`,`id`) USING BTREE,
   KEY `t_tx_btc_uxto_vout_address_handle_status_uxto_type_idx` (`vout_address`,`handle_status`,`uxto_type`) USING BTREE
 ) ENGINE=InnoDB AUTO_INCREMENT=64 DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE `t_tx_eos` (
+  `id` bigint(22) unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` bigint(22) unsigned NOT NULL,
+  `block_hash` varchar(128) NOT NULL DEFAULT '',
+  `tx_hash` varchar(128) NOT NULL DEFAULT '',
+  `log_index` bigint(20) unsigned NOT NULL,
+  `from_address` varchar(128) NOT NULL DEFAULT '',
+  `to_address` varchar(128) NOT NULL,
+  `memo` varchar(256) NOT NULL DEFAULT '',
+  `balance_real` varchar(128) NOT NULL DEFAULT '',
+  `create_at` bigint(22) unsigned NOT NULL,
+  `handle_status` tinyint(4) NOT NULL,
+  `handle_msg` varchar(128) NOT NULL DEFAULT '',
+  `handle_at` bigint(22) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `tx_hash` (`tx_hash`,`log_index`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx_erc20` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
