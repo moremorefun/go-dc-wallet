@@ -20,6 +20,18 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 )
 
+const (
+	EthToWei   = 1e18
+	CoinSymbol = "eth"
+)
+
+// ethToWeiDecimal 转换单位
+var ethToWeiDecimal decimal.Decimal
+
+func init() {
+	ethToWeiDecimal = decimal.NewFromInt(EthToWei)
+}
+
 // GetNonce 获取nonce值
 func GetNonce(tx hcommon.DbExeAble, address string) (int64, error) {
 	// 通过rpc获取

@@ -32,21 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 
 	"github.com/ethereum/go-ethereum/crypto"
-
-	"github.com/shopspring/decimal"
 )
-
-const (
-	EthToWei   = 1e18
-	CoinSymbol = "eth"
-)
-
-// ethToWeiDecimal 转换单位
-var ethToWeiDecimal decimal.Decimal
-
-func init() {
-	ethToWeiDecimal = decimal.NewFromInt(EthToWei)
-}
 
 func genAddressAndAesKey() (string, string, error) {
 	// 生成私钥
