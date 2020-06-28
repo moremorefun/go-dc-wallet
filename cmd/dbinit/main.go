@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
@@ -12,6 +14,7 @@ import (
 	"go-dc-wallet/omniclient"
 	"math"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/parnurzeal/gorequest"
@@ -85,7 +88,7 @@ func main() {
 		{
 			// erc20 零钱整理手续费 热钱包地址 列表
 			K: "fee_wallet_address_list",
-			V: ethAddresses[1],
+			V: "",
 		},
 		{
 			// btc 冷钱包地址
@@ -275,6 +278,47 @@ func main() {
 		appStatusIntRows,
 	)
 	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+
+	// 6. 更新 t_app_config_str
+	feeAddressValue, err := app.SQLGetTAppConfigStrValueByK(
+		context.Background(),
+		app.DbCon,
+		"fee_wallet_address",
+	)
+	if err != nil && err != sql.ErrNoRows {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	feeAddressValue = strings.TrimSpace(feeAddressValue)
+	feeAddressListValue, err := app.SQLGetTAppConfigStrValueByK(
+		context.Background(),
+		app.DbCon,
+		"fee_wallet_address_list",
+	)
+	if err != nil && err != sql.ErrNoRows {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	feeAddressListValue = strings.TrimSpace(feeAddressListValue)
+	if feeAddressValue != "" && !strings.Contains(feeAddressListValue, feeAddressValue) {
+		if feeAddressListValue != "" {
+			feeAddressListValue = feeAddressValue
+		} else {
+			feeAddressListValue += fmt.Sprintf(",%s", feeAddressValue)
+		}
+	}
+	_, err = app.SQLUpdateTAppConfigStrByK(
+		context.Background(),
+		app.DbCon,
+		&model.DBTAppConfigStr{
+			K: "fee_wallet_address_list",
+			V: feeAddressListValue,
+		},
+	)
+	if err != nil && err != sql.ErrNoRows {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}

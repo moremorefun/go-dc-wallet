@@ -257,6 +257,28 @@ WHERE
 	return count, nil
 }
 
+// SQLUpdateTAppConfigStrByK 更新
+func SQLUpdateTAppConfigStrByK(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppConfigStr) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_app_config_str
+SET
+    v=:v
+WHERE
+	k=:k`,
+		gin.H{
+			"k": row.K,
+			"v": row.V,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLSelectTTxColByOrgForUpdate 获取未整理交易
 func SQLSelectTTxColByOrgForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTx, error) {
 	query := strings.Builder{}
