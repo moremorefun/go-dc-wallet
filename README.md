@@ -109,6 +109,8 @@ go run cmd/dbinit/main.go
 t_app_config_str.cold_wallet_address
 # btc冷钱包地址
 t_app_config_str.cold_wallet_address_btc
+# eos 冷钱包地址
+t_app_config_str.cold_wallet_address_eos
 
 # erc20 token 冷钱包地址
 t_app_config_token[].cold_address
