@@ -206,6 +206,35 @@ WHERE
 	return count, nil
 }
 
+// SQLSelectTAddressKeyColByTagAndSymbol 根据ids获取
+func SQLSelectTAddressKeyColByTagAndSymbol(ctx context.Context, tx hcommon.DbExeAble, cols []string, useTag int64, symbol string) ([]*model.DBTAddressKey, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_address_key
+WHERE
+	use_tag=:use_tag
+	AND symbol=:symbol`)
+
+	var rows []*model.DBTAddressKey
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"use_tag": useTag,
+			"symbol":  symbol,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
 // SQLSelectTAddressKeyColByAddress 根据ids获取
 func SQLSelectTAddressKeyColByAddress(ctx context.Context, tx hcommon.DbExeAble, cols []string, addresses []string) ([]*model.DBTAddressKey, error) {
 	if len(addresses) == 0 {

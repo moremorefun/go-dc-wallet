@@ -59,16 +59,56 @@ func main() {
 	}
 
 	// 2. 初始化 t_app_config_str
-	// 创建可用地址
-	ethAddresses, err := heth.CreateHotAddress(50)
+	// 获取可用地址
+	ethAddressRows, err := app.SQLSelectTAddressKeyColByTagAndSymbol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTAddressKeyAddress,
+		},
+		-1,
+		heth.CoinSymbol,
+	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
-	btcAddresses, err := hbtc.CreateHotAddress(50)
+	var ethAddresses []string
+	for _, ethAddressRow := range ethAddressRows {
+		ethAddresses = append(ethAddresses, ethAddressRow.Address)
+	}
+	if len(ethAddresses) < 10 {
+		// 创建可用地址
+		ethAddresses, err = heth.CreateHotAddress(50)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	}
+	// 获取可用地址
+	btcAddressRows, err := app.SQLSelectTAddressKeyColByTagAndSymbol(
+		context.Background(),
+		app.DbCon,
+		[]string{
+			model.DBColTAddressKeyAddress,
+		},
+		-1,
+		hbtc.CoinSymbol,
+	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
+	}
+	var btcAddresses []string
+	for _, btcAddressRow := range btcAddressRows {
+		btcAddresses = append(btcAddresses, btcAddressRow.Address)
+	}
+	if len(btcAddresses) < 10 {
+		btcAddresses, err = hbtc.CreateHotAddress(50)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 	}
 	configStrRows := []*model.DBTAppConfigStr{
 		{
