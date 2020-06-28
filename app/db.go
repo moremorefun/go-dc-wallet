@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -1853,4 +1854,35 @@ LIMIT 1`,
 		return "0", nil
 	}
 	return i, nil
+}
+
+// SQLGetTAddressMaxIntOfEos 根据id查询
+func SQLGetTAddressMaxIntOfEos(ctx context.Context, tx hcommon.DbExeAble) (int64, error) {
+	var address string
+	query := strings.Builder{}
+	query.WriteString("SELECT\nIFNULL(MAX(address),0)")
+	query.WriteString(`
+FROM
+	t_address_key
+WHERE
+	symbol="eos"`)
+
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&address,
+		query.String(),
+		gin.H{},
+	)
+	if err != nil {
+		return 0, err
+	}
+	if !ok {
+		return 0, nil
+	}
+	addressInt, err := strconv.ParseInt(address, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return addressInt, nil
 }
