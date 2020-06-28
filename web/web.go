@@ -237,6 +237,29 @@ func postAddress(c *gin.Context) {
 		})
 		return
 	}
+	// 获取冷钱包地址
+	eosColdAddressValue, err := app.SQLGetTAppConfigStrValueByK(
+		c,
+		tx,
+		"cold_wallet_address_eos",
+	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
+	eosColdAddressValue = strings.TrimSpace(eosColdAddressValue)
+	if eosColdAddressValue == "" {
+		hcommon.Log.Errorf("eosColdAddressValue null")
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
 	// 提交事物
 	err = tx.Commit()
 	if err != nil {
@@ -249,9 +272,10 @@ func postAddress(c *gin.Context) {
 	}
 	isComment = true
 	c.JSON(http.StatusOK, gin.H{
-		"error":   hcommon.ErrorSuccess,
-		"err_msg": hcommon.ErrorSuccessMsg,
-		"address": addressRow.Address,
+		"error":       hcommon.ErrorSuccess,
+		"err_msg":     hcommon.ErrorSuccessMsg,
+		"address":     addressRow.Address,
+		"eos_address": eosColdAddressValue,
 	})
 }
 
