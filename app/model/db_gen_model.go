@@ -590,7 +590,6 @@ type DBTTxBtcUxto struct {
 const (
 	DBColTTxEosID           = "t_tx_eos.id"
 	DBColTTxEosProductID    = "t_tx_eos.product_id"
-	DBColTTxEosBlockHash    = "t_tx_eos.block_hash"
 	DBColTTxEosTxHash       = "t_tx_eos.tx_hash"
 	DBColTTxEosLogIndex     = "t_tx_eos.log_index"
 	DBColTTxEosFromAddress  = "t_tx_eos.from_address"
@@ -607,7 +606,6 @@ const (
 /*
    id,
    product_id,
-   block_hash,
    tx_hash,
    log_index,
    from_address,
@@ -622,7 +620,6 @@ const (
 type DBTTxEos struct {
 	ID           int64  `db:"id" json:"id"`
 	ProductID    int64  `db:"product_id" json:"product_id"`
-	BlockHash    string `db:"block_hash" json:"block_hash"`
 	TxHash       string `db:"tx_hash" json:"tx_hash"`
 	LogIndex     int64  `db:"log_index" json:"log_index"`
 	FromAddress  string `db:"from_address" json:"from_address"`

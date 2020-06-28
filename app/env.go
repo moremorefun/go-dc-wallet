@@ -1,6 +1,7 @@
 package app
 
 import (
+	"go-dc-wallet/eosclient"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/omniclient"
@@ -32,6 +33,8 @@ type config struct {
 	OmniRPCHost string `env:"OMNI_RPC_HOST"`
 	OmniRPCUser string `env:"OMNI_RPC_USER"`
 	OmniRPCPwd  string `env:"OMNI_RPC_PWD"`
+
+	EosRPC string `env:"EOS_RPC"`
 }
 
 // Cfg
@@ -66,6 +69,8 @@ func EnvCreate() {
 	ethclient.InitClient(Cfg.EthRPC)
 	// 初始化omni rpc
 	omniclient.InitClient(Cfg.OmniRPCHost, Cfg.OmniRPCUser, Cfg.OmniRPCPwd)
+	// 初始化eos rpc
+	eosclient.InitClient(Cfg.EosRPC)
 }
 
 // EnvDestroy 销毁运行环境

@@ -8267,7 +8267,6 @@ func SQLCreateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (
 			`INSERT INTO t_tx_eos (
     id,
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8281,7 +8280,6 @@ func SQLCreateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (
 ) VALUES (
     :id,
     :product_id,
-    :block_hash,
     :tx_hash,
     :log_index,
     :from_address,
@@ -8296,7 +8294,6 @@ func SQLCreateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (
 			gin.H{
 				"id":            row.ID,
 				"product_id":    row.ProductID,
-				"block_hash":    row.BlockHash,
 				"tx_hash":       row.TxHash,
 				"log_index":     row.LogIndex,
 				"from_address":  row.FromAddress,
@@ -8315,7 +8312,6 @@ func SQLCreateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (
 			tx,
 			`INSERT INTO t_tx_eos (
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8328,7 +8324,6 @@ func SQLCreateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (
     handle_at
 ) VALUES (
     :product_id,
-    :block_hash,
     :tx_hash,
     :log_index,
     :from_address,
@@ -8342,7 +8337,6 @@ func SQLCreateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (
 )`,
 			gin.H{
 				"product_id":    row.ProductID,
-				"block_hash":    row.BlockHash,
 				"tx_hash":       row.TxHash,
 				"log_index":     row.LogIndex,
 				"from_address":  row.FromAddress,
@@ -8373,7 +8367,6 @@ func SQLCreateIgnoreTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
 			`INSERT IGNORE INTO t_tx_eos (
     id,
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8387,7 +8380,6 @@ func SQLCreateIgnoreTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
 ) VALUES (
     :id,
     :product_id,
-    :block_hash,
     :tx_hash,
     :log_index,
     :from_address,
@@ -8402,7 +8394,6 @@ func SQLCreateIgnoreTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
 			gin.H{
 				"id":            row.ID,
 				"product_id":    row.ProductID,
-				"block_hash":    row.BlockHash,
 				"tx_hash":       row.TxHash,
 				"log_index":     row.LogIndex,
 				"from_address":  row.FromAddress,
@@ -8421,7 +8412,6 @@ func SQLCreateIgnoreTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
 			tx,
 			`INSERT IGNORE INTO t_tx_eos (
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8434,7 +8424,6 @@ func SQLCreateIgnoreTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
     handle_at
 ) VALUES (
     :product_id,
-    :block_hash,
     :tx_hash,
     :log_index,
     :from_address,
@@ -8448,7 +8437,6 @@ func SQLCreateIgnoreTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx
 )`,
 			gin.H{
 				"product_id":    row.ProductID,
-				"block_hash":    row.BlockHash,
 				"tx_hash":       row.TxHash,
 				"log_index":     row.LogIndex,
 				"from_address":  row.FromAddress,
@@ -8481,7 +8469,6 @@ func SQLCreateManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTT
 				[]interface{}{
 					row.ID,
 					row.ProductID,
-					row.BlockHash,
 					row.TxHash,
 					row.LogIndex,
 					row.FromAddress,
@@ -8501,7 +8488,6 @@ func SQLCreateManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTT
 				args,
 				[]interface{}{
 					row.ProductID,
-					row.BlockHash,
 					row.TxHash,
 					row.LogIndex,
 					row.FromAddress,
@@ -8525,7 +8511,6 @@ func SQLCreateManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTT
 			`INSERT INTO t_tx_eos (
     id,
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8547,7 +8532,6 @@ func SQLCreateManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTT
 			tx,
 			`INSERT INTO t_tx_eos (
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8583,7 +8567,6 @@ func SQLCreateIgnoreManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows [
 				[]interface{}{
 					row.ID,
 					row.ProductID,
-					row.BlockHash,
 					row.TxHash,
 					row.LogIndex,
 					row.FromAddress,
@@ -8603,7 +8586,6 @@ func SQLCreateIgnoreManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows [
 				args,
 				[]interface{}{
 					row.ProductID,
-					row.BlockHash,
 					row.TxHash,
 					row.LogIndex,
 					row.FromAddress,
@@ -8627,7 +8609,6 @@ func SQLCreateIgnoreManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows [
 			`INSERT IGNORE INTO t_tx_eos (
     id,
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8649,7 +8630,6 @@ func SQLCreateIgnoreManyTTxEos(ctx context.Context, tx hcommon.DbExeAble, rows [
 			tx,
 			`INSERT IGNORE INTO t_tx_eos (
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8682,7 +8662,6 @@ func SQLGetTTxEos(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTTxEo
 		`SELECT
     id,
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8753,7 +8732,6 @@ func SQLSelectTTxEos(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]
 		`SELECT
     id,
     product_id,
-    block_hash,
     tx_hash,
     log_index,
     from_address,
@@ -8817,7 +8795,6 @@ func SQLUpdateTTxEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTTxEos) (
 	t_tx_eos
 SET
     product_id=:product_id,
-    block_hash=:block_hash,
     tx_hash=:tx_hash,
     log_index=:log_index,
     from_address=:from_address,
@@ -8833,7 +8810,6 @@ WHERE
 		gin.H{
 			"id":            row.ID,
 			"product_id":    row.ProductID,
-			"block_hash":    row.BlockHash,
 			"tx_hash":       row.TxHash,
 			"log_index":     row.LogIndex,
 			"from_address":  row.FromAddress,

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
+	"go-dc-wallet/eosclient"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hbtc"
 	"go-dc-wallet/hcommon"
@@ -100,6 +101,11 @@ func main() {
 			K: "hot_wallet_address_btc",
 			V: btcAddresses[0],
 		},
+		{
+			// eos 冷钱包地址
+			K: "cold_wallet_address_eos",
+			V: "",
+		},
 	}
 	_, err = model.SQLCreateIgnoreManyTAppConfigStr(
 		context.Background(),
@@ -165,6 +171,11 @@ func main() {
 		return
 	}
 	btcRpcBlockNum, err := omniclient.RpcGetBlockCount()
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return
+	}
+	rpcChainInfo, err := eosclient.RpcChainGetInfo()
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
@@ -250,6 +261,11 @@ func main() {
 			// omni blocknum
 			K: "omni_seek_num",
 			V: btcRpcBlockNum,
+		},
+		{
+			// eos blocknum
+			K: "eos_seek_num",
+			V: rpcChainInfo.LastIrreversibleBlockNum,
 		},
 		{
 			// eth 到冷钱包手续费
