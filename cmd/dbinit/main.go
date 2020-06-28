@@ -94,7 +94,7 @@ func main() {
 		},
 		{
 			// btc 热钱包地址
-			K: "cold_wallet_address_btc",
+			K: "hot_wallet_address_btc",
 			V: btcAddresses[0],
 		},
 	}
