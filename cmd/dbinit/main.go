@@ -84,7 +84,7 @@ func main() {
 		},
 		{
 			// erc20 零钱整理手续费 热钱包地址 列表
-			K: "fee_wallet_address",
+			K: "fee_wallet_address_list",
 			V: ethAddresses[1],
 		},
 		{
