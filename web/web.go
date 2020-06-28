@@ -158,7 +158,7 @@ func productReq(c *gin.Context) {
 
 func postAddress(c *gin.Context) {
 	var req struct {
-		Symbol string `json:"symbol" binding:"required" validate:"oneof=eth btc"`
+		Symbol string `json:"symbol" binding:"required" validate:"oneof=eth btc eos"`
 	}
 	err := c.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
