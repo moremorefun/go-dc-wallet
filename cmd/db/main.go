@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
@@ -35,8 +36,7 @@ func main() {
 			if strings.Contains(err.Error(), "doesn't exist") {
 				continue
 			}
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
+			hcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
 		}
 		if ok {
 			dbSQLs = append(dbSQLs, row.TableSQL+";")
@@ -47,19 +47,17 @@ func main() {
 	// 目的sql
 	toSQL, err := ioutil.ReadFile("init/dc-wallet.sql")
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
+		hcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
 	}
 	sqlDiff := new(bytes.Buffer)
 	err = diff.Strings(sqlDiff, dbSQL, string(toSQL), diff.WithTransaction(true))
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		return
+		hcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
 	}
 	// 替换 AUTO_INCREMENT
 	r, _ := regexp.Compile(`AUTO_INCREMENT\s*=\s*(\d)*\s*,`)
 	sqlDiffWithoutInc := r.ReplaceAllStringFunc(sqlDiff.String(), func(s string) string {
 		return ""
 	})
-	hcommon.Log.Debugf("sql diff: \n%s", sqlDiffWithoutInc)
+	fmt.Printf("%s\n", sqlDiffWithoutInc)
 }
