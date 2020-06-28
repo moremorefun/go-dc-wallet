@@ -304,7 +304,7 @@ func main() {
 	}
 	feeAddressListValue = strings.TrimSpace(feeAddressListValue)
 	if feeAddressValue != "" && !strings.Contains(feeAddressListValue, feeAddressValue) {
-		if feeAddressListValue != "" {
+		if feeAddressListValue == "" {
 			feeAddressListValue = feeAddressValue
 		} else {
 			feeAddressListValue += fmt.Sprintf(",%s", feeAddressValue)
