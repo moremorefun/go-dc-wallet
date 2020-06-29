@@ -1,7 +1,7 @@
 package model
 
 // TableNames 所有表名
-var TableNames = []string{"t_address_key", "t_app_config_int", "t_app_config_str", "t_app_config_token", "t_app_config_token_btc", "t_app_lock", "t_app_status_int", "t_product", "t_product_nonce", "t_product_notify", "t_send", "t_send_btc", "t_tx", "t_tx_btc", "t_tx_btc_token", "t_tx_btc_uxto", "t_tx_eos", "t_tx_erc20", "t_withdraw"}
+var TableNames = []string{"t_address_key", "t_app_config_int", "t_app_config_str", "t_app_config_token", "t_app_config_token_btc", "t_app_lock", "t_app_status_int", "t_product", "t_product_nonce", "t_product_notify", "t_send", "t_send_btc", "t_send_eos", "t_tx", "t_tx_btc", "t_tx_btc_token", "t_tx_btc_uxto", "t_tx_eos", "t_tx_erc20", "t_withdraw"}
 
 // const TAddressKey
 const (
@@ -381,6 +381,55 @@ type DBTSendBtc struct {
 	HandleTime   int64  `db:"handle_time" json:"handle_time"`     // 处理时间
 }
 
+// const TSendEos
+const (
+	DBColTSendEosID           = "t_send_eos.id"
+	DBColTSendEosWithdrawID   = "t_send_eos.withdraw_id"   // 关联id
+	DBColTSendEosTxHash       = "t_send_eos.tx_hash"       // tx hash
+	DBColTSendEosLogIndex     = "t_send_eos.log_index"     // log_index
+	DBColTSendEosFromAddress  = "t_send_eos.from_address"  // 打币地址
+	DBColTSendEosToAddress    = "t_send_eos.to_address"    // 收币地址
+	DBColTSendEosMemo         = "t_send_eos.memo"          // 收币地址
+	DBColTSendEosBalanceReal  = "t_send_eos.balance_real"  // 打币金额 Ether
+	DBColTSendEosHex          = "t_send_eos.hex"           // tx raw hex
+	DBColTSendEosCreateTime   = "t_send_eos.create_time"   // 创建时间
+	DBColTSendEosHandleStatus = "t_send_eos.handle_status" // 处理状态
+	DBColTSendEosHandleMsg    = "t_send_eos.handle_msg"    // 处理消息
+	DBColTSendEosHandleAt     = "t_send_eos.handle_at"     // 处理时间
+)
+
+// DBTSendEos t_send_eos 数据表
+/*
+   id,
+   withdraw_id,
+   tx_hash,
+   log_index,
+   from_address,
+   to_address,
+   memo,
+   balance_real,
+   hex,
+   create_time,
+   handle_status,
+   handle_msg,
+   handle_at
+*/
+type DBTSendEos struct {
+	ID           int64  `db:"id" json:"id"`
+	WithdrawID   int64  `db:"withdraw_id" json:"withdraw_id"`     // 关联id
+	TxHash       string `db:"tx_hash" json:"tx_hash"`             // tx hash
+	LogIndex     int64  `db:"log_index" json:"log_index"`         // log_index
+	FromAddress  string `db:"from_address" json:"from_address"`   // 打币地址
+	ToAddress    string `db:"to_address" json:"to_address"`       // 收币地址
+	Memo         string `db:"memo" json:"memo"`                   // 收币地址
+	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 打币金额 Ether
+	Hex          string `db:"hex" json:"hex"`                     // tx raw hex
+	CreateTime   int64  `db:"create_time" json:"create_time"`     // 创建时间
+	HandleStatus int64  `db:"handle_status" json:"handle_status"` // 处理状态
+	HandleMsg    string `db:"handle_msg" json:"handle_msg"`       // 处理消息
+	HandleAt     int64  `db:"handle_at" json:"handle_at"`         // 处理时间
+}
+
 // const TTx
 const (
 	DBColTTxID           = "t_tx.id"
@@ -690,6 +739,7 @@ const (
 	DBColTWithdrawProductID    = "t_withdraw.product_id" // 产品id
 	DBColTWithdrawOutSerial    = "t_withdraw.out_serial" // 提币唯一标示
 	DBColTWithdrawToAddress    = "t_withdraw.to_address" // 提币地址
+	DBColTWithdrawMemo         = "t_withdraw.memo"
 	DBColTWithdrawSymbol       = "t_withdraw.symbol"
 	DBColTWithdrawBalanceReal  = "t_withdraw.balance_real"  // 提币金额
 	DBColTWithdrawTxHash       = "t_withdraw.tx_hash"       // 提币tx hash
@@ -705,6 +755,7 @@ const (
    product_id,
    out_serial,
    to_address,
+   memo,
    symbol,
    balance_real,
    tx_hash,
@@ -718,6 +769,7 @@ type DBTWithdraw struct {
 	ProductID    int64  `db:"product_id" json:"product_id"` // 产品id
 	OutSerial    string `db:"out_serial" json:"out_serial"` // 提币唯一标示
 	ToAddress    string `db:"to_address" json:"to_address"` // 提币地址
+	Memo         string `db:"memo" json:"memo"`
 	Symbol       string `db:"symbol" json:"symbol"`
 	BalanceReal  string `db:"balance_real" json:"balance_real"`   // 提币金额
 	TxHash       string `db:"tx_hash" json:"tx_hash"`             // 提币tx hash

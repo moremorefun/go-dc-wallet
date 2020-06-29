@@ -6,6 +6,7 @@ require (
 	github.com/btcsuite/btcd v0.20.1-beta
 	github.com/btcsuite/btcutil v1.0.2
 	github.com/elazarl/goproxy v0.0.0-20200315184450-1f3cb6622dad // indirect
+	github.com/eoscanada/eos-go v0.9.0
 	github.com/ethereum/go-ethereum v1.9.13
 	github.com/fvbock/endless v0.0.0-20170109170031-447134032cb6
 	github.com/gin-contrib/zap v0.0.1

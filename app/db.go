@@ -392,6 +392,34 @@ LIMIT 1`,
 	return i, nil
 }
 
+// SQLGetTSendEosPendingBalanceReal 获取地址的打包数额
+func SQLGetTSendEosPendingBalanceReal(ctx context.Context, tx hcommon.DbExeAble, address string) (string, error) {
+	var i string
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&i,
+		`SELECT 
+	IFNULL(SUM(CAST(balance_real as DECIMAL(65,4))), "0")
+FROM
+	t_send_eos
+WHERE
+	from_address=:address
+	AND handle_status<2
+LIMIT 1`,
+		gin.H{
+			"address": address,
+		},
+	)
+	if err != nil {
+		return "0", err
+	}
+	if !ok {
+		return "0", nil
+	}
+	return i, nil
+}
+
 // SQLGetTAddressKeyColByAddress 根据address查询
 func SQLGetTAddressKeyColByAddress(ctx context.Context, tx hcommon.DbExeAble, cols []string, address string) (*model.DBTAddressKey, error) {
 	query := strings.Builder{}

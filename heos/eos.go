@@ -2,14 +2,18 @@ package heos
 
 import (
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/eosclient"
 	"go-dc-wallet/hcommon"
-	"strings"
 	"time"
+
+	"github.com/eoscanada/eos-go"
+	"github.com/eoscanada/eos-go/token"
+	"github.com/shopspring/decimal"
 
 	"github.com/gin-gonic/gin"
 )
@@ -153,7 +157,7 @@ func CheckBlockSeek() {
 						if err != nil {
 							_, ok := err.(*json.UnmarshalTypeError)
 							if !ok {
-								hcommon.Log.Debugf("err: [%T] %s", err, err.Error())
+								hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 								return
 							} else {
 								continue
@@ -174,16 +178,11 @@ func CheckBlockSeek() {
 								if !hcommon.IsStringInSlice(memos, rpcActionData.Memo) {
 									memos = append(memos, rpcActionData.Memo)
 								}
-								quantitys := strings.Split(rpcActionData.Quantity, " ")
-								if len(quantitys) != 2 {
-									hcommon.Log.Errorf("error %s", rpcActionData.Quantity)
+								rpcActionData.Quantity, err = EosValueToStr(rpcActionData.Quantity)
+								if err != nil {
+									hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 									return
 								}
-								if quantitys[1] != "EOS" {
-									hcommon.Log.Errorf("error %s", rpcActionData.Quantity)
-									return
-								}
-								rpcActionData.Quantity = quantitys[0]
 								memosMap[rpcActionData.Memo] = append(
 									memosMap[rpcActionData.Memo],
 									stAction{
@@ -369,4 +368,255 @@ func CheckTxNotify() {
 			return
 		}
 	})
+}
+
+// CheckWithdraw 检测提现
+func CheckWithdraw() {
+	lockKey := "EosCheckWithdraw"
+	app.LockWrap(lockKey, func() {
+		// 获取需要处理的提币数据
+		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+			},
+			app.WithdrawStatusInit,
+			[]string{CoinSymbol},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if len(withdrawRows) == 0 {
+			// 没有要处理的提币
+			return
+		}
+		// 获取热钱包地址
+		hotAddressValue, err := app.SQLGetTAppConfigStrValueByK(
+			context.Background(),
+			app.DbCon,
+			"hot_wallet_address_eos",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 获取热钱包私钥
+		hotKeyValue, err := app.SQLGetTAppConfigStrValueByK(
+			context.Background(),
+			app.DbCon,
+			"hot_wallet_key_eos",
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		key := hcommon.AesDecrypt(hotKeyValue, app.Cfg.AESKey)
+		if len(key) == 0 {
+			hcommon.Log.Errorf("error key of eos")
+			return
+		}
+		// 获取热钱包余额
+		rpcAccount, err := eosclient.RpcChainGetAccount(
+			hotAddressValue,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		rpcHotBalance, err := EosValueToDecimal(rpcAccount.CoreLiquidBalance)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		pendingBalanceRealStr, err := app.SQLGetTSendEosPendingBalanceReal(
+			context.Background(),
+			app.DbCon,
+			hotAddressValue,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		pendingBalanceReal, err := StrToEosDecimal(pendingBalanceRealStr)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		rpcHotBalance = rpcHotBalance.Sub(pendingBalanceReal)
+		// 获取链信息
+		rpcChainInfo, err := eosclient.RpcChainGetInfo()
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		for _, withdrawRow := range withdrawRows {
+			err = handleWithdraw(rpcChainInfo, withdrawRow.ID, hotAddressValue, key, &rpcHotBalance)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+		}
+	})
+}
+
+func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, hotAddressValue string, hotKey string, hotBalance *decimal.Decimal) error {
+	isComment := false
+	dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if !isComment {
+			_ = dbTx.Rollback()
+		}
+	}()
+	// 处理业务
+	withdrawRow, err := app.SQLGetTWithdrawColForUpdate(
+		context.Background(),
+		dbTx,
+		[]string{
+			model.DBColTWithdrawID,
+			model.DBColTWithdrawBalanceReal,
+			model.DBColTWithdrawToAddress,
+			model.DBColTWithdrawMemo,
+		},
+		withdrawID,
+		app.WithdrawStatusInit,
+	)
+	if err != nil {
+		return err
+	}
+	if withdrawRow == nil {
+		return nil
+	}
+	withdrawBalance, err := StrToEosDecimal(withdrawRow.BalanceReal)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return nil
+	}
+	*hotBalance = (*hotBalance).Sub(withdrawBalance)
+	if (*hotBalance).Cmp(decimal.NewFromInt(0)) < 0 {
+		// 金额不够
+		hcommon.Log.Errorf("eos hot balance limit")
+		*hotBalance = (*hotBalance).Add(withdrawBalance)
+		return nil
+	}
+	eosAesset, err := eos.NewEOSAssetFromString(withdrawRow.BalanceReal)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	action := token.NewTransfer(
+		eos.AccountName(hotAddressValue),
+		eos.AccountName(withdrawRow.ToAddress),
+		eosAesset,
+		withdrawRow.Memo,
+	)
+	action.Account = "eosio.token"
+	actions := []*eos.Action{action}
+	// 设置tx属性
+	chainID, err := hex.DecodeString(rpcChainInfo.ChainID)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	headBlockID, err := hex.DecodeString(rpcChainInfo.HeadBlockID)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	opts := &eos.TxOptions{
+		ChainID:     chainID,
+		HeadBlockID: headBlockID,
+	}
+	// 创建tx
+	tx := eos.NewTransaction(actions, opts)
+	tx.SetExpiration(time.Second * 3000)
+	tx.ContextFreeActions = append(
+		tx.ContextFreeActions,
+		&eos.Action{
+			Account:    "eosio.null",
+			Name:       "nonce",
+			ActionData: eos.NewActionDataFromHexData([]byte(fmt.Sprintf("%d", withdrawRow.ID))),
+		},
+	)
+	// 生成待签名tx
+	signTx := eos.NewSignedTransaction(tx)
+	// 创建密钥对
+	kb := eos.NewKeyBag()
+	err = kb.Add(hotKey)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	keys, err := kb.AvailableKeys()
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	keySignTx, err := kb.Sign(signTx, chainID, keys[0])
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	// 打包tx
+	packedTx, err := keySignTx.Pack(eos.CompressionNone)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	packedTxBs, err := json.Marshal(packedTx)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	packedHash, err := packedTx.ID()
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return err
+	}
+	txHash := packedHash.String()
+	now := time.Now().Unix()
+	_, err = app.SQLUpdateTWithdrawGenTx(
+		context.Background(),
+		dbTx,
+		&model.DBTWithdraw{
+			ID:           withdrawID,
+			TxHash:       txHash,
+			HandleStatus: app.WithdrawStatusHex,
+			HandleMsg:    "gen tx hex",
+			HandleTime:   now,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	_, err = model.SQLCreateTSendEos(
+		context.Background(),
+		dbTx,
+		&model.DBTSendEos{
+			WithdrawID:   withdrawID,
+			TxHash:       txHash,
+			FromAddress:  hotAddressValue,
+			ToAddress:    withdrawRow.ToAddress,
+			Memo:         withdrawRow.Memo,
+			BalanceReal:  withdrawRow.BalanceReal,
+			Hex:          hex.EncodeToString(packedTxBs),
+			HandleStatus: app.SendStatusInit,
+			HandleMsg:    "init",
+			HandleAt:     now,
+		},
+	)
+	if err != nil {
+		return err
+	}
+	// 处理完成
+	err = dbTx.Commit()
+	if err != nil {
+		return err
+	}
+	isComment = true
+	return nil
 }

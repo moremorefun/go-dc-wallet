@@ -287,6 +287,7 @@ func postWithdraw(c *gin.Context) {
 		OutSerial string `json:"out_serial" binding:"required" validate:"max=40"`
 		Address   string `json:"address" binding:"required"`
 		Balance   string `json:"balance" binding:"required"`
+		Memo      string `json:"memo" binding:"omitempty"`
 	}
 	err := c.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
@@ -455,6 +456,7 @@ func postWithdraw(c *gin.Context) {
 			ProductID:    productID,
 			OutSerial:    req.OutSerial,
 			ToAddress:    req.Address,
+			Memo:         req.Memo,
 			Symbol:       req.Symbol,
 			BalanceReal:  req.Balance,
 			TxHash:       "",

@@ -5720,6 +5720,622 @@ WHERE
 	return count, nil
 }
 
+// SQLCreateTSendEos 创建
+func SQLCreateTSendEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTSendEos) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_send_eos (
+    id,
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :id,
+    :withdraw_id,
+    :tx_hash,
+    :log_index,
+    :from_address,
+    :to_address,
+    :memo,
+    :balance_real,
+    :hex,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"id":            row.ID,
+				"withdraw_id":   row.WithdrawID,
+				"tx_hash":       row.TxHash,
+				"log_index":     row.LogIndex,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
+				"balance_real":  row.BalanceReal,
+				"hex":           row.Hex,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT INTO t_send_eos (
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :withdraw_id,
+    :tx_hash,
+    :log_index,
+    :from_address,
+    :to_address,
+    :memo,
+    :balance_real,
+    :hex,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"withdraw_id":   row.WithdrawID,
+				"tx_hash":       row.TxHash,
+				"log_index":     row.LogIndex,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
+				"balance_real":  row.BalanceReal,
+				"hex":           row.Hex,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateIgnoreTSendEos 创建
+func SQLCreateIgnoreTSendEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTSendEos) (int64, error) {
+	var lastID int64
+	var err error
+	if row.ID > 0 {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_send_eos (
+    id,
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :id,
+    :withdraw_id,
+    :tx_hash,
+    :log_index,
+    :from_address,
+    :to_address,
+    :memo,
+    :balance_real,
+    :hex,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"id":            row.ID,
+				"withdraw_id":   row.WithdrawID,
+				"tx_hash":       row.TxHash,
+				"log_index":     row.LogIndex,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
+				"balance_real":  row.BalanceReal,
+				"hex":           row.Hex,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	} else {
+		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_send_eos (
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES (
+    :withdraw_id,
+    :tx_hash,
+    :log_index,
+    :from_address,
+    :to_address,
+    :memo,
+    :balance_real,
+    :hex,
+    :create_time,
+    :handle_status,
+    :handle_msg,
+    :handle_at
+)`,
+			gin.H{
+				"withdraw_id":   row.WithdrawID,
+				"tx_hash":       row.TxHash,
+				"log_index":     row.LogIndex,
+				"from_address":  row.FromAddress,
+				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
+				"balance_real":  row.BalanceReal,
+				"hex":           row.Hex,
+				"create_time":   row.CreateTime,
+				"handle_status": row.HandleStatus,
+				"handle_msg":    row.HandleMsg,
+				"handle_at":     row.HandleAt,
+			},
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return lastID, nil
+}
+
+// SQLCreateManyTSendEos 创建多个
+func SQLCreateManyTSendEos(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTSendEos) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.WithdrawID,
+					row.TxHash,
+					row.LogIndex,
+					row.FromAddress,
+					row.ToAddress,
+					row.Memo,
+					row.BalanceReal,
+					row.Hex,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.WithdrawID,
+					row.TxHash,
+					row.LogIndex,
+					row.FromAddress,
+					row.ToAddress,
+					row.Memo,
+					row.BalanceReal,
+					row.Hex,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_send_eos (
+    id,
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT INTO t_send_eos (
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLCreateIgnoreManyTSendEos 创建多个
+func SQLCreateIgnoreManyTSendEos(ctx context.Context, tx hcommon.DbExeAble, rows []*DBTSendEos) (int64, error) {
+	if len(rows) == 0 {
+		return 0, nil
+	}
+	var args []interface{}
+	if rows[0].ID > 0 {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.ID,
+					row.WithdrawID,
+					row.TxHash,
+					row.LogIndex,
+					row.FromAddress,
+					row.ToAddress,
+					row.Memo,
+					row.BalanceReal,
+					row.Hex,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	} else {
+		for _, row := range rows {
+			args = append(
+				args,
+				[]interface{}{
+					row.WithdrawID,
+					row.TxHash,
+					row.LogIndex,
+					row.FromAddress,
+					row.ToAddress,
+					row.Memo,
+					row.BalanceReal,
+					row.Hex,
+					row.CreateTime,
+					row.HandleStatus,
+					row.HandleMsg,
+					row.HandleAt,
+				},
+			)
+		}
+	}
+	var count int64
+	var err error
+	if rows[0].ID > 0 {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_send_eos (
+    id,
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	} else {
+		count, err = hcommon.DbExecuteCountManyContent(
+			ctx,
+			tx,
+			`INSERT IGNORE INTO t_send_eos (
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+) VALUES
+    %s`,
+			len(rows),
+			args...,
+		)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLGetTSendEos 根据id查询
+func SQLGetTSendEos(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTSendEos, error) {
+	var row DBTSendEos
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		`SELECT
+    id,
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+FROM
+	t_send_eos
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLGetTSendEosCol 根据id查询
+func SQLGetTSendEosCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64) (*DBTSendEos, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_send_eos
+WHERE
+	id=:id`)
+
+	var row DBTSendEos
+	ok, err := hcommon.DbGetNamedContent(
+		ctx,
+		tx,
+		&row,
+		query.String(),
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return &row, nil
+}
+
+// SQLSelectTSendEos 根据ids获取
+func SQLSelectTSendEos(ctx context.Context, tx hcommon.DbExeAble, ids []int64) ([]*DBTSendEos, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	var rows []*DBTSendEos
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		`SELECT
+    id,
+    withdraw_id,
+    tx_hash,
+    log_index,
+    from_address,
+    to_address,
+    memo,
+    balance_real,
+    hex,
+    create_time,
+    handle_status,
+    handle_msg,
+    handle_at
+FROM
+	t_send_eos
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTSendEosCol 根据ids获取
+func SQLSelectTSendEosCol(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) ([]*DBTSendEos, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_send_eos
+WHERE
+	id IN (:ids)`)
+
+	var rows []*DBTSendEos
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"ids": ids,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLUpdateTSendEos 更新
+func SQLUpdateTSendEos(ctx context.Context, tx hcommon.DbExeAble, row *DBTSendEos) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_send_eos
+SET
+    withdraw_id=:withdraw_id,
+    tx_hash=:tx_hash,
+    log_index=:log_index,
+    from_address=:from_address,
+    to_address=:to_address,
+    memo=:memo,
+    balance_real=:balance_real,
+    hex=:hex,
+    create_time=:create_time,
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_at=:handle_at
+WHERE
+	id=:id`,
+		gin.H{
+			"id":            row.ID,
+			"withdraw_id":   row.WithdrawID,
+			"tx_hash":       row.TxHash,
+			"log_index":     row.LogIndex,
+			"from_address":  row.FromAddress,
+			"to_address":    row.ToAddress,
+			"memo":          row.Memo,
+			"balance_real":  row.BalanceReal,
+			"hex":           row.Hex,
+			"create_time":   row.CreateTime,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_at":     row.HandleAt,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// SQLDeleteTSendEos 删除
+func SQLDeleteTSendEos(ctx context.Context, tx hcommon.DbExeAble, id int64) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`DELETE
+FROM
+	t_send_eos
+WHERE
+	id=:id`,
+		gin.H{
+			"id": id,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLCreateTTx 创建
 func SQLCreateTTx(ctx context.Context, tx hcommon.DbExeAble, row *DBTTx) (int64, error) {
 	var lastID int64
@@ -9501,6 +10117,7 @@ func SQLCreateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithd
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9513,6 +10130,7 @@ func SQLCreateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithd
     :product_id,
     :out_serial,
     :to_address,
+    :memo,
     :symbol,
     :balance_real,
     :tx_hash,
@@ -9526,6 +10144,7 @@ func SQLCreateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithd
 				"product_id":    row.ProductID,
 				"out_serial":    row.OutSerial,
 				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
 				"symbol":        row.Symbol,
 				"balance_real":  row.BalanceReal,
 				"tx_hash":       row.TxHash,
@@ -9543,6 +10162,7 @@ func SQLCreateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithd
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9554,6 +10174,7 @@ func SQLCreateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithd
     :product_id,
     :out_serial,
     :to_address,
+    :memo,
     :symbol,
     :balance_real,
     :tx_hash,
@@ -9566,6 +10187,7 @@ func SQLCreateTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DBTWithd
 				"product_id":    row.ProductID,
 				"out_serial":    row.OutSerial,
 				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
 				"symbol":        row.Symbol,
 				"balance_real":  row.BalanceReal,
 				"tx_hash":       row.TxHash,
@@ -9595,6 +10217,7 @@ func SQLCreateIgnoreTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DB
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9607,6 +10230,7 @@ func SQLCreateIgnoreTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DB
     :product_id,
     :out_serial,
     :to_address,
+    :memo,
     :symbol,
     :balance_real,
     :tx_hash,
@@ -9620,6 +10244,7 @@ func SQLCreateIgnoreTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DB
 				"product_id":    row.ProductID,
 				"out_serial":    row.OutSerial,
 				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
 				"symbol":        row.Symbol,
 				"balance_real":  row.BalanceReal,
 				"tx_hash":       row.TxHash,
@@ -9637,6 +10262,7 @@ func SQLCreateIgnoreTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DB
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9648,6 +10274,7 @@ func SQLCreateIgnoreTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DB
     :product_id,
     :out_serial,
     :to_address,
+    :memo,
     :symbol,
     :balance_real,
     :tx_hash,
@@ -9660,6 +10287,7 @@ func SQLCreateIgnoreTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row *DB
 				"product_id":    row.ProductID,
 				"out_serial":    row.OutSerial,
 				"to_address":    row.ToAddress,
+				"memo":          row.Memo,
 				"symbol":        row.Symbol,
 				"balance_real":  row.BalanceReal,
 				"tx_hash":       row.TxHash,
@@ -9691,6 +10319,7 @@ func SQLCreateManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, rows []*D
 					row.ProductID,
 					row.OutSerial,
 					row.ToAddress,
+					row.Memo,
 					row.Symbol,
 					row.BalanceReal,
 					row.TxHash,
@@ -9709,6 +10338,7 @@ func SQLCreateManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, rows []*D
 					row.ProductID,
 					row.OutSerial,
 					row.ToAddress,
+					row.Memo,
 					row.Symbol,
 					row.BalanceReal,
 					row.TxHash,
@@ -9731,6 +10361,7 @@ func SQLCreateManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, rows []*D
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9751,6 +10382,7 @@ func SQLCreateManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, rows []*D
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9785,6 +10417,7 @@ func SQLCreateIgnoreManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row
 					row.ProductID,
 					row.OutSerial,
 					row.ToAddress,
+					row.Memo,
 					row.Symbol,
 					row.BalanceReal,
 					row.TxHash,
@@ -9803,6 +10436,7 @@ func SQLCreateIgnoreManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row
 					row.ProductID,
 					row.OutSerial,
 					row.ToAddress,
+					row.Memo,
 					row.Symbol,
 					row.BalanceReal,
 					row.TxHash,
@@ -9825,6 +10459,7 @@ func SQLCreateIgnoreManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9845,6 +10480,7 @@ func SQLCreateIgnoreManyTWithdraw(ctx context.Context, tx hcommon.DbExeAble, row
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9876,6 +10512,7 @@ func SQLGetTWithdraw(ctx context.Context, tx hcommon.DbExeAble, id int64) (*DBTW
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -9945,6 +10582,7 @@ func SQLSelectTWithdraw(ctx context.Context, tx hcommon.DbExeAble, ids []int64) 
     product_id,
     out_serial,
     to_address,
+    memo,
     symbol,
     balance_real,
     tx_hash,
@@ -10007,6 +10645,7 @@ SET
     product_id=:product_id,
     out_serial=:out_serial,
     to_address=:to_address,
+    memo=:memo,
     symbol=:symbol,
     balance_real=:balance_real,
     tx_hash=:tx_hash,
@@ -10021,6 +10660,7 @@ WHERE
 			"product_id":    row.ProductID,
 			"out_serial":    row.OutSerial,
 			"to_address":    row.ToAddress,
+			"memo":          row.Memo,
 			"symbol":        row.Symbol,
 			"balance_real":  row.BalanceReal,
 			"tx_hash":       row.TxHash,
