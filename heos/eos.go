@@ -556,13 +556,13 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
 	}
-	keySignTx, err := kb.Sign(signTx, chainID, keys[0])
+	_, err = kb.Sign(signTx, chainID, keys[0])
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
 	}
 	// 打包tx
-	packedTx, err := keySignTx.Pack(eos.CompressionZlib)
+	packedTx, err := signTx.Pack(eos.CompressionNone)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
@@ -619,4 +619,207 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 	}
 	isComment = true
 	return nil
+}
+
+// CheckRawTxSend 发送交易
+func CheckRawTxSend() {
+	lockKey := "EosCheckRawTxSend"
+	app.LockWrap(lockKey, func() {
+		// 获取待发送的数据
+		sendRows, err := app.SQLSelectTSendEosColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTSendEosID,
+				model.DBColTSendEosTxHash,
+				model.DBColTSendEosHex,
+				model.DBColTSendEosWithdrawID,
+			},
+			app.SendStatusInit,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 首先单独处理提币，提取提币通知要使用的数据
+		var withdrawIDs []int64
+		for _, sendRow := range sendRows {
+			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.WithdrawID) {
+				withdrawIDs = append(withdrawIDs, sendRow.WithdrawID)
+			}
+		}
+		withdrawMap, err := app.SQLGetWithdrawMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+				model.DBColTWithdrawProductID,
+				model.DBColTWithdrawOutSerial,
+				model.DBColTWithdrawToAddress,
+				model.DBColTWithdrawBalanceReal,
+			},
+			withdrawIDs,
+		)
+		// 产品
+		var productIDs []int64
+		for _, withdrawRow := range withdrawMap {
+			if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
+				productIDs = append(productIDs, withdrawRow.ProductID)
+			}
+		}
+		productMap, err := app.SQLGetProductMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTProductID,
+				model.DBColTProductAppName,
+				model.DBColTProductCbURL,
+				model.DBColTProductAppSk,
+			},
+			productIDs,
+		)
+		// 执行发送
+		var sendIDs []int64
+		withdrawIDs = []int64{}
+		// 通知数据
+		var notifyRows []*model.DBTProductNotify
+		now := time.Now().Unix()
+		onSendOk := func(sendRow *model.DBTSendEos) error {
+			// 将发送成功和占位数据计入数组
+			if !hcommon.IsIntInSlice(sendIDs, sendRow.ID) {
+				sendIDs = append(sendIDs, sendRow.ID)
+			}
+			// 如果是提币，创建通知信息
+			withdrawRow, ok := withdrawMap[sendRow.WithdrawID]
+			if !ok {
+				hcommon.Log.Errorf("withdrawMap no: %d", sendRow.WithdrawID)
+				return nil
+			}
+			productRow, ok := productMap[withdrawRow.ProductID]
+			if !ok {
+				hcommon.Log.Errorf("productMap no: %d", withdrawRow.ProductID)
+				return nil
+			}
+			nonce := hcommon.GetUUIDStr()
+			reqObj := gin.H{
+				"tx_hash":     sendRow.TxHash,
+				"balance":     withdrawRow.BalanceReal,
+				"app_name":    productRow.AppName,
+				"out_serial":  withdrawRow.OutSerial,
+				"address":     withdrawRow.ToAddress,
+				"symbol":      CoinSymbol,
+				"notify_type": app.NotifyTypeWithdrawSend,
+			}
+			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			req, err := json.Marshal(reqObj)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return err
+			}
+			notifyRows = append(notifyRows, &model.DBTProductNotify{
+				Nonce:        nonce,
+				ProductID:    withdrawRow.ProductID,
+				ItemType:     app.SendRelationTypeWithdraw,
+				ItemID:       withdrawRow.ID,
+				NotifyType:   app.NotifyTypeWithdrawSend,
+				TokenSymbol:  CoinSymbol,
+				URL:          productRow.CbURL,
+				Msg:          string(req),
+				HandleStatus: app.NotifyStatusInit,
+				HandleMsg:    "",
+				CreateTime:   now,
+				UpdateTime:   now,
+			})
+			return nil
+		}
+		for _, sendRow := range sendRows {
+			// 发送数据中需要排除占位数据
+			if sendRow.Hex != "" {
+				var args eosclient.StPushTransactionArg
+				err := json.Unmarshal([]byte(sendRow.Hex), &args)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					continue
+				}
+				_, err = eosclient.RpcChainPushTransaction(
+					args,
+				)
+				if err != nil {
+					rpcErr, ok := err.(*eosclient.StRpcRespError)
+					if !ok {
+						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						continue
+					}
+					switch rpcErr.ErrorInv.Code {
+					case 3080001:
+						// account using more than allotted RAM usage
+						// rom 不足
+						hcommon.Log.Errorf("eos hot rom limit")
+						return
+					case 3080002:
+						// Transaction exceeded the current network usage limit imposed on the transaction
+						// net 不足
+						hcommon.Log.Errorf("eos hot net limit")
+						return
+					case 3080004:
+						// Transaction exceeded the current CPU usage limit imposed on the transaction
+						// cpu 不足
+						hcommon.Log.Errorf("eos hot cpu limit")
+						return
+					case 3040008:
+						// Duplicate transaction
+						// 已经发送
+					default:
+						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						continue
+					}
+				}
+				err = onSendOk(sendRow)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+			}
+		}
+		// 插入通知
+		_, err = model.SQLCreateIgnoreManyTProductNotify(
+			context.Background(),
+			app.DbCon,
+			notifyRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新提币状态
+		_, err = app.SQLUpdateTWithdrawStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			withdrawIDs,
+			&model.DBTWithdraw{
+				HandleStatus: app.WithdrawStatusSend,
+				HandleMsg:    "send",
+				HandleTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新发送状态
+		_, err = app.SQLUpdateTSendEosStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			sendIDs,
+			model.DBTSendEos{
+				HandleStatus: app.SendStatusSend,
+				HandleMsg:    "send",
+				HandleAt:     now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+	})
 }

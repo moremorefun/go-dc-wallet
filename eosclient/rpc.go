@@ -154,13 +154,40 @@ type StBlock struct {
 	RefBlockPrefix    int             `json:"ref_block_prefix"`
 }
 
+type StPushTransaction struct {
+	TransactionID string `json:"transaction_id"`
+	Processed     struct {
+		ID        string `json:"id"`
+		BlockNum  int64  `json:"block_num"`
+		BlockTime string `json:"block_time"`
+		Receipt   struct {
+			Status        string `json:"status"`
+			CPUUsageUs    int64  `json:"cpu_usage_us"`
+			NetUsageWords int64  `json:"net_usage_words"`
+		} `json:"receipt"`
+		Elapsed         int64       `json:"elapsed"`
+		NetUsage        int64       `json:"net_usage"`
+		Scheduled       bool        `json:"scheduled"`
+		AccountRAMDelta interface{} `json:"account_ram_delta"`
+		Except          interface{} `json:"except"`
+		ErrorCode       interface{} `json:"error_code"`
+	} `json:"processed"`
+}
+
+type StPushTransactionArg struct {
+	Signatures            []string `json:"signatures"`
+	Compression           string   `json:"compression"`
+	PackedContextFreeData string   `json:"packed_context_free_data"`
+	PackedTrx             string   `json:"packed_trx"`
+}
+
 // InitClient 初始化客户端
 func InitClient(uri string) {
 	rpcURI = uri
 	client = gorequest.New().Timeout(time.Minute * 5)
 }
 
-func doReq(funURI string, arqs gin.H, resp interface{}) error {
+func doReq(funURI string, arqs interface{}, resp interface{}) error {
 	_, body, errs := client.Post(rpcURI + funURI).Send(arqs).EndBytes()
 	if errs != nil {
 		return errs[0]
@@ -234,4 +261,24 @@ func RpcChainGetBlock(blockNum int64) (*StBlock, error) {
 		return nil, &resp
 	}
 	return &resp.StBlock, nil
+}
+
+// RpcChainPushTransaction 推送交易
+func RpcChainPushTransaction(arg StPushTransactionArg) (*StPushTransaction, error) {
+	resp := struct {
+		StRpcRespError
+		StPushTransaction
+	}{}
+	err := doReq(
+		"/v1/chain/push_transaction",
+		arg,
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Code != 0 {
+		return nil, &(resp.StRpcRespError)
+	}
+	return &resp.StPushTransaction, nil
 }

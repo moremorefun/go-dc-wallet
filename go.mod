@@ -22,9 +22,11 @@ require (
 	github.com/shopspring/decimal v0.0.0-20200227202807-02e2044944cc
 	github.com/smartystreets/goconvey v1.6.4 // indirect
 	github.com/stretchr/testify v1.5.1 // indirect
+	github.com/tidwall/sjson v1.1.1 // indirect
 	github.com/timest/env v0.0.0-20180717050204-5fce78d35255
 	github.com/twinj/uuid v1.0.0
-	go.uber.org/zap v1.14.1
+	go.uber.org/zap v1.15.0
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 	moul.io/http2curl v1.0.0 // indirect
 )
