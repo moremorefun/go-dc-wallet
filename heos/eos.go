@@ -849,3 +849,169 @@ func CheckRawTxSend() {
 		}
 	})
 }
+
+// CheckRawTxConfirm 确认tx是否打包完成
+func CheckRawTxConfirm() {
+	lockKey := "EosCheckRawTxConfirm"
+	app.LockWrap(lockKey, func() {
+		// 获取待发送的数据
+		sendRows, err := app.SQLSelectTSendEosColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTSendEosID,
+				model.DBColTSendEosTxHash,
+				model.DBColTSendEosHex,
+				model.DBColTSendEosWithdrawID,
+			},
+			app.SendStatusSend,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var withdrawIDs []int64
+		for _, sendRow := range sendRows {
+			// 提币
+			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.WithdrawID) {
+				withdrawIDs = append(withdrawIDs, sendRow.WithdrawID)
+			}
+		}
+		withdrawMap, err := app.SQLGetWithdrawMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+				model.DBColTWithdrawProductID,
+				model.DBColTWithdrawOutSerial,
+				model.DBColTWithdrawToAddress,
+				model.DBColTWithdrawBalanceReal,
+				model.DBColTWithdrawSymbol,
+			},
+			withdrawIDs,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var productIDs []int64
+		for _, withdrawRow := range withdrawMap {
+			if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
+				productIDs = append(productIDs, withdrawRow.ProductID)
+			}
+		}
+		productMap, err := app.SQLGetProductMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTProductID,
+				model.DBColTProductAppName,
+				model.DBColTProductCbURL,
+				model.DBColTProductAppSk,
+			},
+			productIDs,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+
+		now := time.Now().Unix()
+		var notifyRows []*model.DBTProductNotify
+		var sendIDs []int64
+		withdrawIDs = []int64{}
+		for _, sendRow := range sendRows {
+			_, err := eosclient.RpcHistoryGetTransaction(
+				sendRow.TxHash,
+			)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+			// 提币
+			withdrawRow, ok := withdrawMap[sendRow.WithdrawID]
+			if !ok {
+				hcommon.Log.Errorf("no withdrawMap: %d", sendRow.WithdrawID)
+				return
+			}
+			productRow, ok := productMap[withdrawRow.ProductID]
+			if !ok {
+				hcommon.Log.Errorf("no productMap: %d", withdrawRow.ProductID)
+				return
+			}
+			nonce := hcommon.GetUUIDStr()
+			reqObj := gin.H{
+				"tx_hash":     sendRow.WithdrawID,
+				"balance":     withdrawRow.BalanceReal,
+				"app_name":    productRow.AppName,
+				"out_serial":  withdrawRow.OutSerial,
+				"address":     withdrawRow.ToAddress,
+				"symbol":      withdrawRow.Symbol,
+				"notify_type": app.NotifyTypeWithdrawConfirm,
+			}
+			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			req, err := json.Marshal(reqObj)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			notifyRows = append(notifyRows, &model.DBTProductNotify{
+				Nonce:        nonce,
+				ProductID:    withdrawRow.ProductID,
+				ItemType:     app.SendRelationTypeWithdraw,
+				ItemID:       withdrawRow.ID,
+				NotifyType:   app.NotifyTypeWithdrawConfirm,
+				TokenSymbol:  withdrawRow.Symbol,
+				URL:          productRow.CbURL,
+				Msg:          string(req),
+				HandleStatus: app.NotifyStatusInit,
+				HandleMsg:    "",
+				CreateTime:   now,
+				UpdateTime:   now,
+			})
+			// 将发送成功和占位数据计入数组
+			if !hcommon.IsIntInSlice(sendIDs, sendRow.ID) {
+				sendIDs = append(sendIDs, sendRow.ID)
+			}
+			if !hcommon.IsIntInSlice(withdrawIDs, sendRow.WithdrawID) {
+				withdrawIDs = append(withdrawIDs, sendRow.WithdrawID)
+			}
+		}
+		// 添加通知信息
+		_, err = model.SQLCreateIgnoreManyTProductNotify(
+			context.Background(),
+			app.DbCon,
+			notifyRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新提币状态
+		_, err = app.SQLUpdateTWithdrawStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			withdrawIDs,
+			&model.DBTWithdraw{
+				HandleStatus: app.WithdrawStatusConfirm,
+				HandleMsg:    "confirmed",
+				HandleTime:   now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		// 更新发送状态
+		_, err = app.SQLUpdateTSendEosStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			sendIDs,
+			model.DBTSendEos{
+				HandleStatus: app.SendStatusConfirm,
+				HandleMsg:    "confirmed",
+				HandleAt:     now,
+			},
+		)
+	})
+}
