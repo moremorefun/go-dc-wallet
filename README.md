@@ -19,6 +19,7 @@
       - [运行数据库表差异SQL生成工具](#运行数据库表差异sql生成工具)
       - [初始化基础数据](#初始化基础数据)
       - [手动添加自身需要设置的数据](#手动添加自身需要设置的数据)
+    - [生成eos加密私钥](#生成eos加密私钥)
     - [运行定时任务](#运行定时任务)
     - [运行API服务接口](#运行api服务接口)
   - [维护者](#维护者)
@@ -111,6 +112,8 @@ t_app_config_str.cold_wallet_address
 t_app_config_str.cold_wallet_address_btc
 # eos 冷钱包地址
 t_app_config_str.cold_wallet_address_eos
+# eos 热钱包地址
+t_app_config_str.hot_wallet_address_eos
 
 # erc20 token 冷钱包地址
 t_app_config_token[].cold_address
@@ -120,6 +123,17 @@ t_app_config_token_btc[].cold_address
 
 # 用于提供api服务的相关数据
 t_product
+```
+
+### 生成eos加密私钥
+
+```
+go run cmd/getaeskey/main.go -k eos原始私钥
+```
+输出为加密以后的私钥，将输出的值加入数据库
+```
+# eos 热钱包加密私钥
+t_app_config_str.hot_wallet_key_eos
 ```
 
 ### 运行定时任务
