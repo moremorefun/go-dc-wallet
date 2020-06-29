@@ -604,6 +604,7 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 			Memo:         withdrawRow.Memo,
 			BalanceReal:  withdrawRow.BalanceReal,
 			Hex:          string(packedTxBs),
+			CreateTime:   now,
 			HandleStatus: app.SendStatusInit,
 			HandleMsg:    "init",
 			HandleAt:     now,
@@ -730,6 +731,7 @@ func CheckRawTxSend() {
 				CreateTime:   now,
 				UpdateTime:   now,
 			})
+			withdrawIDs = append(withdrawIDs, withdrawRow.ID)
 			return nil
 		}
 		for _, sendRow := range sendRows {

@@ -695,7 +695,7 @@ func SQLUpdateTSendEosStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids
 SET
     handle_status=:handle_status,
     handle_msg=:handle_msg,
-    handle_time=:handle_time
+    handle_at=:handle_at
 WHERE
 	id IN (:ids)`,
 		gin.H{
