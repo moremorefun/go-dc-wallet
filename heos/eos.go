@@ -10,6 +10,8 @@ import (
 	"go-dc-wallet/hcommon"
 	"strings"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // CheckAddressFree 检测剩余地址数
@@ -253,6 +255,118 @@ func CheckBlockSeek() {
 					return
 				}
 			}
+		}
+	})
+}
+
+// CheckTxNotify 创建冲币通知
+func CheckTxNotify() {
+	lockKey := "EosCheckTxNotify"
+	app.LockWrap(lockKey, func() {
+		txRows, err := app.SQLSelectTTxEosColByStatus(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTTxEosID,
+				model.DBColTTxEosProductID,
+				model.DBColTTxEosTxHash,
+				model.DBColTTxEosLogIndex,
+				model.DBColTTxEosFromAddress,
+				model.DBColTTxEosToAddress,
+				model.DBColTTxEosMemo,
+				model.DBColTTxEosBalanceReal,
+			},
+			app.TxStatusInit,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var productIDs []int64
+		for _, txRow := range txRows {
+			if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+				productIDs = append(productIDs, txRow.ProductID)
+			}
+		}
+		productMap, err := app.SQLGetProductMap(
+			context.Background(),
+			app.DbCon,
+			[]string{
+				model.DBColTProductID,
+				model.DBColTProductAppName,
+				model.DBColTProductCbURL,
+				model.DBColTProductAppSk,
+			},
+			productIDs,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		var notifyTxIDs []int64
+		var notifyRows []*model.DBTProductNotify
+		now := time.Now().Unix()
+		for _, txRow := range txRows {
+			productRow, ok := productMap[txRow.ProductID]
+			if !ok {
+				hcommon.Log.Warnf("no productMap: %d", txRow.ProductID)
+				notifyTxIDs = append(notifyTxIDs, txRow.ID)
+				continue
+			}
+			nonce := hcommon.GetUUIDStr()
+			reqObj := gin.H{
+				"tx_hash":     fmt.Sprintf("%s_%d", txRow.TxHash, txRow.LogIndex),
+				"app_name":    productRow.AppName,
+				"address":     txRow.ToAddress,
+				"memo":        txRow.Memo,
+				"balance":     txRow.BalanceReal,
+				"symbol":      CoinSymbol,
+				"notify_type": app.NotifyTypeTx,
+			}
+			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			req, err := json.Marshal(reqObj)
+			if err != nil {
+				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				continue
+			}
+			notifyRows = append(notifyRows, &model.DBTProductNotify{
+				Nonce:        nonce,
+				ProductID:    txRow.ProductID,
+				ItemType:     app.SendRelationTypeTx,
+				ItemID:       txRow.ID,
+				NotifyType:   app.NotifyTypeTx,
+				TokenSymbol:  CoinSymbol,
+				URL:          productRow.CbURL,
+				Msg:          string(req),
+				HandleStatus: app.NotifyStatusInit,
+				HandleMsg:    "",
+				CreateTime:   now,
+				UpdateTime:   now,
+			})
+			notifyTxIDs = append(notifyTxIDs, txRow.ID)
+		}
+		_, err = model.SQLCreateIgnoreManyTProductNotify(
+			context.Background(),
+			app.DbCon,
+			notifyRows,
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		_, err = app.SQLUpdateTTxEosStatusByIDs(
+			context.Background(),
+			app.DbCon,
+			notifyTxIDs,
+			model.DBTTxEos{
+				HandleStatus: app.TxStatusNotify,
+				HandleMsg:    "notify",
+				HandleAt:     now,
+			},
+		)
+		if err != nil {
+			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
 		}
 	})
 }

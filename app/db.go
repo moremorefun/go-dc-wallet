@@ -538,6 +538,35 @@ WHERE
 	return count, nil
 }
 
+// SQLUpdateTTxEosStatusByIDs 更新
+func SQLUpdateTTxEosStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxEos) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_tx_eos
+SET
+    handle_status=:handle_status,
+    handle_msg=:handle_msg,
+    handle_at=:handle_at
+WHERE
+	id IN (:ids)`,
+		gin.H{
+			"ids":           ids,
+			"handle_status": row.HandleStatus,
+			"handle_msg":    row.HandleMsg,
+			"handle_at":     row.HandleAt,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLUpdateTSendStatusByTxIDs 更新
 func SQLUpdateTSendStatusByTxIDs(ctx context.Context, tx hcommon.DbExeAble, txIDs []string, row model.DBTSend) (int64, error) {
 	if len(txIDs) == 0 {
@@ -1011,6 +1040,33 @@ WHERE
 	handle_status=:handle_status`)
 
 	var rows []*model.DBTTx
+	err := hcommon.DbSelectNamedContent(
+		ctx,
+		tx,
+		&rows,
+		query.String(),
+		gin.H{
+			"handle_status": status,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// SQLSelectTTxEosColByStatus 根据ids获取
+func SQLSelectTTxEosColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTxEos, error) {
+	query := strings.Builder{}
+	query.WriteString("SELECT\n")
+	query.WriteString(strings.Join(cols, ",\n"))
+	query.WriteString(`
+FROM
+	t_tx_eos
+WHERE
+	handle_status=:handle_status`)
+
+	var rows []*model.DBTTxEos
 	err := hcommon.DbSelectNamedContent(
 		ctx,
 		tx,
