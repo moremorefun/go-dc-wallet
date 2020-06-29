@@ -216,7 +216,9 @@ FROM
 	t_address_key
 WHERE
 	use_tag=:use_tag
-	AND symbol=:symbol`)
+	AND symbol=:symbol
+ORDER BY
+	id`)
 
 	var rows []*model.DBTAddressKey
 	err := hcommon.DbSelectNamedContent(
