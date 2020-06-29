@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
+	"go-dc-wallet/eosclient"
 	"go-dc-wallet/hbtc"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/heos"
 	"go-dc-wallet/heth"
 	"io/ioutil"
 	"net/http"
@@ -350,6 +352,9 @@ func postWithdraw(c *gin.Context) {
 		btcSymbols = append(btcSymbols, tokenRow.TokenSymbol)
 		tokenDecimalsMap[tokenRow.TokenSymbol] = 8
 	}
+	// eos
+	tokenDecimalsMap[heos.CoinSymbol] = 4
+	// 验证金额
 	tokenDecimals, ok := tokenDecimalsMap[req.Symbol]
 	if !ok {
 		c.JSON(http.StatusOK, gin.H{
@@ -358,7 +363,6 @@ func postWithdraw(c *gin.Context) {
 		})
 		return
 	}
-	// 验证金额
 	balanceObj, err := decimal.NewFromString(req.Balance)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -399,6 +403,19 @@ func postWithdraw(c *gin.Context) {
 		_, err := btcutil.DecodeAddress(
 			req.Address,
 			hbtc.GetNetwork(app.Cfg.BtcNetworkType).Params,
+		)
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"error":   hcommon.ErrorAddressWrong,
+				"err_msg": hcommon.ErrorAddressWrongMsg,
+			})
+			return
+		}
+	} else if req.Symbol == heos.CoinSymbol {
+		// eos
+		// 验证地址
+		_, err := eosclient.RpcChainGetAccount(
+			req.Address,
 		)
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{

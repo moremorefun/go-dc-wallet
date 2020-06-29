@@ -14,9 +14,9 @@ var client *gorequest.SuperAgent
 var rpcURI string
 
 type StRpcRespError struct {
-	Code    int64  `json:"code"`
-	Message string `json:"message"`
-	Error   struct {
+	Code     int64  `json:"code"`
+	Message  string `json:"message"`
+	ErrorInv struct {
 		Code    int64  `json:"code"`
 		Name    string `json:"name"`
 		What    string `json:"what"`
@@ -27,6 +27,13 @@ type StRpcRespError struct {
 			Method     string `json:"method"`
 		} `json:"details"`
 	} `json:"error"`
+}
+
+func (e *StRpcRespError) Error() string {
+	if len(e.ErrorInv.Details) > 0 {
+		return fmt.Sprintf("%d[%d] %s-%s", e.Code, e.ErrorInv.Code, e.Message, e.ErrorInv.Details[0].Message)
+	}
+	return fmt.Sprintf("%d[%d] %s", e.Code, e.ErrorInv.Code, e.Message)
 }
 
 type StChainGetInfo struct {
@@ -46,6 +53,47 @@ type StChainGetInfo struct {
 	ForkDbHeadBlockNum       int64  `json:"fork_db_head_block_num"`
 	ForkDbHeadBlockID        string `json:"fork_db_head_block_id"`
 	ServerFullVersionString  string `json:"server_full_version_string"`
+}
+type StAccount struct {
+	AccountName       string `json:"account_name"`
+	HeadBlockNum      int64  `json:"head_block_num"`
+	HeadBlockTime     string `json:"head_block_time"`
+	Privileged        bool   `json:"privileged"`
+	LastCodeUpdate    string `json:"last_code_update"`
+	Created           string `json:"created"`
+	CoreLiquidBalance string `json:"core_liquid_balance"`
+	RAMQuota          int64  `json:"ram_quota"`
+	NetWeight         int64  `json:"net_weight"`
+	CPUWeight         int64  `json:"cpu_weight"`
+	NetLimit          struct {
+		Used      int64 `json:"used"`
+		Available int64 `json:"available"`
+		Max       int64 `json:"max"`
+	} `json:"net_limit"`
+	CPULimit struct {
+		Used      int64 `json:"used"`
+		Available int64 `json:"available"`
+		Max       int64 `json:"max"`
+	} `json:"cpu_limit"`
+	RAMUsage       int64 `json:"ram_usage"`
+	TotalResources struct {
+		Owner     string `json:"owner"`
+		NetWeight string `json:"net_weight"`
+		CPUWeight string `json:"cpu_weight"`
+		RAMBytes  int64  `json:"ram_bytes"`
+	} `json:"total_resources"`
+	SelfDelegatedBandwidth struct {
+		From      string `json:"from"`
+		To        string `json:"to"`
+		NetWeight string `json:"net_weight"`
+		CPUWeight string `json:"cpu_weight"`
+	} `json:"self_delegated_bandwidth"`
+	RefundRequest struct {
+		Owner       string `json:"owner"`
+		RequestTime string `json:"request_time"`
+		NetAmount   string `json:"net_amount"`
+		CPUAmount   string `json:"cpu_amount"`
+	} `json:"refund_request"`
 }
 
 type StAction struct {
@@ -144,6 +192,28 @@ func RpcChainGetInfo() (*StChainGetInfo, error) {
 	return &resp.StChainGetInfo, nil
 }
 
+// RpcChainGetAccount 获取账户信息
+func RpcChainGetAccount(account string) (*StAccount, error) {
+	resp := struct {
+		StRpcRespError
+		StAccount
+	}{}
+	err := doReq(
+		"/v1/chain/get_account",
+		gin.H{
+			"account_name": account,
+		},
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Code != 0 {
+		return nil, fmt.Errorf("%#v", resp)
+	}
+	return &resp.StAccount, nil
+}
+
 // RpcChainGetBlock 获取链信息
 func RpcChainGetBlock(blockNum int64) (*StBlock, error) {
 	resp := struct {
@@ -161,7 +231,7 @@ func RpcChainGetBlock(blockNum int64) (*StBlock, error) {
 		return nil, err
 	}
 	if resp.Code != 0 {
-		return nil, fmt.Errorf("%#v", resp)
+		return nil, &resp
 	}
 	return &resp.StBlock, nil
 }
