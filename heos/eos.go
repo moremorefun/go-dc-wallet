@@ -735,8 +735,32 @@ func CheckRawTxSend() {
 			return nil
 		}
 		for _, sendRow := range sendRows {
+			// 判定是否已经发送过
+			isSend := false
+			_, err := eosclient.RpcHistoryGetTransaction(sendRow.TxHash)
+			if err != nil {
+				rpcErr, ok := err.(*eosclient.StRpcRespError)
+				if !ok {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				if rpcErr.ErrorInv.Code == 3040011 {
+					// tx_not_found
+					// 还没有发送
+				} else {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+			} else {
+				// 已经发送
+				isSend = true
+				err = onSendOk(sendRow)
+				if err != nil {
+					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				}
+			}
 			// 发送数据中需要排除占位数据
-			if sendRow.Hex != "" {
+			if !isSend && sendRow.Hex != "" {
 				var args eosclient.StPushTransactionArg
 				err := json.Unmarshal([]byte(sendRow.Hex), &args)
 				if err != nil {

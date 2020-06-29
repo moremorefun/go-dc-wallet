@@ -181,6 +181,55 @@ type StPushTransactionArg struct {
 	PackedTrx             string   `json:"packed_trx"`
 }
 
+type StGetTransaction struct {
+	BlockTime             time.Time `json:"block_time"`
+	BlockNum              int64     `json:"block_num"`
+	HeadBlockNum          int64     `json:"head_block_num"`
+	ID                    string    `json:"id"`
+	LastIrreversibleBlock int64     `json:"last_irreversible_block"`
+	Irreversible          bool      `json:"irreversible"`
+	Traces                []struct {
+		AccountRAMDeltas                       []interface{} `json:"account_ram_deltas"`
+		ActionOrdinal                          int64         `json:"action_ordinal"`
+		BlockNum                               int64         `json:"block_num"`
+		BlockTime                              time.Time     `json:"block_time"`
+		ClosestUnnotifiedAncestorActionOrdinal int64         `json:"closest_unnotified_ancestor_action_ordinal"`
+		ContextFree                            bool          `json:"context_free"`
+		CreatorActionOrdinal                   int64         `json:"creator_action_ordinal"`
+		Elapsed                                int64         `json:"elapsed"`
+		Except                                 string        `json:"except"`
+		ProducerBlockID                        string        `json:"producer_block_id"`
+		Receipt                                struct {
+			AbiSequence    int64  `json:"abi_sequence"`
+			CodeSequence   int64  `json:"code_sequence"`
+			GlobalSequence int64  `json:"global_sequence"`
+			Receiver       string `json:"receiver"`
+		} `json:"receipt"`
+		Receiver string `json:"receiver"`
+		TrxID    string `json:"trx_id"`
+	} `json:"traces"`
+	Trx struct {
+		Receipt struct {
+			CPUUsageUs    int64  `json:"cpu_usage_us"`
+			NetUsageWords int64  `json:"net_usage_words"`
+			Status        string `json:"status"`
+		} `json:"receipt"`
+		Trx struct {
+			Actions []struct {
+				Account       string `json:"account"`
+				Authorization []struct {
+					Actor      string `json:"actor"`
+					Permission string `json:"permission"`
+				} `json:"authorization"`
+				HexData string `json:"hex_data"`
+				Name    string `json:"name"`
+			} `json:"actions"`
+			Expiration  time.Time `json:"expiration"`
+			RefBlockNum int64     `json:"ref_block_num"`
+		} `json:"trx"`
+	} `json:"trx"`
+}
+
 // InitClient 初始化客户端
 func InitClient(uri string) {
 	rpcURI = uri
@@ -272,6 +321,28 @@ func RpcChainPushTransaction(arg StPushTransactionArg) (*StPushTransaction, erro
 	err := doReq(
 		"/v1/chain/push_transaction",
 		arg,
+		&resp,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Code != 0 {
+		return nil, &(resp.StRpcRespError)
+	}
+	return &resp.StPushTransaction, nil
+}
+
+// RpcChainPushTransaction 推送交易
+func RpcHistoryGetTransaction(id string) (*StPushTransaction, error) {
+	resp := struct {
+		StRpcRespError
+		StPushTransaction
+	}{}
+	err := doReq(
+		"/v1/history/get_transaction",
+		gin.H{
+			"id": id,
+		},
 		&resp,
 	)
 	if err != nil {
