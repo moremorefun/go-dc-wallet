@@ -110,6 +110,14 @@ func main() {
 			return
 		}
 	}
+	if ethAddresses == nil {
+		hcommon.Log.Errorf("ethAddresses nil")
+		return
+	}
+	if btcAddresses == nil {
+		hcommon.Log.Errorf("btcAddresses nil")
+		return
+	}
 	configStrRows := []*model.DBTAppConfigStr{
 		{
 			// eth 冷钱包地址
@@ -144,6 +152,16 @@ func main() {
 		{
 			// eos 冷钱包地址
 			K: "cold_wallet_address_eos",
+			V: "",
+		},
+		{
+			// eos 热钱包地址
+			K: "hot_wallet_address_eos",
+			V: "",
+		},
+		{
+			// eos 热钱包加密私钥
+			K: "hot_wallet_key_eos",
 			V: "",
 		},
 	}
