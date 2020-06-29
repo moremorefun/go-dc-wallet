@@ -33,6 +33,7 @@
 - Erc20(以太坊代币)
 - Bitcoin(比特币)
 - OmniLayer(比特币代币)
+- Eos
 
 ## 项目依赖
 
@@ -40,6 +41,7 @@
 - 数据库使用`MySQL`
 - `Ethereum`的RPC服务
 - `OmniLayer`的RPC服务
+- `Eos`的RPC服务
 
 ## 使用说明
 
