@@ -35,10 +35,10 @@ func EosValueToDecimal(quantity string) (decimal.Decimal, error) {
 func EosValueToStr(quantity string) (string, error) {
 	quantitys := strings.Split(quantity, " ")
 	if len(quantitys) != 2 {
-		return "0", fmt.Errorf("error value: %s")
+		return "0", fmt.Errorf("error value: %s", quantitys)
 	}
 	if quantitys[1] != "EOS" {
-		return "0", fmt.Errorf("error value: %s")
+		return "0", fmt.Errorf("error value: %s", quantitys)
 	}
 	return quantitys[0], nil
 }
