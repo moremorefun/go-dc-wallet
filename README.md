@@ -41,7 +41,7 @@
 - 数据库使用`MySQL`
 - `Ethereum`的RPC服务
 - `OmniLayer`的RPC服务
-- `Eos`的RPC服务
+- `Eos`的RPC服务，用到了`chain`和`history`
 
 ## 使用说明
 
