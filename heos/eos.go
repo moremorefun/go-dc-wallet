@@ -562,7 +562,7 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 		return err
 	}
 	// 打包tx
-	packedTx, err := keySignTx.Pack(eos.CompressionNone)
+	packedTx, err := keySignTx.Pack(eos.CompressionZlib)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
@@ -603,7 +603,7 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 			ToAddress:    withdrawRow.ToAddress,
 			Memo:         withdrawRow.Memo,
 			BalanceReal:  withdrawRow.BalanceReal,
-			Hex:          hex.EncodeToString(packedTxBs),
+			Hex:          string(packedTxBs),
 			HandleStatus: app.SendStatusInit,
 			HandleMsg:    "init",
 			HandleAt:     now,

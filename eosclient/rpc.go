@@ -31,9 +31,9 @@ type StRpcRespError struct {
 
 func (e *StRpcRespError) Error() string {
 	if len(e.ErrorInv.Details) > 0 {
-		return fmt.Sprintf("%d[%d] %s-%s", e.Code, e.ErrorInv.Code, e.Message, e.ErrorInv.Details[0].Message)
+		return fmt.Sprintf("%d[%d] %s-%s-%s", e.Code, e.ErrorInv.Code, e.Message, e.ErrorInv.What, e.ErrorInv.Details[0].Message)
 	}
-	return fmt.Sprintf("%d[%d] %s", e.Code, e.ErrorInv.Code, e.Message)
+	return fmt.Sprintf("%d[%d] %s-%s", e.Code, e.ErrorInv.Code, e.Message, e.ErrorInv.What)
 }
 
 type StChainGetInfo struct {
