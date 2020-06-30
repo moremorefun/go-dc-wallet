@@ -289,6 +289,29 @@ WHERE
 	return count, nil
 }
 
+// SQLUpdateTAppStatusIntByKGreater 更新
+func SQLUpdateTAppStatusIntByKGreater(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppStatusInt) (int64, error) {
+	count, err := hcommon.DbExecuteCountNamedContent(
+		ctx,
+		tx,
+		`UPDATE
+	t_app_status_int
+SET
+    v=:v
+WHERE
+	k=:k
+	AND v<:v`,
+		gin.H{
+			"k": row.K,
+			"v": row.V,
+		},
+	)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 // SQLUpdateTAppConfigStrByK 更新
 func SQLUpdateTAppConfigStrByK(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppConfigStr) (int64, error) {
 	count, err := hcommon.DbExecuteCountNamedContent(

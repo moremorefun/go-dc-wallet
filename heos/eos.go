@@ -241,7 +241,7 @@ func CheckBlockSeek() {
 					return
 				}
 				// 更新block num
-				_, err = app.SQLUpdateTAppStatusIntByK(
+				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
 					app.DbCon,
 					&model.DBTAppStatusInt{

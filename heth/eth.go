@@ -295,7 +295,7 @@ func CheckBlockSeek() {
 					return
 				}
 				// 更新检查到的最新区块数
-				_, err = app.SQLUpdateTAppStatusIntByK(
+				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
 					app.DbCon,
 					&model.DBTAppStatusInt{
@@ -1593,7 +1593,7 @@ func CheckErc20BlockSeek() {
 					}
 				}
 				// 更新检查到的最新区块数
-				_, err = app.SQLUpdateTAppStatusIntByK(
+				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
 					app.DbCon,
 					&model.DBTAppStatusInt{
