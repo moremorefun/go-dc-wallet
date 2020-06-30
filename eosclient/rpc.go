@@ -10,7 +10,6 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-var client *gorequest.SuperAgent
 var rpcURI string
 
 type StRpcRespError struct {
@@ -233,11 +232,10 @@ type StGetTransaction struct {
 // InitClient 初始化客户端
 func InitClient(uri string) {
 	rpcURI = uri
-	client = gorequest.New().Timeout(time.Minute * 5)
 }
 
 func doReq(funURI string, arqs interface{}, resp interface{}) error {
-	_, body, errs := client.Post(rpcURI + funURI).Send(arqs).EndBytes()
+	_, body, errs := gorequest.New().Timeout(time.Minute * 5).Post(rpcURI + funURI).Send(arqs).EndBytes()
 	if errs != nil {
 		return errs[0]
 	}

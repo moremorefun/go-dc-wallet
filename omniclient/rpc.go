@@ -9,7 +9,8 @@ import (
 	"github.com/parnurzeal/gorequest"
 )
 
-var client *gorequest.SuperAgent
+var locOmniRPCUser string
+var locOmniRPCPwd string
 var rpcURI string
 
 type StRpcRespError struct {
@@ -120,11 +121,12 @@ type StOmniBalanceResult struct {
 // InitClient 初始化客户端
 func InitClient(omniRPCHost, omniRPCUser, omniRPCPwd string) {
 	rpcURI = omniRPCHost
-	client = gorequest.New().SetBasicAuth(omniRPCUser, omniRPCPwd).Timeout(time.Minute * 5)
+	locOmniRPCUser = omniRPCUser
+	locOmniRPCPwd = omniRPCPwd
 }
 
 func doReq(method string, arqs []interface{}, resp interface{}) error {
-	_, body, errs := client.Post(rpcURI).Send(StRpcReq{
+	_, body, errs := gorequest.New().SetBasicAuth(locOmniRPCUser, locOmniRPCPwd).Timeout(time.Minute * 5).Post(rpcURI).Send(StRpcReq{
 		Jsonrpc: "1.0",
 		ID:      hcommon.GetUUIDStr(),
 		Method:  method,
