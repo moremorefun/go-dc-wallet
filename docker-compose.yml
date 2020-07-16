@@ -14,6 +14,8 @@ services:
     restart: always
     env_file:
       - .env
+    command:
+      ./app-api
     ports:
       - "1000:1000"
     logging:
