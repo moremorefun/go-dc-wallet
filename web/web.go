@@ -469,6 +469,14 @@ func postWithdraw(c *gin.Context) {
 			HandleTime:   now,
 		},
 	)
+	if err != nil {
+		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		c.JSON(http.StatusOK, gin.H{
+			"error":   hcommon.ErrorInternal,
+			"err_msg": hcommon.ErrorInternalMsg,
+		})
+		return
+	}
 	// 提交事物
 	err = tx.Commit()
 	if err != nil {
