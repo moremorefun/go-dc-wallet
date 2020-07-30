@@ -658,6 +658,7 @@ func CheckRawTxSend() {
 				model.DBColTWithdrawOutSerial,
 				model.DBColTWithdrawToAddress,
 				model.DBColTWithdrawBalanceReal,
+				model.DBColTWithdrawSymbol,
 			},
 			withdrawIDs,
 		)
@@ -708,7 +709,7 @@ func CheckRawTxSend() {
 				"app_name":    productRow.AppName,
 				"out_serial":  withdrawRow.OutSerial,
 				"address":     withdrawRow.ToAddress,
-				"symbol":      CoinSymbol,
+				"symbol":      withdrawRow.Symbol,
 				"notify_type": app.NotifyTypeWithdrawSend,
 			}
 			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
@@ -723,7 +724,7 @@ func CheckRawTxSend() {
 				ItemType:     app.SendRelationTypeWithdraw,
 				ItemID:       withdrawRow.ID,
 				NotifyType:   app.NotifyTypeWithdrawSend,
-				TokenSymbol:  CoinSymbol,
+				TokenSymbol:  withdrawRow.Symbol,
 				URL:          productRow.CbURL,
 				Msg:          string(req),
 				HandleStatus: app.NotifyStatusInit,
