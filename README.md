@@ -1,5 +1,6 @@
 # go-dc-wallet
 
+-[![build](https://github.com/moremorefun/go-dc-wallet/workflows/build/badge.svg)](https://github.com/moremorefun/go-dc-wallet/actions?query=workflow%3Abuild)
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/moremorefun/go-dc-wallet/blob/master/LICENSE)
 [![blog](https://img.shields.io/badge/blog-@moremorefun-brightgreen.svg)](https://www.jidangeng.com)
 
