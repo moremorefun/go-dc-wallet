@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/moremorefun/go-dc-wallet/blob/master/LICENSE)
 [![blog](https://img.shields.io/badge/blog-@moremorefun-brightgreen.svg)](https://www.jidangeng.com)
 
+** 注意，该项目暂未经过生产环境测试，请谨慎使用 **
 
 ## 目录
 
