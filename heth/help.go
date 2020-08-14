@@ -21,7 +21,9 @@ import (
 )
 
 const (
-	EthToWei   = 1e18
+	// EthToWei 数据单位
+	EthToWei = 1e18
+	// CoinSymbol 单位标志
 	CoinSymbol = "eth"
 )
 
