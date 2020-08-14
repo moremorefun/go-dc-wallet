@@ -12,7 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/iancoleman/strcase"
-	"github.com/twinj/uuid"
+	uuid "github.com/satori/go.uuid"
 	"gopkg.in/go-playground/validator.v8"
 )
 

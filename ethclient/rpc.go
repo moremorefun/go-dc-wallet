@@ -122,7 +122,7 @@ func RpcFilterLogs(ctx context.Context, startBlock int64, endBlock int64, contra
 		ToBlock:   big.NewInt(endBlock),
 		Addresses: warpAddresses,
 		Topics: [][]common.Hash{
-			{event.ID()},
+			{event.ID},
 		},
 	}
 	logs, err := client.FilterLogs(ctx, query)
