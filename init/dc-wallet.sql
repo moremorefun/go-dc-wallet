@@ -1,10 +1,10 @@
 -- -------------------------------------------------------------
--- TablePlus 3.6.2(323)
+-- TablePlus 3.8.0(333)
 --
 -- https://tableplus.com/
 --
 -- Database: dc-wallet
--- Generation Time: 2020-06-29 10:23:45.9460
+-- Generation Time: 2020-08-20 10:40:35.5900
 -- -------------------------------------------------------------
 
 
@@ -35,7 +35,7 @@ CREATE TABLE `t_app_config_int` (
   `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_str` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -56,7 +56,7 @@ CREATE TABLE `t_app_config_token` (
   `create_time` bigint(20) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_address` (`token_address`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_config_token_btc` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -69,7 +69,7 @@ CREATE TABLE `t_app_config_token_btc` (
   `create_at` int(11) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `token_symbol` (`token_symbol`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_lock` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -79,7 +79,7 @@ CREATE TABLE `t_app_lock` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `k_2` (`k`),
   KEY `k` (`k`,`create_time`)
-) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=69 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_app_status_int` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -87,7 +87,7 @@ CREATE TABLE `t_app_status_int` (
   `v` bigint(20) NOT NULL COMMENT '配置键值',
   PRIMARY KEY (`id`),
   UNIQUE KEY `k` (`k`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_product` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -123,7 +123,7 @@ CREATE TABLE `t_product_notify` (
   `update_time` bigint(20) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `product_id` (`product_id`,`item_type`,`item_id`,`notify_type`,`token_symbol`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_send` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -187,7 +187,7 @@ CREATE TABLE `t_send_eos` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `withdraw_id` (`withdraw_id`) USING BTREE,
   KEY `tx_hash` (`tx_hash`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE `t_tx` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
@@ -310,6 +310,7 @@ CREATE TABLE `t_withdraw` (
   `product_id` int(11) unsigned NOT NULL COMMENT '产品id',
   `out_serial` varchar(64) NOT NULL DEFAULT '' COMMENT '提币唯一标示',
   `to_address` varchar(128) NOT NULL DEFAULT '' COMMENT '提币地址',
+  `memo` varchar(256) NOT NULL,
   `symbol` varchar(128) NOT NULL,
   `balance_real` varchar(128) NOT NULL DEFAULT '' COMMENT '提币金额',
   `tx_hash` varchar(128) NOT NULL DEFAULT '' COMMENT '提币tx hash',
@@ -321,7 +322,7 @@ CREATE TABLE `t_withdraw` (
   UNIQUE KEY `out_serial` (`out_serial`,`product_id`) USING BTREE,
   KEY `t_withdraw_tx_hash_idx` (`tx_hash`) USING BTREE,
   KEY `t_withdraw_handle_status_symbol_idx` (`handle_status`,`symbol`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4;
 
 
 
