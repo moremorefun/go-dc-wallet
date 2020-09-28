@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"go-dc-wallet/app"
-	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
 
 	"github.com/shopspring/decimal"

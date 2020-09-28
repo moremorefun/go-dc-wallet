@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-dc-wallet/app"
-	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/model"
 	"go-dc-wallet/omniclient"
 	"go-dc-wallet/xenv"
 	"net/http"
@@ -66,10 +66,11 @@ func CreateHotAddress(num int64) ([]string, error) {
 		addresses = append(addresses, address)
 	}
 	// 一次性将生成的地址存入数据库
-	_, err := model.SQLCreateIgnoreManyTAddressKey(
+	_, err := model.SQLCreateManyTAddressKey(
 		context.Background(),
 		xenv.DbCon,
 		rows,
+		true,
 	)
 	if err != nil {
 		return nil, err
@@ -120,10 +121,11 @@ func CheckAddressFree() {
 				})
 			}
 			// 一次性将生成的地址存入数据库
-			_, err = model.SQLCreateIgnoreManyTAddressKey(
+			_, err = model.SQLCreateManyTAddressKey(
 				context.Background(),
 				xenv.DbCon,
 				rows,
+				true,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -408,19 +410,21 @@ func CheckBlockSeek() {
 					}
 				}
 				// 插入数据库
-				_, err = model.SQLCreateIgnoreManyTTxBtc(
+				_, err = model.SQLCreateManyTTxBtc(
 					context.Background(),
 					xenv.DbCon,
 					txBtcRows,
+					true,
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				_, err = model.SQLCreateIgnoreManyTTxBtcUxto(
+				_, err = model.SQLCreateManyTTxBtcUxto(
 					context.Background(),
 					xenv.DbCon,
 					txBtcUxtoRows,
+					true,
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -606,10 +610,11 @@ func CheckTxOrg() {
 				})
 			}
 			// 插入数据
-			_, err = model.SQLCreateIgnoreManyTSendBtc(
+			_, err = model.SQLCreateManyTSendBtc(
 				context.Background(),
 				dbTx,
 				sendRows,
+				true,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -803,10 +808,11 @@ func CheckRawTxSend() {
 			return
 		}
 		// 添加发送通知
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1010,10 +1016,11 @@ func CheckRawTxConfirm() {
 			return
 		}
 		// 添加通知
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1316,10 +1323,11 @@ func CheckWithdraw() {
 			})
 		}
 		// 插入数据
-		_, err = model.SQLCreateIgnoreManyTSendBtc(
+		_, err = model.SQLCreateManyTSendBtc(
 			context.Background(),
 			dbTx,
 			sendRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1438,10 +1446,11 @@ func CheckTxNotify() {
 			})
 			notifyTxIDs = append(notifyTxIDs, txRow.ID)
 		}
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1656,10 +1665,11 @@ func OmniCheckBlockSeek() {
 					}
 
 				}
-				_, err = model.SQLCreateIgnoreManyTTxBtcToken(
+				_, err = model.SQLCreateManyTTxBtcToken(
 					context.Background(),
 					xenv.DbCon,
 					txTokenRows,
+					true,
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2015,10 +2025,11 @@ func OmniCheckTxOrg() {
 				omniHotUxtoMap[tokenRow.HotAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
 			}
 			// 添加发送
-			_, err = model.SQLCreateIgnoreManyTSendBtc(
+			_, err = model.SQLCreateManyTSendBtc(
 				context.Background(),
 				dbTx,
 				sendRows,
+				true,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2339,10 +2350,11 @@ func OmniCheckWithdraw() {
 			omniHotUxtoMap[tokenRow.HotAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
 		}
 		// 插入发送
-		_, err = model.SQLCreateIgnoreManyTSendBtc(
+		_, err = model.SQLCreateManyTSendBtc(
 			context.Background(),
 			dbTx,
 			sendRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2463,10 +2475,11 @@ func OmniCheckTxNotify() {
 			})
 			notifyTxIDs = append(notifyTxIDs, txRow.ID)
 		}
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())

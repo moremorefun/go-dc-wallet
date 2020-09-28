@@ -8,9 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"go-dc-wallet/app"
-	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
 	"math"
 	"math/big"
@@ -76,10 +76,11 @@ func CreateHotAddress(num int64) ([]string, error) {
 		addresses = append(addresses, address)
 	}
 	// 一次性将生成的地址存入数据库
-	_, err := model.SQLCreateIgnoreManyTAddressKey(
+	_, err := model.SQLCreateManyTAddressKey(
 		context.Background(),
 		xenv.DbCon,
 		rows,
+		true,
 	)
 	if err != nil {
 		return nil, err
@@ -129,10 +130,11 @@ func CheckAddressFree() {
 				})
 			}
 			// 一次性将生成的地址存入数据库
-			_, err = model.SQLCreateIgnoreManyTAddressKey(
+			_, err = model.SQLCreateManyTAddressKey(
 				context.Background(),
 				xenv.DbCon,
 				rows,
+				true,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -286,10 +288,11 @@ func CheckBlockSeek() {
 					}
 				}
 				// 插入交易数据
-				_, err = model.SQLCreateIgnoreManyTTx(
+				_, err = model.SQLCreateManyTTx(
 					context.Background(),
 					xenv.DbCon,
 					dbTxRows,
+					true,
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -511,10 +514,11 @@ func CheckAddressOrg() {
 				}
 			}
 			// 插入发送数据
-			_, err = model.SQLCreateIgnoreManyTSend(
+			_, err = model.SQLCreateManyTSend(
 				context.Background(),
 				dbTx,
 				sendRows,
+				true,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -726,10 +730,11 @@ func CheckRawTxSend() {
 			}
 		}
 		// 插入通知
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -972,10 +977,11 @@ func CheckRawTxConfirm() {
 			}
 		}
 		// 添加通知信息
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1258,6 +1264,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 			HandleMsg:    "init",
 			HandleTime:   now,
 		},
+		false,
 	)
 	if err != nil {
 		return err
@@ -1354,10 +1361,11 @@ func CheckTxNotify() {
 			})
 			notifyTxIDs = append(notifyTxIDs, txRow.ID)
 		}
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1584,10 +1592,11 @@ func CheckErc20BlockSeek() {
 							})
 						}
 					}
-					_, err = model.SQLCreateIgnoreManyTTxErc20(
+					_, err = model.SQLCreateManyTTxErc20(
 						context.Background(),
 						xenv.DbCon,
 						txErc20Rows,
+						true,
 					)
 					if err != nil {
 						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -1718,10 +1727,11 @@ func CheckErc20TxNotify() {
 			})
 			notifyTxIDs = append(notifyTxIDs, txRow.ID)
 		}
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2022,10 +2032,11 @@ func CheckErc20TxOrg() {
 				}
 			}
 			// 插入发送队列
-			_, err = model.SQLCreateIgnoreManyTSend(
+			_, err = model.SQLCreateManyTSend(
 				context.Background(),
 				dbTx,
 				sendRows,
+				true,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2181,10 +2192,11 @@ func CheckErc20TxOrg() {
 					}
 				}
 				// 插入发送数据
-				_, err = model.SQLCreateIgnoreManyTSend(
+				_, err = model.SQLCreateManyTSend(
 					context.Background(),
 					dbTx,
 					sendRows,
+					true,
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -2515,6 +2527,7 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 			HandleMsg:    "init",
 			HandleTime:   now,
 		},
+		false,
 	)
 	if err != nil {
 		return err

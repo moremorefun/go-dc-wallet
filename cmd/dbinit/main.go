@@ -6,12 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-dc-wallet/app"
-	"go-dc-wallet/app/model"
 	"go-dc-wallet/eosclient"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hbtc"
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/heth"
+	"go-dc-wallet/model"
 	"go-dc-wallet/omniclient"
 	"go-dc-wallet/xenv"
 	"math"
@@ -49,10 +49,11 @@ func main() {
 			V: 2,
 		},
 	}
-	_, err := model.SQLCreateIgnoreManyTAppConfigInt(
+	_, err := model.SQLCreateManyTAppConfigInt(
 		context.Background(),
 		xenv.DbCon,
 		configIntRows,
+		true,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -166,10 +167,11 @@ func main() {
 			V: "",
 		},
 	}
-	_, err = model.SQLCreateIgnoreManyTAppConfigStr(
+	_, err = model.SQLCreateManyTAppConfigStr(
 		context.Background(),
 		xenv.DbCon,
 		configStrRows,
+		true,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -190,10 +192,11 @@ func main() {
 			CreateTime:    now,
 		},
 	}
-	_, err = model.SQLCreateIgnoreManyTAppConfigToken(
+	_, err = model.SQLCreateManyTAppConfigToken(
 		context.Background(),
 		xenv.DbCon,
 		configTokenRows,
+		true,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -213,10 +216,11 @@ func main() {
 			CreateAt:        now,
 		},
 	}
-	_, err = model.SQLCreateIgnoreManyTAppConfigTokenBtc(
+	_, err = model.SQLCreateManyTAppConfigTokenBtc(
 		context.Background(),
 		xenv.DbCon,
 		configTokenBtcRows,
+		true,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -347,10 +351,11 @@ func main() {
 			V: btcToUserGasPrice,
 		},
 	}
-	_, err = model.SQLCreateIgnoreManyTAppStatusInt(
+	_, err = model.SQLCreateManyTAppStatusInt(
 		context.Background(),
 		xenv.DbCon,
 		appStatusIntRows,
+		true,
 	)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())

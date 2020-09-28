@@ -2,7 +2,6 @@
 package main
 
 import (
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/web"
 	"go-dc-wallet/xenv"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"github.com/fvbock/endless"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
+	"github.com/moremorefun/mcommon"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 		r.Use(gin.Logger(), gin.Recovery())
 
 	} else {
-		r.Use(ginzap.Ginzap(hcommon.ZapLog, time.StampMilli, true), gin.Recovery())
+		r.Use(ginzap.Ginzap(mcommon.ZapLog, time.StampMilli, true), gin.Recovery())
 	}
 	// 注册api
 	web.Start(r)

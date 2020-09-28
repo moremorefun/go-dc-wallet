@@ -2,8 +2,8 @@ package app
 
 import (
 	"context"
-	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
 	"time"
 )
@@ -110,6 +110,8 @@ func SQLGetWithdrawMap(ctx context.Context, tx hcommon.DbExeAble, cols []string,
 		tx,
 		cols,
 		ids,
+		nil,
+		nil,
 	)
 	if err != nil {
 		return nil, err
@@ -131,6 +133,8 @@ func SQLGetProductMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, 
 		tx,
 		cols,
 		ids,
+		nil,
+		nil,
 	)
 	if err != nil {
 		return nil, err
@@ -152,6 +156,8 @@ func SQLGetAppConfigTokenMap(ctx context.Context, tx hcommon.DbExeAble, cols []s
 		tx,
 		cols,
 		ids,
+		nil,
+		nil,
 	)
 	if err != nil {
 		return nil, err

@@ -1,20 +1,21 @@
 package web
 
 import (
-	"encoding/json"
+	"fmt"
 	"go-dc-wallet/app"
-	"go-dc-wallet/app/model"
 	"go-dc-wallet/eosclient"
 	"go-dc-wallet/hbtc"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/heos"
 	"go-dc-wallet/heth"
+	"go-dc-wallet/model"
+	"go-dc-wallet/value"
 	"go-dc-wallet/xenv"
-	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/moremorefun/mcommon"
 
 	"github.com/btcsuite/btcutil"
 
@@ -29,257 +30,102 @@ func Start(r *gin.Engine) {
 	r.POST("/api/withdraw", productReq, postWithdraw)
 }
 
-func productReq(c *gin.Context) {
-	var req struct {
-		AppName string `json:"app_name" binding:"required"`
-		Nonce   string `json:"nonce" binding:"required" validate:"max=40"`
-		Sign    string `json:"sign" binding:"required"`
-	}
-	err := c.ShouldBindBodyWith(&req, binding.JSON)
-	if err != nil {
-		hcommon.Log.Warnf("req args error: %#v", err)
-		hcommon.GinFillBindError(c, err)
-		c.Abort()
-		return
-	}
-	// 获取产品信息
-	productRow, err := app.SQLGetTProductColByName(
-		c,
-		xenv.DbCon,
-		[]string{
-			model.DBColTProductID,
-			model.DBColTProductAppSk,
-			model.DBColTProductWhitelistIP,
-		},
-		req.AppName,
-	)
-	if err != nil {
-		hcommon.Log.Warnf("err: [%T] %s", err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		c.Abort()
-		return
-	}
-	if productRow == nil {
-		hcommon.Log.Warnf("no product of: %s", req.AppName)
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorNoProduct,
-			"err_msg": hcommon.ErrorNoProductMsg,
-		})
-		c.Abort()
-		return
-	}
-	// 对比ip白名单
-	if len(productRow.WhitelistIP) > 0 {
-		if !strings.Contains(productRow.WhitelistIP, c.ClientIP()) {
-			hcommon.Log.Warnf("no in ip list of: %s %s", req.AppName, c.ClientIP())
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorIPLimit,
-				"err_msg": hcommon.ErrorIPLimitMsg,
-			})
-			c.Abort()
-			return
-		}
-	}
-	// 验证签名
-	var body []byte
-	if cb, ok := c.Get(gin.BodyBytesKey); ok {
-		if cbb, ok := cb.([]byte); ok {
-			body = cbb
-		}
-	}
-	if body == nil {
-		body, err = ioutil.ReadAll(c.Request.Body)
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorInternal,
-				"err_msg": hcommon.ErrorInternalMsg,
-			})
-			c.Abort()
-			return
-		}
-		c.Set(gin.BodyBytesKey, body)
-	}
-	oldObj := gin.H{}
-	err = json.Unmarshal(body, &oldObj)
-	if err != nil {
-		hcommon.Log.Warnf("req body error")
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		c.Abort()
-		return
-	}
-	checkObj := gin.H{}
-	for k, v := range oldObj {
-		if k != "sign" {
-			checkObj[k] = v
-		}
-	}
-	checkSign := hcommon.GetSign(productRow.AppSk, checkObj)
-	if checkSign == "" || checkSign != req.Sign {
-		hcommon.Log.Warnf("sign error of: %s", req.AppName)
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorSignWrong,
-			"err_msg": hcommon.ErrorSignWrongMsg,
-		})
-		c.Abort()
-		return
-	}
-	// 检测nonce
-	count, err := model.SQLCreateIgnoreTProductNonce(
-		c,
-		xenv.DbCon,
-		&model.DBTProductNonce{
-			C:          req.Nonce,
-			CreateTime: time.Now().Unix(),
-		},
-	)
-	if err != nil {
-		hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		c.Abort()
-		return
-	}
-	if count <= 0 {
-		hcommon.Log.Warnf("nonce repeated")
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorNonceRepeat,
-			"err_msg": hcommon.ErrorNonceRepeatMsg,
-		})
-		c.Abort()
-		return
-	}
-	c.Set("product_id", productRow.ID)
-}
-
 func postAddress(c *gin.Context) {
 	var req struct {
 		Symbol string `json:"symbol" binding:"required" validate:"oneof=eth btc eos"`
 	}
 	err := c.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
-		hcommon.Log.Warnf("req args error: %#v", err)
-		hcommon.GinFillBindError(c, err)
+		mcommon.Log.Warnf("req args error: %#v", err)
+		mcommon.GinFillBindError(c, err)
 		return
 	}
 	productID := c.GetInt64("product_id")
 	if productID == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
+		mcommon.GinDoRespInternalErr(c)
 		return
 	}
+	var addressRow *model.DBTAddressKey
+	var eosColdAddressValue string
 	// 开始事物
-	isComment := false
-	tx, err := xenv.DbCon.BeginTxx(c, nil)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		return
-	}
-	defer func() {
-		if !isComment {
-			_ = tx.Rollback()
-		}
-	}()
-	addressRow, err := app.SQLGetTAddressKeyColFreeForUpdate(
-		c,
-		tx,
-		[]string{
-			model.DBColTAddressKeyID,
-			model.DBColTAddressKeyAddress,
-		},
-		req.Symbol,
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		return
-	}
-	if addressRow == nil {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorNoFreeAddress,
-			"err_msg": hcommon.ErrorNoFreeAddressMsg,
-		})
-		return
-	}
-	count, err := app.SQLUpdateTAddressKeyUseTag(
-		c,
-		tx,
-		&model.DBTAddressKey{
-			ID:     addressRow.ID,
-			UseTag: productID,
-		},
-	)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		return
-	}
-	if count <= 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		return
-	}
-	eosColdAddressValue := ""
-	if req.Symbol == "eos" {
-		// 获取冷钱包地址
-		eosColdAddressValue, err = app.SQLGetTAppConfigStrValueByK(
+	isUseGinErr := true
+	err = mcommon.DbTransaction(c, xenv.DbCon, func(tx mcommon.DbExeAble) error {
+		// 获取可用地址
+		var err error
+		addressRow, err = app.SQLGetTAddressKeyColFreeForUpdate(
 			c,
 			tx,
-			"cold_wallet_address_eos",
+			[]string{
+				model.DBColTAddressKeyID,
+				model.DBColTAddressKeyAddress,
+			},
+			req.Symbol,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorInternal,
-				"err_msg": hcommon.ErrorInternalMsg,
-			})
-			return
+			return err
 		}
-		eosColdAddressValue = strings.TrimSpace(eosColdAddressValue)
-		if eosColdAddressValue == "" {
-			hcommon.Log.Errorf("eosColdAddressValue null")
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorInternal,
-				"err_msg": hcommon.ErrorInternalMsg,
-			})
-			return
+		if addressRow == nil {
+			// 没有可用地址了
+			mcommon.GinDoRespErr(
+				c,
+				value.ErrorNoFreeAddress,
+				value.ErrorNoFreeAddressMsg,
+				nil,
+			)
+			isUseGinErr = false
+			return fmt.Errorf("no free address")
 		}
-	}
-	// 提交事物
-	err = tx.Commit()
+		// 更新获取到的地址的使用状态
+		count, err := mcommon.DbUpdateKV(
+			c,
+			tx,
+			model.DbTableTAddressKey,
+			mcommon.H{
+				model.DBColShortTAddressKeyUseTag: productID,
+			},
+			[]string{
+				model.DBColShortTAddressKeyID,
+			},
+			[]interface{}{
+				addressRow.ID,
+			},
+		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return err
+		}
+		if count <= 0 {
+			return fmt.Errorf("update address use tag error")
+		}
+		if req.Symbol == "eos" {
+			// 获取冷钱包地址
+			eosColdAddressValue, err = app.SQLGetTAppConfigStrValueByK(
+				c,
+				tx,
+				"cold_wallet_address_eos",
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return err
+			}
+			eosColdAddressValue = strings.TrimSpace(eosColdAddressValue)
+			if eosColdAddressValue == "" {
+				mcommon.Log.Errorf("eosColdAddressValue null")
+				return fmt.Errorf("eosColdAddressValue null")
+			}
+		}
+		return nil
+	})
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		if isUseGinErr {
+			mcommon.GinDoRespInternalErr(c)
+		}
 		return
 	}
-	isComment = true
 	c.JSON(http.StatusOK, gin.H{
-		"error":       hcommon.ErrorSuccess,
-		"err_msg":     hcommon.ErrorSuccessMsg,
+		"error":       mcommon.ErrorSuccess,
+		"err_msg":     mcommon.ErrorSuccessMsg,
 		"address":     addressRow.Address,
 		"eos_address": eosColdAddressValue,
 	})
@@ -295,37 +141,38 @@ func postWithdraw(c *gin.Context) {
 	}
 	err := c.ShouldBindBodyWith(&req, binding.JSON)
 	if err != nil {
-		hcommon.Log.Warnf("req args error: %#v", err)
-		hcommon.GinFillBindError(c, err)
+		mcommon.Log.Warnf("req args error: %#v", err)
+		mcommon.GinFillBindError(c, err)
 		return
 	}
+	// 将币种小写
 	req.Symbol = strings.ToLower(req.Symbol)
-
+	// 获取产品id
 	productID := c.GetInt64("product_id")
 	if productID == 0 {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
+		mcommon.GinDoRespInternalErr(c)
 		return
 	}
+	// eth 信息
 	tokenDecimalsMap := make(map[string]int64)
 	ethSymbols := []string{heth.CoinSymbol}
 	tokenDecimalsMap[heth.CoinSymbol] = 18
-	tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
+	// 获取所有eth代币币种
+	tokenRows, err := model.SQLSelectTAppConfigTokenColKV(
 		c,
 		xenv.DbCon,
 		[]string{
 			model.DBColTAppConfigTokenTokenSymbol,
 			model.DBColTAppConfigTokenTokenDecimals,
 		},
+		nil,
+		nil,
+		nil,
+		nil,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.GinDoRespInternalErr(c)
 		return
 	}
 	for _, tokenRow := range tokenRows {
@@ -334,21 +181,23 @@ func postWithdraw(c *gin.Context) {
 		ethSymbols = append(ethSymbols, tokenRow.TokenSymbol)
 		tokenDecimalsMap[tokenRow.TokenSymbol] = tokenRow.TokenDecimals
 	}
+	// btc 信息
 	btcSymbols := []string{hbtc.CoinSymbol}
 	tokenDecimalsMap[hbtc.CoinSymbol] = 8
-	tokenBtcRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
+	tokenBtcRows, err := model.SQLSelectTAppConfigTokenBtcColKV(
 		c,
 		xenv.DbCon,
 		[]string{
 			model.DBColTAppConfigTokenBtcTokenSymbol,
 		},
+		nil,
+		nil,
+		nil,
+		nil,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.GinDoRespInternalErr(c)
 		return
 	}
 	for _, tokenRow := range tokenBtcRows {
@@ -357,63 +206,75 @@ func postWithdraw(c *gin.Context) {
 		btcSymbols = append(btcSymbols, tokenRow.TokenSymbol)
 		tokenDecimalsMap[tokenRow.TokenSymbol] = 8
 	}
-	// eos
+	// eos 信息
 	tokenDecimalsMap[heos.CoinSymbol] = 4
 	// 验证金额
 	tokenDecimals, ok := tokenDecimalsMap[req.Symbol]
 	if !ok {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorSymbolNotSupport,
-			"err_msg": hcommon.ErrorSymbolNotSupportMsg,
-		})
+		mcommon.GinDoRespErr(
+			c,
+			value.ErrorSymbolNotSupport,
+			value.ErrorSymbolNotSupportMsg,
+			nil,
+		)
 		return
 	}
 	balanceObj, err := decimal.NewFromString(req.Balance)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorBalanceFormat,
-			"err_msg": hcommon.ErrorBalanceFormatMsg,
-		})
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.GinDoRespErr(
+			c,
+			value.ErrorBalanceFormat,
+			value.ErrorBalanceFormatMsg,
+			nil,
+		)
 		return
 	}
 	if balanceObj.LessThanOrEqual(decimal.NewFromInt(0)) {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorBalanceFormat,
-			"err_msg": hcommon.ErrorBalanceFormatMsg,
-		})
+		mcommon.GinDoRespErr(
+			c,
+			value.ErrorBalanceFormat,
+			value.ErrorBalanceFormatMsg,
+			nil,
+		)
 		return
 	}
 	if balanceObj.Exponent() < -int32(tokenDecimals) {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorBalanceFormat,
-			"err_msg": hcommon.ErrorBalanceFormatMsg,
-		})
+		mcommon.GinDoRespErr(
+			c,
+			value.ErrorBalanceFormat,
+			value.ErrorBalanceFormatMsg,
+			nil,
+		)
 		return
 	}
-	if hcommon.IsStringInSlice(ethSymbols, req.Symbol) {
+	if mcommon.IsStringInSlice(ethSymbols, req.Symbol) {
 		// 验证地址
 		req.Address = strings.ToLower(req.Address)
 		re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
 		if !re.MatchString(req.Address) {
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorAddressWrong,
-				"err_msg": hcommon.ErrorAddressWrongMsg,
-			})
+			mcommon.GinDoRespErr(
+				c,
+				value.ErrorAddressWrong,
+				value.ErrorAddressWrongMsg,
+				nil,
+			)
 			return
 		}
 
-	} else if hcommon.IsStringInSlice(btcSymbols, req.Symbol) {
+	} else if mcommon.IsStringInSlice(btcSymbols, req.Symbol) {
 		// 验证地址
 		_, err := btcutil.DecodeAddress(
 			req.Address,
 			hbtc.GetNetwork(xenv.Cfg.BtcNetworkType).Params,
 		)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorAddressWrong,
-				"err_msg": hcommon.ErrorAddressWrongMsg,
-			})
+			mcommon.GinDoRespErr(
+				c,
+				value.ErrorAddressWrong,
+				value.ErrorAddressWrongMsg,
+				nil,
+			)
 			return
 		}
 	} else if req.Symbol == heos.CoinSymbol {
@@ -423,39 +284,27 @@ func postWithdraw(c *gin.Context) {
 			req.Address,
 		)
 		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"error":   hcommon.ErrorAddressWrong,
-				"err_msg": hcommon.ErrorAddressWrongMsg,
-			})
+			mcommon.GinDoRespErr(
+				c,
+				value.ErrorAddressWrong,
+				value.ErrorAddressWrongMsg,
+				nil,
+			)
 			return
 		}
 	} else {
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorSymbolNotSupport,
-			"err_msg": hcommon.ErrorSymbolNotSupportMsg,
-		})
+		mcommon.GinDoRespErr(
+			c,
+			value.ErrorSymbolNotSupport,
+			value.ErrorSymbolNotSupportMsg,
+			nil,
+		)
 		return
 	}
 	now := time.Now().Unix()
-	// 开始事物
-	isComment := false
-	tx, err := xenv.DbCon.BeginTxx(c, nil)
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		return
-	}
-	defer func() {
-		if !isComment {
-			_ = tx.Rollback()
-		}
-	}()
-	_, err = model.SQLCreateIgnoreTWithdraw(
+	_, err = model.SQLCreateTWithdraw(
 		c,
-		tx,
+		xenv.DbCon,
 		&model.DBTWithdraw{
 			ProductID:    productID,
 			OutSerial:    req.OutSerial,
@@ -469,28 +318,15 @@ func postWithdraw(c *gin.Context) {
 			HandleMsg:    "",
 			HandleTime:   now,
 		},
+		true,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.GinDoRespInternalErr(c)
 		return
 	}
-	// 提交事物
-	err = tx.Commit()
-	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-		c.JSON(http.StatusOK, gin.H{
-			"error":   hcommon.ErrorInternal,
-			"err_msg": hcommon.ErrorInternalMsg,
-		})
-		return
-	}
-	isComment = true
 	c.JSON(http.StatusOK, gin.H{
-		"error":   hcommon.ErrorSuccess,
-		"err_msg": hcommon.ErrorSuccessMsg,
+		"error":   mcommon.ErrorSuccess,
+		"err_msg": mcommon.ErrorSuccessMsg,
 	})
 }

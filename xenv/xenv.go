@@ -3,7 +3,6 @@ package xenv
 import (
 	"go-dc-wallet/eosclient"
 	"go-dc-wallet/ethclient"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/omniclient"
 	"math/rand"
 	"strings"
@@ -11,6 +10,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	"github.com/moremorefun/mcommon"
 	"github.com/timest/env"
 )
 
@@ -48,23 +48,23 @@ func EnvCreate() {
 	err := godotenv.Load()
 	if err != nil {
 		if !strings.Contains(err.Error(), "no such file or directory") {
-			hcommon.Log.Fatalf("read env from .env err: [%T] %s", err, err.Error())
+			mcommon.Log.Fatalf("read env from .env err: [%T] %s", err, err.Error())
 		} else {
-			hcommon.Log.Warnf("no .env file specialty, set read from system or docker env")
+			mcommon.Log.Warnf("no .env file specialty, set read from system or docker env")
 		}
 	}
 	Cfg = new(config)
 	env.IgnorePrefix()
 	err = env.Fill(Cfg)
 	if err != nil {
-		hcommon.Log.Fatalf("read env config err: [%T] %s", err, err.Error())
+		mcommon.Log.Fatalf("read env config err: [%T] %s", err, err.Error())
 	}
 	if len(Cfg.MySqlDataSourceName) == 0 {
-		hcommon.Log.Fatalf("mysql dataSourceName is empty")
+		mcommon.Log.Fatalf("mysql dataSourceName is empty")
 	}
 
 	// 初始化数据库
-	DbCon = hcommon.DbCreate(Cfg.MySqlDataSourceName, Cfg.MySqlIsShowSQL)
+	DbCon = mcommon.DbCreate(Cfg.MySqlDataSourceName, Cfg.MySqlIsShowSQL)
 	// 初始化eth rpc
 	ethclient.InitClient(Cfg.EthRPC)
 	// 初始化omni rpc

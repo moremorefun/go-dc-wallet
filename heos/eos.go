@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-dc-wallet/app"
-	"go-dc-wallet/app/model"
 	"go-dc-wallet/eosclient"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
 	"time"
 
@@ -66,10 +66,11 @@ func CheckAddressFree() {
 				})
 			}
 			// 一次性将生成的地址存入数据库
-			_, err = model.SQLCreateIgnoreManyTAddressKey(
+			_, err = model.SQLCreateManyTAddressKey(
 				context.Background(),
 				xenv.DbCon,
 				rows,
+				true,
 			)
 			if err != nil {
 				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -232,10 +233,11 @@ func CheckBlockSeek() {
 						)
 					}
 				}
-				_, err = model.SQLCreateIgnoreManyTTxEos(
+				_, err = model.SQLCreateManyTTxEos(
 					context.Background(),
 					xenv.DbCon,
 					txRows,
+					true,
 				)
 				if err != nil {
 					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -345,10 +347,11 @@ func CheckTxNotify() {
 			})
 			notifyTxIDs = append(notifyTxIDs, txRow.ID)
 		}
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -610,6 +613,7 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 			HandleMsg:    "init",
 			HandleAt:     now,
 		},
+		false,
 	)
 	if err != nil {
 		return err
@@ -810,10 +814,11 @@ func CheckRawTxSend() {
 			}
 		}
 		// 插入通知
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			true,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -980,10 +985,11 @@ func CheckRawTxConfirm() {
 			}
 		}
 		// 添加通知信息
-		_, err = model.SQLCreateIgnoreManyTProductNotify(
+		_, err = model.SQLCreateManyTProductNotify(
 			context.Background(),
 			xenv.DbCon,
 			notifyRows,
+			false,
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
