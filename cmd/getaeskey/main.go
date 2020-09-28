@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go-dc-wallet/app"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/xenv"
 	"strings"
 )
 
@@ -22,10 +22,10 @@ func main() {
 		flag.Usage()
 		return
 	}
-	app.EnvCreate()
-	defer app.EnvDestroy()
+	xenv.EnvCreate()
+	defer xenv.EnvDestroy()
 
 	// 加密密钥
-	privateKeyStrEn := hcommon.AesEncrypt(*sourceKey, app.Cfg.AESKey)
+	privateKeyStrEn := hcommon.AesEncrypt(*sourceKey, xenv.Cfg.AESKey)
 	fmt.Printf("%s\n", privateKeyStrEn)
 }

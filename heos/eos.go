@@ -9,6 +9,7 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/eosclient"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/xenv"
 	"time"
 
 	"github.com/eoscanada/eos-go"
@@ -25,7 +26,7 @@ func CheckAddressFree() {
 		// 获取配置 允许的最小剩余地址数
 		minFreeValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"min_free_address",
 		)
 		if err != nil {
@@ -35,7 +36,7 @@ func CheckAddressFree() {
 		// 获取当前剩余可用地址数
 		freeCount, err := app.SQLGetTAddressKeyFreeCount(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			CoinSymbol,
 		)
 		if err != nil {
@@ -48,7 +49,7 @@ func CheckAddressFree() {
 			// 获取最大值
 			maxAddress, err := app.SQLGetTAddressMaxIntOfEos(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 			)
 			if maxAddress < MiniAddress {
 				maxAddress = MiniAddress
@@ -67,7 +68,7 @@ func CheckAddressFree() {
 			// 一次性将生成的地址存入数据库
 			_, err = model.SQLCreateIgnoreManyTAddressKey(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				rows,
 			)
 			if err != nil {
@@ -85,7 +86,7 @@ func CheckBlockSeek() {
 		// 获取状态 当前处理完成的最新的block number
 		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"eos_seek_num",
 		)
 		if err != nil {
@@ -104,7 +105,7 @@ func CheckBlockSeek() {
 			// 获取冷钱包地址
 			eosColdAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				"cold_wallet_address_eos",
 			)
 			if err != nil {
@@ -198,7 +199,7 @@ func CheckBlockSeek() {
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					[]string{
 						model.DBColTAddressKeyAddress,
 						model.DBColTAddressKeyUseTag,
@@ -233,7 +234,7 @@ func CheckBlockSeek() {
 				}
 				_, err = model.SQLCreateIgnoreManyTTxEos(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					txRows,
 				)
 				if err != nil {
@@ -243,7 +244,7 @@ func CheckBlockSeek() {
 				// 更新block num
 				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					&model.DBTAppStatusInt{
 						K: "eos_seek_num",
 						V: i,
@@ -264,7 +265,7 @@ func CheckTxNotify() {
 	app.LockWrap(lockKey, func() {
 		txRows, err := app.SQLSelectTTxEosColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTTxEosID,
 				model.DBColTTxEosProductID,
@@ -289,7 +290,7 @@ func CheckTxNotify() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -346,7 +347,7 @@ func CheckTxNotify() {
 		}
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -355,7 +356,7 @@ func CheckTxNotify() {
 		}
 		_, err = app.SQLUpdateTTxEosStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyTxIDs,
 			model.DBTTxEos{
 				HandleStatus: app.TxStatusNotify,
@@ -377,7 +378,7 @@ func CheckWithdraw() {
 		// 获取需要处理的提币数据
 		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 			},
@@ -395,7 +396,7 @@ func CheckWithdraw() {
 		// 获取热钱包地址
 		hotAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"hot_wallet_address_eos",
 		)
 		if err != nil {
@@ -405,14 +406,14 @@ func CheckWithdraw() {
 		// 获取热钱包私钥
 		hotKeyValue, err := app.SQLGetTAppConfigStrValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"hot_wallet_key_eos",
 		)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		key := hcommon.AesDecrypt(hotKeyValue, app.Cfg.AESKey)
+		key := hcommon.AesDecrypt(hotKeyValue, xenv.Cfg.AESKey)
 		if len(key) == 0 {
 			hcommon.Log.Errorf("error key of eos")
 			return
@@ -432,7 +433,7 @@ func CheckWithdraw() {
 		}
 		pendingBalanceRealStr, err := app.SQLGetTSendEosPendingBalanceReal(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			hotAddressValue,
 		)
 		if err != nil {
@@ -463,7 +464,7 @@ func CheckWithdraw() {
 
 func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, hotAddressValue string, hotKey string, hotBalance *decimal.Decimal) error {
 	isComment := false
-	dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+	dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 	if err != nil {
 		return err
 	}
@@ -629,7 +630,7 @@ func CheckRawTxSend() {
 		// 获取待发送的数据
 		sendRows, err := app.SQLSelectTSendEosColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTSendEosID,
 				model.DBColTSendEosTxHash,
@@ -651,7 +652,7 @@ func CheckRawTxSend() {
 		}
 		withdrawMap, err := app.SQLGetWithdrawMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawProductID,
@@ -671,7 +672,7 @@ func CheckRawTxSend() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -811,7 +812,7 @@ func CheckRawTxSend() {
 		// 插入通知
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -821,7 +822,7 @@ func CheckRawTxSend() {
 		// 更新提币状态
 		_, err = app.SQLUpdateTWithdrawStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			withdrawIDs,
 			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusSend,
@@ -836,7 +837,7 @@ func CheckRawTxSend() {
 		// 更新发送状态
 		_, err = app.SQLUpdateTSendEosStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			sendIDs,
 			model.DBTSendEos{
 				HandleStatus: app.SendStatusSend,
@@ -858,7 +859,7 @@ func CheckRawTxConfirm() {
 		// 获取待发送的数据
 		sendRows, err := app.SQLSelectTSendEosColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTSendEosID,
 				model.DBColTSendEosTxHash,
@@ -880,7 +881,7 @@ func CheckRawTxConfirm() {
 		}
 		withdrawMap, err := app.SQLGetWithdrawMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawProductID,
@@ -903,7 +904,7 @@ func CheckRawTxConfirm() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -981,7 +982,7 @@ func CheckRawTxConfirm() {
 		// 添加通知信息
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -991,7 +992,7 @@ func CheckRawTxConfirm() {
 		// 更新提币状态
 		_, err = app.SQLUpdateTWithdrawStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			withdrawIDs,
 			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusConfirm,
@@ -1006,7 +1007,7 @@ func CheckRawTxConfirm() {
 		// 更新发送状态
 		_, err = app.SQLUpdateTSendEosStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			sendIDs,
 			model.DBTSendEos{
 				HandleStatus: app.SendStatusConfirm,

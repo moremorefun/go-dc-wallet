@@ -11,6 +11,7 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/xenv"
 	"math"
 	"math/big"
 	"net/http"
@@ -43,7 +44,7 @@ func genAddressAndAesKey() (string, string, error) {
 	privateKeyBytes := crypto.FromECDSA(privateKey)
 	privateKeyStr := hexutil.Encode(privateKeyBytes)
 	// 加密密钥
-	privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, app.Cfg.AESKey)
+	privateKeyStrEn := hcommon.AesEncrypt(privateKeyStr, xenv.Cfg.AESKey)
 	// 获取地址
 	publicKey := privateKey.Public()
 	publicKeyECDSA, ok := publicKey.(*ecdsa.PublicKey)
@@ -77,7 +78,7 @@ func CreateHotAddress(num int64) ([]string, error) {
 	// 一次性将生成的地址存入数据库
 	_, err := model.SQLCreateIgnoreManyTAddressKey(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		rows,
 	)
 	if err != nil {
@@ -93,7 +94,7 @@ func CheckAddressFree() {
 		// 获取配置 允许的最小剩余地址数
 		minFreeCount, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"min_free_address",
 		)
 		if err != nil {
@@ -103,7 +104,7 @@ func CheckAddressFree() {
 		// 获取当前剩余可用地址数
 		freeCount, err := app.SQLGetTAddressKeyFreeCount(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			CoinSymbol,
 		)
 		if err != nil {
@@ -130,7 +131,7 @@ func CheckAddressFree() {
 			// 一次性将生成的地址存入数据库
 			_, err = model.SQLCreateIgnoreManyTAddressKey(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				rows,
 			)
 			if err != nil {
@@ -148,7 +149,7 @@ func CheckBlockSeek() {
 		// 获取配置 延迟确认数
 		confirmValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"block_confirm_num",
 		)
 		if err != nil {
@@ -158,7 +159,7 @@ func CheckBlockSeek() {
 		// 获取状态 当前处理完成的最新的block number
 		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"seek_num",
 		)
 		if err != nil {
@@ -177,7 +178,7 @@ func CheckBlockSeek() {
 			// 手续费钱包列表
 			feeAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				"fee_wallet_address_list",
 			)
 			if err != nil {
@@ -228,7 +229,7 @@ func CheckBlockSeek() {
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					[]string{
 						model.DBColTAddressKeyAddress,
 						model.DBColTAddressKeyUseTag,
@@ -287,7 +288,7 @@ func CheckBlockSeek() {
 				// 插入交易数据
 				_, err = model.SQLCreateIgnoreManyTTx(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					dbTxRows,
 				)
 				if err != nil {
@@ -297,7 +298,7 @@ func CheckBlockSeek() {
 				// 更新检查到的最新区块数
 				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					&model.DBTAppStatusInt{
 						K: "seek_num",
 						V: i,
@@ -319,7 +320,7 @@ func CheckAddressOrg() {
 		// 获取冷钱包地址
 		coldAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"cold_wallet_address",
 		)
 		if err != nil {
@@ -333,7 +334,7 @@ func CheckAddressOrg() {
 		}
 		// 开启事物
 		isComment := false
-		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
@@ -552,7 +553,7 @@ func CheckRawTxSend() {
 		// 获取待发送的数据
 		sendRows, err := app.SQLSelectTSendColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTSendID,
 				model.DBColTSendTxID,
@@ -578,7 +579,7 @@ func CheckRawTxSend() {
 		}
 		withdrawMap, err := app.SQLGetWithdrawMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawProductID,
@@ -598,7 +599,7 @@ func CheckRawTxSend() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -727,7 +728,7 @@ func CheckRawTxSend() {
 		// 插入通知
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -737,7 +738,7 @@ func CheckRawTxSend() {
 		// 更新提币状态
 		_, err = app.SQLUpdateTWithdrawStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			withdrawIDs,
 			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusSend,
@@ -752,7 +753,7 @@ func CheckRawTxSend() {
 		// 更新eth零钱整理状态
 		_, err = app.SQLUpdateTTxOrgStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			txIDs,
 			model.DBTTx{
 				OrgStatus: app.TxOrgStatusSend,
@@ -767,7 +768,7 @@ func CheckRawTxSend() {
 		// 更新erc20零钱整理状态
 		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			erc20TxIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusSend,
@@ -782,7 +783,7 @@ func CheckRawTxSend() {
 		// 更新erc20手续费状态
 		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			erc20TxFeeIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusFeeSend,
@@ -797,7 +798,7 @@ func CheckRawTxSend() {
 		// 更新发送状态
 		_, err = app.SQLUpdateTSendStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			sendIDs,
 			model.DBTSend{
 				HandleStatus: app.SendStatusSend,
@@ -818,7 +819,7 @@ func CheckRawTxConfirm() {
 	app.LockWrap(lockKey, func() {
 		sendRows, err := app.SQLSelectTSendColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTSendID,
 				model.DBColTSendRelatedType,
@@ -843,7 +844,7 @@ func CheckRawTxConfirm() {
 		}
 		withdrawMap, err := app.SQLGetWithdrawMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawProductID,
@@ -866,7 +867,7 @@ func CheckRawTxConfirm() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -973,7 +974,7 @@ func CheckRawTxConfirm() {
 		// 添加通知信息
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -983,7 +984,7 @@ func CheckRawTxConfirm() {
 		// 更新提币状态
 		_, err = app.SQLUpdateTWithdrawStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			withdrawIDs,
 			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusConfirm,
@@ -998,7 +999,7 @@ func CheckRawTxConfirm() {
 		// 更新eth零钱整理状态
 		_, err = app.SQLUpdateTTxOrgStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			txIDs,
 			model.DBTTx{
 				OrgStatus: app.TxOrgStatusConfirm,
@@ -1013,7 +1014,7 @@ func CheckRawTxConfirm() {
 		// 更新erc20零钱整理状态
 		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			erc20TxIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusConfirm,
@@ -1028,7 +1029,7 @@ func CheckRawTxConfirm() {
 		// 更新erc20零钱整理eth手续费状态
 		_, err = app.SQLUpdateTTxErc20OrgStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			erc20TxFeeIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusFeeConfirm,
@@ -1043,7 +1044,7 @@ func CheckRawTxConfirm() {
 		// 更新发送状态
 		_, err = app.SQLUpdateTSendStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			sendIDs,
 			model.DBTSend{
 				HandleStatus: app.SendStatusConfirm,
@@ -1061,7 +1062,7 @@ func CheckWithdraw() {
 		// 获取需要处理的提币数据
 		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 			},
@@ -1079,7 +1080,7 @@ func CheckWithdraw() {
 		// 获取热钱包地址
 		hotAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"hot_wallet_address",
 		)
 		if err != nil {
@@ -1094,7 +1095,7 @@ func CheckWithdraw() {
 		// 获取私钥
 		privateKey, err := GetPkOfAddress(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			hotAddressValue,
 		)
 		if err != nil {
@@ -1112,7 +1113,7 @@ func CheckWithdraw() {
 		}
 		pendingBalanceRealStr, err := app.SQLGetTSendPendingBalanceReal(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			hotAddressValue,
 		)
 		if err != nil {
@@ -1128,7 +1129,7 @@ func CheckWithdraw() {
 		// 获取gap price
 		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"to_user_gas_price",
 		)
 		if err != nil {
@@ -1155,7 +1156,7 @@ func CheckWithdraw() {
 
 func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateKey *ecdsa.PrivateKey, hotAddressBalance *big.Int, gasLimit, gasPrice, feeValue int64) error {
 	isComment := false
-	dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+	dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 	if err != nil {
 		return err
 	}
@@ -1276,7 +1277,7 @@ func CheckTxNotify() {
 	app.LockWrap(lockKey, func() {
 		txRows, err := app.SQLSelectTTxColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTTxID,
 				model.DBColTTxProductID,
@@ -1298,7 +1299,7 @@ func CheckTxNotify() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -1355,7 +1356,7 @@ func CheckTxNotify() {
 		}
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -1364,7 +1365,7 @@ func CheckTxNotify() {
 		}
 		_, err = app.SQLUpdateTTxStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyTxIDs,
 			model.DBTTx{
 				HandleStatus: app.TxStatusNotify,
@@ -1386,7 +1387,7 @@ func CheckErc20BlockSeek() {
 		// 获取配置 延迟确认数
 		confirmValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"block_confirm_num",
 		)
 		if err != nil {
@@ -1396,7 +1397,7 @@ func CheckErc20BlockSeek() {
 		// 获取状态 当前处理完成的最新的block number
 		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"erc20_seek_num",
 		)
 		if err != nil {
@@ -1428,7 +1429,7 @@ func CheckErc20BlockSeek() {
 			configTokenRowMap := make(map[string]*model.DBTAppConfigToken)
 			configTokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				[]string{
 					model.DBColTAppConfigTokenID,
 					model.DBColTAppConfigTokenTokenAddress,
@@ -1477,7 +1478,7 @@ func CheckErc20BlockSeek() {
 					// 从db中查询这些地址是否是冲币地址中的地址
 					dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
 						context.Background(),
-						app.DbCon,
+						xenv.DbCon,
 						[]string{
 							model.DBColTAddressKeyAddress,
 							model.DBColTAddressKeyUseTag,
@@ -1585,7 +1586,7 @@ func CheckErc20BlockSeek() {
 					}
 					_, err = model.SQLCreateIgnoreManyTTxErc20(
 						context.Background(),
-						app.DbCon,
+						xenv.DbCon,
 						txErc20Rows,
 					)
 					if err != nil {
@@ -1596,7 +1597,7 @@ func CheckErc20BlockSeek() {
 				// 更新检查到的最新区块数
 				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					&model.DBTAppStatusInt{
 						K: "erc20_seek_num",
 						V: i,
@@ -1617,7 +1618,7 @@ func CheckErc20TxNotify() {
 	app.LockWrap(lockKey, func() {
 		txRows, err := app.SQLSelectTTxErc20ColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTTxErc20ID,
 				model.DBColTTxErc20TokenID,
@@ -1644,7 +1645,7 @@ func CheckErc20TxNotify() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -1659,7 +1660,7 @@ func CheckErc20TxNotify() {
 		}
 		tokenMap, err := app.SQLGetAppConfigTokenMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTAppConfigTokenID,
 				model.DBColTAppConfigTokenTokenSymbol,
@@ -1719,7 +1720,7 @@ func CheckErc20TxNotify() {
 		}
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -1728,7 +1729,7 @@ func CheckErc20TxNotify() {
 		}
 		_, err = app.SQLUpdateTTxErc20StatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyTxIDs,
 			model.DBTTxErc20{
 				HandleStatus: app.TxStatusNotify,
@@ -1750,7 +1751,7 @@ func CheckErc20TxOrg() {
 		// 计算转账token所需的手续费
 		erc20GasUseValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"erc20_gas_use",
 		)
 		if err != nil {
@@ -1759,7 +1760,7 @@ func CheckErc20TxOrg() {
 		}
 		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"to_cold_gas_price",
 		)
 		if err != nil {
@@ -1778,7 +1779,7 @@ func CheckErc20TxOrg() {
 
 		// 开始事物
 		isComment := false
-		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
 			hcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 			return
@@ -2227,7 +2228,7 @@ func CheckErc20Withdraw() {
 		addressTokenBalanceMap := make(map[string]*big.Int)
 		tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTAppConfigTokenID,
 				model.DBColTAppConfigTokenTokenAddress,
@@ -2257,7 +2258,7 @@ func CheckErc20Withdraw() {
 				// 获取私钥
 				keyRow, err := app.SQLGetTAddressKeyColByAddress(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					[]string{
 						model.DBColTAddressKeyPwd,
 					},
@@ -2271,7 +2272,7 @@ func CheckErc20Withdraw() {
 					hcommon.Log.Errorf("no key of: %s", hotAddress)
 					return
 				}
-				key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+				key := hcommon.AesDecrypt(keyRow.Pwd, xenv.Cfg.AESKey)
 				if len(key) == 0 {
 					hcommon.Log.Errorf("error key of: %s", hotAddress)
 					return
@@ -2298,7 +2299,7 @@ func CheckErc20Withdraw() {
 				}
 				pendingBalanceReal, err := app.SQLGetTSendPendingBalanceReal(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					hotAddress,
 				)
 				if err != nil {
@@ -2330,7 +2331,7 @@ func CheckErc20Withdraw() {
 		}
 		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawSymbol,
@@ -2348,7 +2349,7 @@ func CheckErc20Withdraw() {
 		// 获取gap price
 		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"to_user_gas_price",
 		)
 		if err != nil {
@@ -2358,7 +2359,7 @@ func CheckErc20Withdraw() {
 		gasPrice := gasPriceValue
 		erc20GasUseValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"erc20_gas_use",
 		)
 		if err != nil {
@@ -2385,7 +2386,7 @@ func CheckErc20Withdraw() {
 
 func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*model.DBTAppConfigToken, addressKeyMap *map[string]*ecdsa.PrivateKey, addressEthBalanceMap *map[string]*big.Int, addressTokenBalanceMap *map[string]*big.Int, gasLimit, gasPrice int64, feeValue *big.Int) error {
 	isComment := false
-	dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+	dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 	if err != nil {
 		return err
 	}
@@ -2567,7 +2568,7 @@ func CheckGasPrice() {
 		toColdGasPrice := resp.Average * int64(math.Pow10(8))
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			&model.DBTAppStatusInt{
 				K: "to_user_gas_price",
 				V: toUserGasPrice,
@@ -2579,7 +2580,7 @@ func CheckGasPrice() {
 		}
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			&model.DBTAppStatusInt{
 				K: "to_cold_gas_price",
 				V: toColdGasPrice,

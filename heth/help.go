@@ -9,6 +9,7 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/xenv"
 	"math/big"
 	"regexp"
 	"strings"
@@ -153,7 +154,7 @@ func GetPKMapOfAddresses(ctx context.Context, db hcommon.DbExeAble, addresses []
 		return nil, err
 	}
 	for k, v := range addressKeyMap {
-		key := hcommon.AesDecrypt(v.Pwd, app.Cfg.AESKey)
+		key := hcommon.AesDecrypt(v.Pwd, xenv.Cfg.AESKey)
 		if len(key) == 0 {
 			hcommon.Log.Errorf("error key of: %s", k)
 			continue
@@ -190,7 +191,7 @@ func GetPkOfAddress(ctx context.Context, db hcommon.DbExeAble, address string) (
 		hcommon.Log.Errorf("no key of: %s", address)
 		return nil, fmt.Errorf("no key of: %s", address)
 	}
-	key := hcommon.AesDecrypt(keyRow.Pwd, app.Cfg.AESKey)
+	key := hcommon.AesDecrypt(keyRow.Pwd, xenv.Cfg.AESKey)
 	if len(key) == 0 {
 		hcommon.Log.Errorf("error key of: %s", address)
 		return nil, fmt.Errorf("no key of: %s", address)

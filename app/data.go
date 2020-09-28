@@ -4,6 +4,7 @@ import (
 	"context"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/xenv"
 	"time"
 )
 
@@ -74,7 +75,7 @@ func ReleaseLock(ctx context.Context, tx hcommon.DbExeAble, k string) error {
 func LockWrap(name string, f func()) {
 	ok, err := GetLock(
 		context.Background(),
-		DbCon,
+		xenv.DbCon,
 		name,
 	)
 	if err != nil {
@@ -87,7 +88,7 @@ func LockWrap(name string, f func()) {
 	defer func() {
 		err := ReleaseLock(
 			context.Background(),
-			DbCon,
+			xenv.DbCon,
 			name,
 		)
 		if err != nil {

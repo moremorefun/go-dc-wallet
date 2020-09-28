@@ -9,6 +9,7 @@ import (
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/heos"
 	"go-dc-wallet/heth"
+	"go-dc-wallet/xenv"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -44,7 +45,7 @@ func productReq(c *gin.Context) {
 	// 获取产品信息
 	productRow, err := app.SQLGetTProductColByName(
 		c,
-		app.DbCon,
+		xenv.DbCon,
 		[]string{
 			model.DBColTProductID,
 			model.DBColTProductAppSk,
@@ -131,7 +132,7 @@ func productReq(c *gin.Context) {
 	// 检测nonce
 	count, err := model.SQLCreateIgnoreTProductNonce(
 		c,
-		app.DbCon,
+		xenv.DbCon,
 		&model.DBTProductNonce{
 			C:          req.Nonce,
 			CreateTime: time.Now().Unix(),
@@ -178,7 +179,7 @@ func postAddress(c *gin.Context) {
 	}
 	// 开始事物
 	isComment := false
-	tx, err := app.DbCon.BeginTxx(c, nil)
+	tx, err := xenv.DbCon.BeginTxx(c, nil)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		c.JSON(http.StatusOK, gin.H{
@@ -313,7 +314,7 @@ func postWithdraw(c *gin.Context) {
 	tokenDecimalsMap[heth.CoinSymbol] = 18
 	tokenRows, err := app.SQLSelectTAppConfigTokenColAll(
 		c,
-		app.DbCon,
+		xenv.DbCon,
 		[]string{
 			model.DBColTAppConfigTokenTokenSymbol,
 			model.DBColTAppConfigTokenTokenDecimals,
@@ -337,7 +338,7 @@ func postWithdraw(c *gin.Context) {
 	tokenDecimalsMap[hbtc.CoinSymbol] = 8
 	tokenBtcRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 		c,
-		app.DbCon,
+		xenv.DbCon,
 		[]string{
 			model.DBColTAppConfigTokenBtcTokenSymbol,
 		},
@@ -406,7 +407,7 @@ func postWithdraw(c *gin.Context) {
 		// 验证地址
 		_, err := btcutil.DecodeAddress(
 			req.Address,
-			hbtc.GetNetwork(app.Cfg.BtcNetworkType).Params,
+			hbtc.GetNetwork(xenv.Cfg.BtcNetworkType).Params,
 		)
 		if err != nil {
 			c.JSON(http.StatusOK, gin.H{
@@ -438,7 +439,7 @@ func postWithdraw(c *gin.Context) {
 	now := time.Now().Unix()
 	// 开始事物
 	isComment := false
-	tx, err := app.DbCon.BeginTxx(c, nil)
+	tx, err := xenv.DbCon.BeginTxx(c, nil)
 	if err != nil {
 		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		c.JSON(http.StatusOK, gin.H{

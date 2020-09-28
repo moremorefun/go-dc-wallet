@@ -2,9 +2,9 @@
 package main
 
 import (
-	"go-dc-wallet/app"
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/web"
+	"go-dc-wallet/xenv"
 	"time"
 
 	"github.com/fvbock/endless"
@@ -13,14 +13,14 @@ import (
 )
 
 func main() {
-	app.EnvCreate()
-	defer app.EnvDestroy()
+	xenv.EnvCreate()
+	defer xenv.EnvDestroy()
 	// 初始化gin
-	if !app.Cfg.IsDebug {
+	if !xenv.Cfg.IsDebug {
 		gin.SetMode(gin.ReleaseMode)
 	}
 	r := gin.New()
-	if !app.Cfg.IsDebug {
+	if !xenv.Cfg.IsDebug {
 		r.Use(gin.Logger(), gin.Recovery())
 
 	} else {

@@ -1,4 +1,4 @@
-package app
+package xenv
 
 import (
 	"go-dc-wallet/eosclient"

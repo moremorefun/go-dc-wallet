@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/xenv"
 	"net/http"
 	"time"
 
@@ -19,7 +20,7 @@ func CheckDoNotify() {
 	lockKey := "CheckDoNotify"
 	ok, err := GetLock(
 		context.Background(),
-		DbCon,
+		xenv.DbCon,
 		lockKey,
 	)
 	if err != nil {
@@ -32,7 +33,7 @@ func CheckDoNotify() {
 	defer func() {
 		err := ReleaseLock(
 			context.Background(),
-			DbCon,
+			xenv.DbCon,
 			lockKey,
 		)
 		if err != nil {
@@ -44,7 +45,7 @@ func CheckDoNotify() {
 	// 初始化的
 	initNotifyRows, err := SQLSelectTProductNotifyColByStatusAndTime(
 		context.Background(),
-		DbCon,
+		xenv.DbCon,
 		[]string{
 			model.DBColTProductNotifyID,
 			model.DBColTProductNotifyURL,
@@ -60,7 +61,7 @@ func CheckDoNotify() {
 	// 错误的
 	delayNotifyRows, err := SQLSelectTProductNotifyColByStatusAndTime(
 		context.Background(),
-		DbCon,
+		xenv.DbCon,
 		[]string{
 			model.DBColTProductNotifyID,
 			model.DBColTProductNotifyURL,
@@ -81,7 +82,7 @@ func CheckDoNotify() {
 			hcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
-				DbCon,
+				xenv.DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
 					HandleStatus: NotifyStatusFail,
@@ -99,7 +100,7 @@ func CheckDoNotify() {
 			hcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
-				DbCon,
+				xenv.DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
 					HandleStatus: NotifyStatusFail,
@@ -118,7 +119,7 @@ func CheckDoNotify() {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
-				DbCon,
+				xenv.DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
 					HandleStatus: NotifyStatusFail,
@@ -136,7 +137,7 @@ func CheckDoNotify() {
 			// 处理成功
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
-				DbCon,
+				xenv.DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
 					HandleStatus: NotifyStatusPass,
@@ -151,7 +152,7 @@ func CheckDoNotify() {
 			//hcommon.Log.Errorf("no error in resp")
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
-				DbCon,
+				xenv.DbCon,
 				&model.DBTProductNotify{
 					ID:           initNotifyRow.ID,
 					HandleStatus: NotifyStatusFail,

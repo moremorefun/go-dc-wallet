@@ -3,11 +3,12 @@ package main
 
 import (
 	"go-dc-wallet/app"
+	"go-dc-wallet/xenv"
 )
 
 func main() {
-	app.EnvCreate()
-	defer app.EnvDestroy()
+	xenv.EnvCreate()
+	defer xenv.EnvDestroy()
 
 	app.CheckDoNotify()
 }

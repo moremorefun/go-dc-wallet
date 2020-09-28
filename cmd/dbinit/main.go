@@ -13,6 +13,7 @@ import (
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/heth"
 	"go-dc-wallet/omniclient"
+	"go-dc-wallet/xenv"
 	"math"
 	"net/http"
 	"strings"
@@ -22,8 +23,8 @@ import (
 )
 
 func main() {
-	app.EnvCreate()
-	defer app.EnvDestroy()
+	xenv.EnvCreate()
+	defer xenv.EnvDestroy()
 
 	// 1. 初始化 t_app_config_int
 	configIntRows := []*model.DBTAppConfigInt{
@@ -50,7 +51,7 @@ func main() {
 	}
 	_, err := model.SQLCreateIgnoreManyTAppConfigInt(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		configIntRows,
 	)
 	if err != nil {
@@ -62,7 +63,7 @@ func main() {
 	// 获取可用地址
 	ethAddressRows, err := app.SQLSelectTAddressKeyColByTagAndSymbol(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		[]string{
 			model.DBColTAddressKeyAddress,
 		},
@@ -88,7 +89,7 @@ func main() {
 	// 获取可用地址
 	btcAddressRows, err := app.SQLSelectTAddressKeyColByTagAndSymbol(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		[]string{
 			model.DBColTAddressKeyAddress,
 		},
@@ -167,7 +168,7 @@ func main() {
 	}
 	_, err = model.SQLCreateIgnoreManyTAppConfigStr(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		configStrRows,
 	)
 	if err != nil {
@@ -191,7 +192,7 @@ func main() {
 	}
 	_, err = model.SQLCreateIgnoreManyTAppConfigToken(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		configTokenRows,
 	)
 	if err != nil {
@@ -214,7 +215,7 @@ func main() {
 	}
 	_, err = model.SQLCreateIgnoreManyTAppConfigTokenBtc(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		configTokenBtcRows,
 	)
 	if err != nil {
@@ -348,7 +349,7 @@ func main() {
 	}
 	_, err = model.SQLCreateIgnoreManyTAppStatusInt(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		appStatusIntRows,
 	)
 	if err != nil {
@@ -359,7 +360,7 @@ func main() {
 	// 6. 更新 t_app_config_str
 	feeAddressValue, err := app.SQLGetTAppConfigStrValueByK(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		"fee_wallet_address",
 	)
 	if err != nil && err != sql.ErrNoRows {
@@ -369,7 +370,7 @@ func main() {
 	feeAddressValue = strings.TrimSpace(feeAddressValue)
 	feeAddressListValue, err := app.SQLGetTAppConfigStrValueByK(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		"fee_wallet_address_list",
 	)
 	if err != nil && err != sql.ErrNoRows {
@@ -386,7 +387,7 @@ func main() {
 	}
 	_, err = app.SQLUpdateTAppConfigStrByK(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		&model.DBTAppConfigStr{
 			K: "fee_wallet_address_list",
 			V: feeAddressListValue,

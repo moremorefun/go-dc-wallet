@@ -10,6 +10,7 @@ import (
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/omniclient"
+	"go-dc-wallet/xenv"
 	"net/http"
 	"strings"
 	"time"
@@ -31,14 +32,14 @@ const (
 
 func genAddressAndAesKey() (string, string, error) {
 	// 生成私钥
-	wif, err := GetNetwork(app.Cfg.BtcNetworkType).CreatePrivateKey()
+	wif, err := GetNetwork(xenv.Cfg.BtcNetworkType).CreatePrivateKey()
 	if err != nil {
 		return "", "", err
 	}
 	// 加密密钥
-	wifStrEn := hcommon.AesEncrypt(wif.String(), app.Cfg.AESKey)
+	wifStrEn := hcommon.AesEncrypt(wif.String(), xenv.Cfg.AESKey)
 	// 获取地址
-	address, err := GetNetwork(app.Cfg.BtcNetworkType).GetAddress(wif)
+	address, err := GetNetwork(xenv.Cfg.BtcNetworkType).GetAddress(wif)
 	if err != nil {
 		return "", "", err
 	}
@@ -67,7 +68,7 @@ func CreateHotAddress(num int64) ([]string, error) {
 	// 一次性将生成的地址存入数据库
 	_, err := model.SQLCreateIgnoreManyTAddressKey(
 		context.Background(),
-		app.DbCon,
+		xenv.DbCon,
 		rows,
 	)
 	if err != nil {
@@ -83,7 +84,7 @@ func CheckAddressFree() {
 		// 获取配置 允许的最小剩余地址数
 		minFreeValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"min_free_address",
 		)
 		if err != nil {
@@ -93,7 +94,7 @@ func CheckAddressFree() {
 		// 获取当前剩余可用地址数
 		freeCount, err := app.SQLGetTAddressKeyFreeCount(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			CoinSymbol,
 		)
 		if err != nil {
@@ -121,7 +122,7 @@ func CheckAddressFree() {
 			// 一次性将生成的地址存入数据库
 			_, err = model.SQLCreateIgnoreManyTAddressKey(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				rows,
 			)
 			if err != nil {
@@ -139,7 +140,7 @@ func CheckBlockSeek() {
 		// 获取配置 延迟确认数
 		confirmValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"btc_block_confirm_num",
 		)
 		if err != nil {
@@ -149,7 +150,7 @@ func CheckBlockSeek() {
 		// 获取状态 当前处理完成的最新的block number
 		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"btc_seek_num",
 		)
 		if err != nil {
@@ -170,7 +171,7 @@ func CheckBlockSeek() {
 			var tokenFeeAddresses []string
 			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				[]string{
 					model.DBColTAppConfigTokenBtcID,
 					model.DBColTAppConfigTokenBtcHotAddress,
@@ -262,7 +263,7 @@ func CheckBlockSeek() {
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					[]string{
 						model.DBColTAddressKeyAddress,
 						model.DBColTAddressKeyUseTag,
@@ -378,7 +379,7 @@ func CheckBlockSeek() {
 				var updateUxtoRows []*model.DBTTxBtcUxto
 				uxtoRows, err := app.SQLSelectTTxBtcUxtoColByTxIDs(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					[]string{
 						model.DBColTTxBtcUxtoID,
 						model.DBColTTxBtcUxtoTxID,
@@ -409,7 +410,7 @@ func CheckBlockSeek() {
 				// 插入数据库
 				_, err = model.SQLCreateIgnoreManyTTxBtc(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					txBtcRows,
 				)
 				if err != nil {
@@ -418,7 +419,7 @@ func CheckBlockSeek() {
 				}
 				_, err = model.SQLCreateIgnoreManyTTxBtcUxto(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					txBtcUxtoRows,
 				)
 				if err != nil {
@@ -428,13 +429,13 @@ func CheckBlockSeek() {
 				// 更新uxto状态
 				_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					updateUxtoRows,
 				)
 				// 更新block num
 				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					&model.DBTAppStatusInt{
 						K: "btc_seek_num",
 						V: i,
@@ -455,7 +456,7 @@ func CheckTxOrg() {
 	app.LockWrap(lockKey, func() {
 		// 开始事物
 		isComment := false
-		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
@@ -641,7 +642,7 @@ func CheckRawTxSend() {
 	app.LockWrap(lockKey, func() {
 		sendRows, err := app.SQLSelectTSendBtcColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTSendBtcID,
 				model.DBColTSendBtcTxID,
@@ -667,7 +668,7 @@ func CheckRawTxSend() {
 		}
 		withdrawMap, err := app.SQLGetWithdrawMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawProductID,
@@ -688,7 +689,7 @@ func CheckRawTxSend() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -789,7 +790,7 @@ func CheckRawTxSend() {
 		// 更新提币状态
 		_, err = app.SQLUpdateTWithdrawStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			withdrawIDs,
 			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusSend,
@@ -804,7 +805,7 @@ func CheckRawTxSend() {
 		// 添加发送通知
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -814,7 +815,7 @@ func CheckRawTxSend() {
 		// 更新整理状态
 		_, err = app.SQLUpdateTTxBtcTokenOrgStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			tokenTxIDs,
 			model.DBTTxBtcToken{
 				OrgStatus: app.TxOrgStatusSend,
@@ -829,7 +830,7 @@ func CheckRawTxSend() {
 		// 更新发送状态
 		_, err = app.SQLUpdateTSendBtcByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			sendIDs,
 			&model.DBTSendBtc{
 				HandleStatus: app.SendStatusSend,
@@ -850,7 +851,7 @@ func CheckRawTxConfirm() {
 	app.LockWrap(lockKey, func() {
 		sendRows, err := app.SQLSelectTSendBtcColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTSendBtcID,
 				model.DBColTSendBtcTxID,
@@ -876,7 +877,7 @@ func CheckRawTxConfirm() {
 		}
 		withdrawMap, err := app.SQLGetWithdrawMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTWithdrawID,
 				model.DBColTWithdrawProductID,
@@ -900,7 +901,7 @@ func CheckRawTxConfirm() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -996,7 +997,7 @@ func CheckRawTxConfirm() {
 		// 更新提币状态
 		_, err = app.SQLUpdateTWithdrawStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			withdrawIDs,
 			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusConfirm,
@@ -1011,7 +1012,7 @@ func CheckRawTxConfirm() {
 		// 添加通知
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -1021,7 +1022,7 @@ func CheckRawTxConfirm() {
 		// 更新整理状态
 		_, err = app.SQLUpdateTTxBtcTokenOrgStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			tokenTxIDs,
 			model.DBTTxBtcToken{
 				OrgStatus: app.TxOrgStatusConfirm,
@@ -1036,7 +1037,7 @@ func CheckRawTxConfirm() {
 		// 更新发送状态
 		_, err = app.SQLUpdateTSendBtcByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			sendIDs,
 			&model.DBTSendBtc{
 				HandleStatus: app.SendStatusConfirm,
@@ -1057,7 +1058,7 @@ func CheckWithdraw() {
 	app.LockWrap(lockKey, func() {
 		// 开始事物
 		isComment := false
-		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
@@ -1360,7 +1361,7 @@ func CheckTxNotify() {
 	app.LockWrap(lockKey, func() {
 		txRows, err := app.SQLSelectTTxBtcColByStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTTxBtcID,
 				model.DBColTTxBtcProductID,
@@ -1383,7 +1384,7 @@ func CheckTxNotify() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -1439,7 +1440,7 @@ func CheckTxNotify() {
 		}
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -1448,7 +1449,7 @@ func CheckTxNotify() {
 		}
 		_, err = app.SQLUpdateTTxBtcStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyTxIDs,
 			model.DBTTxBtc{
 				HandleStatus: app.TxStatusNotify,
@@ -1496,7 +1497,7 @@ func CheckGasPrice() {
 		toColdGasPrice := resp.HalfHourFee
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			&model.DBTAppStatusInt{
 				K: "to_user_gas_price_btc",
 				V: toUserGasPrice,
@@ -1508,7 +1509,7 @@ func CheckGasPrice() {
 		}
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			&model.DBTAppStatusInt{
 				K: "to_cold_gas_price_btc",
 				V: toColdGasPrice,
@@ -1528,7 +1529,7 @@ func OmniCheckBlockSeek() {
 		// 获取配置 延迟确认数
 		confirmValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"btc_block_confirm_num",
 		)
 		if err != nil {
@@ -1538,7 +1539,7 @@ func OmniCheckBlockSeek() {
 		// 获取状态 当前处理完成的最新的block number
 		seekValue, err := app.SQLGetTAppStatusIntValueByK(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			"omni_seek_num",
 		)
 		if err != nil {
@@ -1560,7 +1561,7 @@ func OmniCheckBlockSeek() {
 			tokenMap := make(map[int64]*model.DBTAppConfigTokenBtc)
 			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				[]string{
 					model.DBColTAppConfigTokenBtcID,
 					model.DBColTAppConfigTokenBtcTokenIndex,
@@ -1610,7 +1611,7 @@ func OmniCheckBlockSeek() {
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					[]string{
 						model.DBColTAddressKeyAddress,
 						model.DBColTAddressKeyUseTag,
@@ -1657,7 +1658,7 @@ func OmniCheckBlockSeek() {
 				}
 				_, err = model.SQLCreateIgnoreManyTTxBtcToken(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					txTokenRows,
 				)
 				if err != nil {
@@ -1667,7 +1668,7 @@ func OmniCheckBlockSeek() {
 				// 更新block num
 				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
-					app.DbCon,
+					xenv.DbCon,
 					&model.DBTAppStatusInt{
 						K: "omni_seek_num",
 						V: i,
@@ -1688,7 +1689,7 @@ func OmniCheckTxOrg() {
 	app.LockWrap(lockKey, func() {
 		// 开始事物
 		isComment := false
-		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
@@ -2068,7 +2069,7 @@ func OmniCheckWithdraw() {
 		tokenHotBalance := make(map[int64]int64)
 		tokenBtcRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTAppConfigTokenBtcID,
 				model.DBColTAppConfigTokenBtcTokenIndex,
@@ -2101,7 +2102,7 @@ func OmniCheckWithdraw() {
 			}
 			pendingRealStr, err := app.SQLGetTSendBtcPendingBalanceReal(
 				context.Background(),
-				app.DbCon,
+				xenv.DbCon,
 				tokenRow.HotAddress,
 				tokenRow.TokenIndex,
 			)
@@ -2111,7 +2112,7 @@ func OmniCheckWithdraw() {
 		}
 		// 开始事物
 		isComment := false
-		dbTx, err := app.DbCon.BeginTxx(context.Background(), nil)
+		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
 			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
@@ -2383,7 +2384,7 @@ func OmniCheckTxNotify() {
 	app.LockWrap(lockKey, func() {
 		txRows, err := app.SQLSelectTTxBtcTokenColByHandleStatus(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTTxBtcTokenID,
 				model.DBColTTxBtcTokenProductID,
@@ -2408,7 +2409,7 @@ func OmniCheckTxNotify() {
 		}
 		productMap, err := app.SQLGetProductMap(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			[]string{
 				model.DBColTProductID,
 				model.DBColTProductAppName,
@@ -2464,7 +2465,7 @@ func OmniCheckTxNotify() {
 		}
 		_, err = model.SQLCreateIgnoreManyTProductNotify(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyRows,
 		)
 		if err != nil {
@@ -2473,7 +2474,7 @@ func OmniCheckTxNotify() {
 		}
 		_, err = app.SQLUpdateTTxBtcTokenHandleStatusByIDs(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			notifyTxIDs,
 			model.DBTTxBtcToken{
 				HandleStatus: app.TxStatusNotify,

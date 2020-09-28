@@ -8,6 +8,7 @@ import (
 	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/xenv"
 
 	"github.com/shopspring/decimal"
 
@@ -83,7 +84,7 @@ func (network Network) GetAddress(wif *btcutil.WIF) (*btcutil.AddressPubKey, err
 func BtcAddTxOut(tx *wire.MsgTx, toAddress string, balance int64) error {
 	addrTo, err := btcutil.DecodeAddress(
 		toAddress,
-		GetNetwork(app.Cfg.BtcNetworkType).Params,
+		GetNetwork(xenv.Cfg.BtcNetworkType).Params,
 	)
 	if err != nil {
 		return err
@@ -636,7 +637,7 @@ func GetWifMapByAddresses(ctx context.Context, db hcommon.DbExeAble, addresses [
 	}
 	addressWifMap := make(map[string]*btcutil.WIF)
 	for k, addressKey := range addressKeyMap {
-		key := hcommon.AesDecrypt(addressKey.Pwd, app.Cfg.AESKey)
+		key := hcommon.AesDecrypt(addressKey.Pwd, xenv.Cfg.AESKey)
 		if len(key) == 0 {
 			return nil, err
 		}

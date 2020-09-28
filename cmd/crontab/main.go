@@ -7,13 +7,14 @@ import (
 	"go-dc-wallet/hcommon"
 	"go-dc-wallet/heos"
 	"go-dc-wallet/heth"
+	"go-dc-wallet/xenv"
 
 	"github.com/robfig/cron/v3"
 )
 
 func main() {
-	app.EnvCreate()
-	defer app.EnvDestroy()
+	xenv.EnvCreate()
+	defer xenv.EnvDestroy()
 
 	c := cron.New(
 		cron.WithSeconds(),

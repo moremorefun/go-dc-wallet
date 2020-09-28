@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"go-dc-wallet/app"
 	"go-dc-wallet/app/model"
 	"go-dc-wallet/hcommon"
+	"go-dc-wallet/xenv"
 	"io/ioutil"
 	"regexp"
 	"strings"
@@ -16,8 +16,8 @@ import (
 )
 
 func main() {
-	app.EnvCreate()
-	defer app.EnvDestroy()
+	xenv.EnvCreate()
+	defer xenv.EnvDestroy()
 
 	var dbSQLs []string
 	for _, tableName := range model.TableNames {
@@ -27,7 +27,7 @@ func main() {
 		}
 		ok, err := hcommon.DbGetNamedContent(
 			context.Background(),
-			app.DbCon,
+			xenv.DbCon,
 			&row,
 			`SHOW CREATE TABLE `+tableName,
 			gin.H{},

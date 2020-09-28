@@ -1,13 +1,13 @@
 package main
 
 import (
-	"go-dc-wallet/app"
 	"go-dc-wallet/hbtc"
+	"go-dc-wallet/xenv"
 )
 
 func main() {
-	app.EnvCreate()
-	defer app.EnvDestroy()
+	xenv.EnvCreate()
+	defer xenv.EnvDestroy()
 
 	hbtc.CheckTxNotify()
 }

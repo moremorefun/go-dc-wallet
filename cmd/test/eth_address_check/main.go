@@ -3,13 +3,13 @@
 package main
 
 import (
-	"go-dc-wallet/app"
 	"go-dc-wallet/heth"
+	"go-dc-wallet/xenv"
 )
 
 func main() {
-	app.EnvCreate()
-	defer app.EnvDestroy()
+	xenv.EnvCreate()
+	defer xenv.EnvDestroy()
 
 	heth.CheckAddressFree()
 }
