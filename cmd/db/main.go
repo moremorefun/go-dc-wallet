@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
 	"io/ioutil"
@@ -12,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/moremorefun/mcommon"
 	"github.com/schemalex/schemalex/diff"
 )
 
@@ -25,7 +25,7 @@ func main() {
 			TableName string `db:"Table"`
 			TableSQL  string `db:"Create Table"`
 		}
-		ok, err := hcommon.DbGetNamedContent(
+		ok, err := mcommon.DbGetNamedContent(
 			context.Background(),
 			xenv.DbCon,
 			&row,
@@ -36,7 +36,7 @@ func main() {
 			if strings.Contains(err.Error(), "doesn't exist") {
 				continue
 			}
-			hcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
 		}
 		if ok {
 			dbSQLs = append(dbSQLs, row.TableSQL+";")
@@ -47,12 +47,12 @@ func main() {
 	// 目的sql
 	toSQL, err := ioutil.ReadFile("init/dc-wallet.sql")
 	if err != nil {
-		hcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
 	}
 	sqlDiff := new(bytes.Buffer)
 	err = diff.Strings(sqlDiff, dbSQL, string(toSQL), diff.WithTransaction(true))
 	if err != nil {
-		hcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
 	}
 	// 替换 AUTO_INCREMENT
 	r, _ := regexp.Compile(`AUTO_INCREMENT\s*=\s*(\d)*\s*,`)

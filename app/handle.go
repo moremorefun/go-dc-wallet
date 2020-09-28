@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/moremorefun/mcommon"
 
 	"github.com/parnurzeal/gorequest"
 )
@@ -24,7 +24,7 @@ func CheckDoNotify() {
 		lockKey,
 	)
 	if err != nil {
-		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		mcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
 		return
 	}
 	if !ok {
@@ -37,7 +37,7 @@ func CheckDoNotify() {
 			lockKey,
 		)
 		if err != nil {
-			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			mcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
 			return
 		}
 	}()
@@ -55,7 +55,7 @@ func CheckDoNotify() {
 		time.Now().Unix(),
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	// 错误的
@@ -71,7 +71,7 @@ func CheckDoNotify() {
 		time.Now().Add(-time.Minute*10).Unix(),
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	initNotifyRows = append(initNotifyRows, delayNotifyRows...)
@@ -79,7 +79,7 @@ func CheckDoNotify() {
 	for _, initNotifyRow := range initNotifyRows {
 		gresp, body, errs := gorequest.New().Post(initNotifyRow.URL).Timeout(time.Second * 30).Send(initNotifyRow.Msg).End()
 		if errs != nil {
-			hcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
+			mcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
 				xenv.DbCon,
@@ -91,13 +91,13 @@ func CheckDoNotify() {
 				},
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			}
 			continue
 		}
 		if gresp.StatusCode != http.StatusOK {
 			// 状态错误
-			hcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
+			mcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
 				xenv.DbCon,
@@ -109,14 +109,14 @@ func CheckDoNotify() {
 				},
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			}
 			continue
 		}
 		resp := gin.H{}
 		err = json.Unmarshal([]byte(body), &resp)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
 				xenv.DbCon,
@@ -128,7 +128,7 @@ func CheckDoNotify() {
 				},
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			}
 			continue
 		}
@@ -146,10 +146,10 @@ func CheckDoNotify() {
 				},
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			}
 		} else {
-			//hcommon.Log.Errorf("no error in resp")
+			//mcommon.Log.Errorf("no error in resp")
 			_, err = SQLUpdateTProductNotifyStatusByID(
 				context.Background(),
 				xenv.DbCon,
@@ -161,7 +161,7 @@ func CheckDoNotify() {
 				},
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			}
 			continue
 		}

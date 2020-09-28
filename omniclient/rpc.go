@@ -3,9 +3,9 @@ package omniclient
 import (
 	"encoding/json"
 	"fmt"
-	"go-dc-wallet/hcommon"
 	"time"
 
+	"github.com/moremorefun/mcommon"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -128,7 +128,7 @@ func InitClient(omniRPCHost, omniRPCUser, omniRPCPwd string) {
 func doReq(method string, arqs []interface{}, resp interface{}) error {
 	_, body, errs := gorequest.New().SetBasicAuth(locOmniRPCUser, locOmniRPCPwd).Timeout(time.Minute * 5).Post(rpcURI).Send(StRpcReq{
 		Jsonrpc: "1.0",
-		ID:      hcommon.GetUUIDStr(),
+		ID:      mcommon.GetUUIDStr(),
 		Method:  method,
 		Params:  arqs,
 	}).EndBytes()

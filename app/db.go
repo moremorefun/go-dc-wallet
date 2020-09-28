@@ -3,18 +3,18 @@ package app
 import (
 	"context"
 	"fmt"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/model"
 	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/moremorefun/mcommon"
 )
 
 // SQLGetTAppConfigIntByK 查询配置
-func SQLGetTAppConfigIntByK(ctx context.Context, tx hcommon.DbExeAble, k string) (*model.DBTAppConfigInt, error) {
+func SQLGetTAppConfigIntByK(ctx context.Context, tx mcommon.DbExeAble, k string) (*model.DBTAppConfigInt, error) {
 	var row model.DBTAppConfigInt
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -41,9 +41,9 @@ LIMIT 1`,
 }
 
 // SQLGetTAppConfigIntValueByK 查询配置
-func SQLGetTAppConfigIntValueByK(ctx context.Context, tx hcommon.DbExeAble, k string) (int64, error) {
+func SQLGetTAppConfigIntValueByK(ctx context.Context, tx mcommon.DbExeAble, k string) (int64, error) {
 	var row model.DBTAppConfigInt
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -68,9 +68,9 @@ LIMIT 1`,
 }
 
 // SQLGetTAppConfigStrByK 查询配置
-func SQLGetTAppConfigStrByK(ctx context.Context, tx hcommon.DbExeAble, k string) (*model.DBTAppConfigStr, error) {
+func SQLGetTAppConfigStrByK(ctx context.Context, tx mcommon.DbExeAble, k string) (*model.DBTAppConfigStr, error) {
 	var row model.DBTAppConfigStr
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -97,9 +97,9 @@ LIMIT 1`,
 }
 
 // SQLGetTAppConfigStrValueByK 查询配置
-func SQLGetTAppConfigStrValueByK(ctx context.Context, tx hcommon.DbExeAble, k string) (string, error) {
+func SQLGetTAppConfigStrValueByK(ctx context.Context, tx mcommon.DbExeAble, k string) (string, error) {
 	var row model.DBTAppConfigStr
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -124,9 +124,9 @@ LIMIT 1`,
 }
 
 // SQLGetTAppStatusIntByK 查询配置
-func SQLGetTAppStatusIntByK(ctx context.Context, tx hcommon.DbExeAble, k string) (*model.DBTAppStatusInt, error) {
+func SQLGetTAppStatusIntByK(ctx context.Context, tx mcommon.DbExeAble, k string) (*model.DBTAppStatusInt, error) {
 	var row model.DBTAppStatusInt
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -153,9 +153,9 @@ LIMIT 1`,
 }
 
 // SQLGetTAppStatusIntValueByK 查询配置
-func SQLGetTAppStatusIntValueByK(ctx context.Context, tx hcommon.DbExeAble, k string) (int64, error) {
+func SQLGetTAppStatusIntValueByK(ctx context.Context, tx mcommon.DbExeAble, k string) (int64, error) {
 	var row model.DBTAppStatusInt
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -180,9 +180,9 @@ LIMIT 1`,
 }
 
 // SQLGetTAddressKeyFreeCount 获取剩余可用地址数
-func SQLGetTAddressKeyFreeCount(ctx context.Context, tx hcommon.DbExeAble, symbol string) (int64, error) {
+func SQLGetTAddressKeyFreeCount(ctx context.Context, tx mcommon.DbExeAble, symbol string) (int64, error) {
 	var count int64
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&count,
@@ -207,7 +207,7 @@ WHERE
 }
 
 // SQLSelectTAddressKeyColByTagAndSymbol 根据ids获取
-func SQLSelectTAddressKeyColByTagAndSymbol(ctx context.Context, tx hcommon.DbExeAble, cols []string, useTag int64, symbol string) ([]*model.DBTAddressKey, error) {
+func SQLSelectTAddressKeyColByTagAndSymbol(ctx context.Context, tx mcommon.DbExeAble, cols []string, useTag int64, symbol string) ([]*model.DBTAddressKey, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -221,7 +221,7 @@ ORDER BY
 	id`)
 
 	var rows []*model.DBTAddressKey
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -238,7 +238,7 @@ ORDER BY
 }
 
 // SQLSelectTAddressKeyColByAddress 根据ids获取
-func SQLSelectTAddressKeyColByAddress(ctx context.Context, tx hcommon.DbExeAble, cols []string, addresses []string) ([]*model.DBTAddressKey, error) {
+func SQLSelectTAddressKeyColByAddress(ctx context.Context, tx mcommon.DbExeAble, cols []string, addresses []string) ([]*model.DBTAddressKey, error) {
 	if len(addresses) == 0 {
 		return nil, nil
 	}
@@ -252,7 +252,7 @@ WHERE
 	address IN (:addresses)`)
 
 	var rows []*model.DBTAddressKey
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -268,8 +268,8 @@ WHERE
 }
 
 // SQLUpdateTAppStatusIntByK 更新
-func SQLUpdateTAppStatusIntByK(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppStatusInt) (int64, error) {
-	count, err := hcommon.DbExecuteCountNamedContent(
+func SQLUpdateTAppStatusIntByK(ctx context.Context, tx mcommon.DbExeAble, row *model.DBTAppStatusInt) (int64, error) {
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -290,8 +290,8 @@ WHERE
 }
 
 // SQLUpdateTAppStatusIntByKGreater 更新
-func SQLUpdateTAppStatusIntByKGreater(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppStatusInt) (int64, error) {
-	count, err := hcommon.DbExecuteCountNamedContent(
+func SQLUpdateTAppStatusIntByKGreater(ctx context.Context, tx mcommon.DbExeAble, row *model.DBTAppStatusInt) (int64, error) {
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -313,8 +313,8 @@ WHERE
 }
 
 // SQLUpdateTAppConfigStrByK 更新
-func SQLUpdateTAppConfigStrByK(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppConfigStr) (int64, error) {
-	count, err := hcommon.DbExecuteCountNamedContent(
+func SQLUpdateTAppConfigStrByK(ctx context.Context, tx mcommon.DbExeAble, row *model.DBTAppConfigStr) (int64, error) {
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -335,7 +335,7 @@ WHERE
 }
 
 // SQLSelectTTxColByOrgForUpdate 获取未整理交易
-func SQLSelectTTxColByOrgForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTx, error) {
+func SQLSelectTTxColByOrgForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTx, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -347,7 +347,7 @@ WHERE
 FOR UPDATE`)
 
 	var rows []*model.DBTTx
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -363,9 +363,9 @@ FOR UPDATE`)
 }
 
 // SQLGetTSendMaxNonce 获取地址的nonce
-func SQLGetTSendMaxNonce(ctx context.Context, tx hcommon.DbExeAble, address string) (int64, error) {
+func SQLGetTSendMaxNonce(ctx context.Context, tx mcommon.DbExeAble, address string) (int64, error) {
 	var i int64
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&i,
@@ -390,9 +390,9 @@ LIMIT 1`,
 }
 
 // SQLGetTSendPendingBalanceReal 获取地址的打包数额
-func SQLGetTSendPendingBalanceReal(ctx context.Context, tx hcommon.DbExeAble, address string) (string, error) {
+func SQLGetTSendPendingBalanceReal(ctx context.Context, tx mcommon.DbExeAble, address string) (string, error) {
 	var i string
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&i,
@@ -418,9 +418,9 @@ LIMIT 1`,
 }
 
 // SQLGetTSendEosPendingBalanceReal 获取地址的打包数额
-func SQLGetTSendEosPendingBalanceReal(ctx context.Context, tx hcommon.DbExeAble, address string) (string, error) {
+func SQLGetTSendEosPendingBalanceReal(ctx context.Context, tx mcommon.DbExeAble, address string) (string, error) {
 	var i string
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&i,
@@ -446,7 +446,7 @@ LIMIT 1`,
 }
 
 // SQLGetTAddressKeyColByAddress 根据address查询
-func SQLGetTAddressKeyColByAddress(ctx context.Context, tx hcommon.DbExeAble, cols []string, address string) (*model.DBTAddressKey, error) {
+func SQLGetTAddressKeyColByAddress(ctx context.Context, tx mcommon.DbExeAble, cols []string, address string) (*model.DBTAddressKey, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -457,7 +457,7 @@ WHERE
 	address=:address`)
 
 	var row model.DBTAddressKey
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -476,11 +476,11 @@ WHERE
 }
 
 // SQLUpdateTTxOrgStatusByAddresses 更新
-func SQLUpdateTTxOrgStatusByAddresses(ctx context.Context, tx hcommon.DbExeAble, addresses []string, row model.DBTTx) (int64, error) {
+func SQLUpdateTTxOrgStatusByAddresses(ctx context.Context, tx mcommon.DbExeAble, addresses []string, row model.DBTTx) (int64, error) {
 	if len(addresses) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -505,11 +505,11 @@ WHERE
 }
 
 // SQLUpdateTTxOrgStatusByIDs 更新
-func SQLUpdateTTxOrgStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTx) (int64, error) {
+func SQLUpdateTTxOrgStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTTx) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -534,11 +534,11 @@ WHERE
 }
 
 // SQLUpdateTTxStatusByIDs 更新
-func SQLUpdateTTxStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTx) (int64, error) {
+func SQLUpdateTTxStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTTx) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -563,11 +563,11 @@ WHERE
 }
 
 // SQLUpdateTTxErc20StatusByIDs 更新
-func SQLUpdateTTxErc20StatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxErc20) (int64, error) {
+func SQLUpdateTTxErc20StatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTTxErc20) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -592,11 +592,11 @@ WHERE
 }
 
 // SQLUpdateTTxEosStatusByIDs 更新
-func SQLUpdateTTxEosStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxEos) (int64, error) {
+func SQLUpdateTTxEosStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTTxEos) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -621,11 +621,11 @@ WHERE
 }
 
 // SQLUpdateTSendStatusByTxIDs 更新
-func SQLUpdateTSendStatusByTxIDs(ctx context.Context, tx hcommon.DbExeAble, txIDs []string, row model.DBTSend) (int64, error) {
+func SQLUpdateTSendStatusByTxIDs(ctx context.Context, tx mcommon.DbExeAble, txIDs []string, row model.DBTSend) (int64, error) {
 	if len(txIDs) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -650,11 +650,11 @@ WHERE
 }
 
 // SQLUpdateTWithdrawStatusByTxIDs 更新
-func SQLUpdateTWithdrawStatusByTxIDs(ctx context.Context, tx hcommon.DbExeAble, txIDs []string, row model.DBTWithdraw) (int64, error) {
+func SQLUpdateTWithdrawStatusByTxIDs(ctx context.Context, tx mcommon.DbExeAble, txIDs []string, row model.DBTWithdraw) (int64, error) {
 	if len(txIDs) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -679,11 +679,11 @@ WHERE
 }
 
 // SQLUpdateTSendStatusByIDs 更新
-func SQLUpdateTSendStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTSend) (int64, error) {
+func SQLUpdateTSendStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTSend) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -708,11 +708,11 @@ WHERE
 }
 
 // SQLUpdateTSendEosStatusByIDs 更新
-func SQLUpdateTSendEosStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTSendEos) (int64, error) {
+func SQLUpdateTSendEosStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTSendEos) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -737,7 +737,7 @@ WHERE
 }
 
 // SQLSelectTSendColByStatus 根据ids获取
-func SQLSelectTSendColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSend, error) {
+func SQLSelectTSendColByStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSend, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -749,7 +749,7 @@ WHERE
 ORDER BY id`)
 
 	var rows []*model.DBTSend
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -765,7 +765,7 @@ ORDER BY id`)
 }
 
 // SQLSelectTSendEosColByStatus 根据ids获取
-func SQLSelectTSendEosColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSendEos, error) {
+func SQLSelectTSendEosColByStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSendEos, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -777,7 +777,7 @@ WHERE
 ORDER BY id`)
 
 	var rows []*model.DBTSendEos
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -793,7 +793,7 @@ ORDER BY id`)
 }
 
 // SQLSelectTWithdrawColByStatus 根据ids获取
-func SQLSelectTWithdrawColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64, symbols []string) ([]*model.DBTWithdraw, error) {
+func SQLSelectTWithdrawColByStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64, symbols []string) ([]*model.DBTWithdraw, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -805,7 +805,7 @@ WHERE
 	AND symbol IN (:symbols)`)
 
 	var rows []*model.DBTWithdraw
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -822,7 +822,7 @@ WHERE
 }
 
 // SQLSelectTWithdrawColByStatusForUpdate 根据ids获取
-func SQLSelectTWithdrawColByStatusForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64, symbols []string) ([]*model.DBTWithdraw, error) {
+func SQLSelectTWithdrawColByStatusForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64, symbols []string) ([]*model.DBTWithdraw, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -835,7 +835,7 @@ WHERE
 FOR UPDATE`)
 
 	var rows []*model.DBTWithdraw
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -852,7 +852,7 @@ FOR UPDATE`)
 }
 
 // SQLGetTWithdrawColForUpdate 根据id查询
-func SQLGetTWithdrawColForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, id int64, status int64) (*model.DBTWithdraw, error) {
+func SQLGetTWithdrawColForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, id int64, status int64) (*model.DBTWithdraw, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -865,7 +865,7 @@ WHERE
 FOR UPDATE`)
 
 	var row model.DBTWithdraw
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -885,8 +885,8 @@ FOR UPDATE`)
 }
 
 // SQLUpdateTWithdrawGenTx 更新
-func SQLUpdateTWithdrawGenTx(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTWithdraw) (int64, error) {
-	count, err := hcommon.DbExecuteCountNamedContent(
+func SQLUpdateTWithdrawGenTx(ctx context.Context, tx mcommon.DbExeAble, row *model.DBTWithdraw) (int64, error) {
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -913,11 +913,11 @@ WHERE
 }
 
 // SQLUpdateTWithdrawStatusByIDs 更新
-func SQLUpdateTWithdrawStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row *model.DBTWithdraw) (int64, error) {
+func SQLUpdateTWithdrawStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row *model.DBTWithdraw) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -942,7 +942,7 @@ WHERE
 }
 
 // SQLGetTAppLockColByK 根据id查询
-func SQLGetTAppLockColByK(ctx context.Context, tx hcommon.DbExeAble, cols []string, k string) (*model.DBTAppLock, error) {
+func SQLGetTAppLockColByK(ctx context.Context, tx mcommon.DbExeAble, cols []string, k string) (*model.DBTAppLock, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -954,7 +954,7 @@ WHERE
 	AND v=1`)
 
 	var row model.DBTAppLock
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -973,11 +973,11 @@ WHERE
 }
 
 // SQLCreateTAppLockUpdate 创建
-func SQLCreateTAppLockUpdate(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppLock) (int64, error) {
+func SQLCreateTAppLockUpdate(ctx context.Context, tx mcommon.DbExeAble, row *model.DBTAppLock) (int64, error) {
 	var lastID int64
 	var err error
 	if row.ID > 0 {
-		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+		lastID, err = mcommon.DbExecuteLastIDNamedContent(
 			ctx,
 			tx,
 			`INSERT INTO t_app_lock (
@@ -1001,7 +1001,7 @@ func SQLCreateTAppLockUpdate(ctx context.Context, tx hcommon.DbExeAble, row *mod
 			},
 		)
 	} else {
-		lastID, err = hcommon.DbExecuteLastIDNamedContent(
+		lastID, err = mcommon.DbExecuteLastIDNamedContent(
 			ctx,
 			tx,
 			`INSERT INTO t_app_lock (
@@ -1029,8 +1029,8 @@ func SQLCreateTAppLockUpdate(ctx context.Context, tx hcommon.DbExeAble, row *mod
 }
 
 // SQLUpdateTAppLockByK 更新
-func SQLUpdateTAppLockByK(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAppLock) (int64, error) {
-	count, err := hcommon.DbExecuteCountNamedContent(
+func SQLUpdateTAppLockByK(ctx context.Context, tx mcommon.DbExeAble, row *model.DBTAppLock) (int64, error) {
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -1054,7 +1054,7 @@ WHERE
 }
 
 // SQLGetTProductColByName 根据id查询
-func SQLGetTProductColByName(ctx context.Context, tx hcommon.DbExeAble, cols []string, appName string) (*model.DBTProduct, error) {
+func SQLGetTProductColByName(ctx context.Context, tx mcommon.DbExeAble, cols []string, appName string) (*model.DBTProduct, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1065,7 +1065,7 @@ WHERE
 	app_name=:app_name`)
 
 	var row model.DBTProduct
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -1084,7 +1084,7 @@ WHERE
 }
 
 // SQLGetTAddressKeyColFreeForUpdate 根据id查询
-func SQLGetTAddressKeyColFreeForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, symbol string) (*model.DBTAddressKey, error) {
+func SQLGetTAddressKeyColFreeForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, symbol string) (*model.DBTAddressKey, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1098,7 +1098,7 @@ LIMIT 1
 FOR UPDATE`)
 
 	var row model.DBTAddressKey
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&row,
@@ -1117,8 +1117,8 @@ FOR UPDATE`)
 }
 
 // SQLUpdateTAddressKeyUseTag 更新
-func SQLUpdateTAddressKeyUseTag(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTAddressKey) (int64, error) {
-	count, err := hcommon.DbExecuteCountNamedContent(
+func SQLUpdateTAddressKeyUseTag(ctx context.Context, tx mcommon.DbExeAble, row *model.DBTAddressKey) (int64, error) {
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -1139,7 +1139,7 @@ WHERE
 }
 
 // SQLSelectTTxColByStatus 根据ids获取
-func SQLSelectTTxColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTx, error) {
+func SQLSelectTTxColByStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTx, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1150,7 +1150,7 @@ WHERE
 	handle_status=:handle_status`)
 
 	var rows []*model.DBTTx
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1166,7 +1166,7 @@ WHERE
 }
 
 // SQLSelectTTxEosColByStatus 根据ids获取
-func SQLSelectTTxEosColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTxEos, error) {
+func SQLSelectTTxEosColByStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTxEos, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1177,7 +1177,7 @@ WHERE
 	handle_status=:handle_status`)
 
 	var rows []*model.DBTTxEos
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1193,7 +1193,7 @@ WHERE
 }
 
 // SQLSelectTProductNotifyColByStatusAndTime 根据ids获取
-func SQLSelectTProductNotifyColByStatusAndTime(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64, t int64) ([]*model.DBTProductNotify, error) {
+func SQLSelectTProductNotifyColByStatusAndTime(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64, t int64) ([]*model.DBTProductNotify, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1205,7 +1205,7 @@ WHERE
 	AND update_time<:update_time`)
 
 	var rows []*model.DBTProductNotify
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1222,8 +1222,8 @@ WHERE
 }
 
 // SQLUpdateTProductNotifyStatusByID 更新
-func SQLUpdateTProductNotifyStatusByID(ctx context.Context, tx hcommon.DbExeAble, row *model.DBTProductNotify) (int64, error) {
-	count, err := hcommon.DbExecuteCountNamedContent(
+func SQLUpdateTProductNotifyStatusByID(ctx context.Context, tx mcommon.DbExeAble, row *model.DBTProductNotify) (int64, error) {
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -1248,7 +1248,7 @@ WHERE
 }
 
 // SQLSelectTAppConfigTokenColAll 根据ids获取
-func SQLSelectTAppConfigTokenColAll(ctx context.Context, tx hcommon.DbExeAble, cols []string) ([]*model.DBTAppConfigToken, error) {
+func SQLSelectTAppConfigTokenColAll(ctx context.Context, tx mcommon.DbExeAble, cols []string) ([]*model.DBTAppConfigToken, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1257,7 +1257,7 @@ FROM
 	t_app_config_token`)
 
 	var rows []*model.DBTAppConfigToken
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1271,7 +1271,7 @@ FROM
 }
 
 // SQLSelectTTxErc20ColByStatus 根据ids获取
-func SQLSelectTTxErc20ColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTxErc20, error) {
+func SQLSelectTTxErc20ColByStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTxErc20, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1282,7 +1282,7 @@ WHERE
 	handle_status=:handle_status`)
 
 	var rows []*model.DBTTxErc20
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1298,7 +1298,7 @@ WHERE
 }
 
 // SQLSelectTTxErc20ColByOrgForUpdate 获取未整理交易
-func SQLSelectTTxErc20ColByOrgForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatuses []int64) ([]*model.DBTTxErc20, error) {
+func SQLSelectTTxErc20ColByOrgForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, orgStatuses []int64) ([]*model.DBTTxErc20, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1310,7 +1310,7 @@ WHERE
 FOR UPDATE`)
 
 	var rows []*model.DBTTxErc20
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1326,11 +1326,11 @@ FOR UPDATE`)
 }
 
 // SQLUpdateTTxErc20OrgStatusByIDs 更新
-func SQLUpdateTTxErc20OrgStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxErc20) (int64, error) {
+func SQLUpdateTTxErc20OrgStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTTxErc20) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -1355,11 +1355,11 @@ WHERE
 }
 
 // SQLUpdateTTxErc20OrgStatusByTxHashed 更新
-func SQLUpdateTTxErc20OrgStatusByTxHashed(ctx context.Context, tx hcommon.DbExeAble, txHashes []string, row model.DBTTxErc20) (int64, error) {
+func SQLUpdateTTxErc20OrgStatusByTxHashed(ctx context.Context, tx mcommon.DbExeAble, txHashes []string, row model.DBTTxErc20) (int64, error) {
 	if len(txHashes) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -1384,7 +1384,7 @@ WHERE
 }
 
 // SQLSelectTTxBtcUxtoColByTxIDs 根据ids获取
-func SQLSelectTTxBtcUxtoColByTxIDs(ctx context.Context, tx hcommon.DbExeAble, cols []string, txHashes []string) ([]*model.DBTTxBtcUxto, error) {
+func SQLSelectTTxBtcUxtoColByTxIDs(ctx context.Context, tx mcommon.DbExeAble, cols []string, txHashes []string) ([]*model.DBTTxBtcUxto, error) {
 	if len(cols) == 0 {
 		return nil, nil
 	}
@@ -1398,7 +1398,7 @@ WHERE
 	tx_id IN (:tx_ids)`)
 
 	var rows []*model.DBTTxBtcUxto
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1414,7 +1414,7 @@ WHERE
 }
 
 // SQLCreateManyTTxBtcUxtoUpdate 创建多个
-func SQLCreateManyTTxBtcUxtoUpdate(ctx context.Context, tx hcommon.DbExeAble, rows []*model.DBTTxBtcUxto) (int64, error) {
+func SQLCreateManyTTxBtcUxtoUpdate(ctx context.Context, tx mcommon.DbExeAble, rows []*model.DBTTxBtcUxto) (int64, error) {
 	if len(rows) == 0 {
 		return 0, nil
 	}
@@ -1443,7 +1443,7 @@ func SQLCreateManyTTxBtcUxtoUpdate(ctx context.Context, tx hcommon.DbExeAble, ro
 
 	var count int64
 	var err error
-	count, err = hcommon.DbExecuteCountManyContent(
+	count, err = mcommon.DbExecuteCountManyContent(
 		ctx,
 		tx,
 		`INSERT INTO t_tx_btc_uxto (
@@ -1480,7 +1480,7 @@ ON DUPLICATE KEY UPDATE
 }
 
 // SQLSelectTTxBtcUxtoColToOrgForUpdate 根据ids获取
-func SQLSelectTTxBtcUxtoColToOrgForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+func SQLSelectTTxBtcUxtoColToOrgForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1500,7 +1500,7 @@ ORDER BY
 	query.WriteString("\nFOR UPDATE")
 
 	var rows []*model.DBTTxBtcUxto
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1516,7 +1516,7 @@ ORDER BY
 }
 
 // SQLSelectTTxBtcUxtoColByAddressAndTypeForUpdate 根据ids获取
-func SQLSelectTTxBtcUxtoColByAddressAndTypeForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, address string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+func SQLSelectTTxBtcUxtoColByAddressAndTypeForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, address string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1541,7 +1541,7 @@ ORDER BY
 	}
 	query.WriteString("\nFOR UPDATE")
 	var rows []*model.DBTTxBtcUxto
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1558,7 +1558,7 @@ ORDER BY
 }
 
 // SQLSelectTTxBtcUxtoColByAddressesAndType 根据ids获取
-func SQLSelectTTxBtcUxtoColByAddressesAndType(ctx context.Context, tx hcommon.DbExeAble, cols []string, addresses []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+func SQLSelectTTxBtcUxtoColByAddressesAndType(ctx context.Context, tx mcommon.DbExeAble, cols []string, addresses []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1581,7 +1581,7 @@ ORDER BY `)
 		query.WriteString(" vout_address, CAST(vout_value as DECIMAL(65,8)) DESC")
 	}
 	var rows []*model.DBTTxBtcUxto
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1598,7 +1598,7 @@ ORDER BY `)
 }
 
 // SQLSelectTTxBtcUxtoColByAddressesAndTypeForUpdate 根据ids获取
-func SQLSelectTTxBtcUxtoColByAddressesAndTypeForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, addresses []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
+func SQLSelectTTxBtcUxtoColByAddressesAndTypeForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, addresses []string, uxtoType int64) ([]*model.DBTTxBtcUxto, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1623,7 +1623,7 @@ ORDER BY
 	}
 	query.WriteString("\nFOR UPDATE")
 	var rows []*model.DBTTxBtcUxto
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1640,7 +1640,7 @@ ORDER BY
 }
 
 // SQLSelectTSendBtcColByStatus 根据ids获取
-func SQLSelectTSendBtcColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSendBtc, error) {
+func SQLSelectTSendBtcColByStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64) ([]*model.DBTSendBtc, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1651,7 +1651,7 @@ WHERE
 	handle_status=:handle_status`)
 
 	var rows []*model.DBTSendBtc
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1667,11 +1667,11 @@ WHERE
 }
 
 // SQLUpdateTSendBtcByIDs 更新
-func SQLUpdateTSendBtcByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row *model.DBTSendBtc) (int64, error) {
+func SQLUpdateTSendBtcByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row *model.DBTSendBtc) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -1696,7 +1696,7 @@ WHERE
 }
 
 // SQLCreateManyTWithdrawUpdate 创建多个
-func SQLCreateManyTWithdrawUpdate(ctx context.Context, tx hcommon.DbExeAble, rows []*model.DBTWithdraw) (int64, error) {
+func SQLCreateManyTWithdrawUpdate(ctx context.Context, tx mcommon.DbExeAble, rows []*model.DBTWithdraw) (int64, error) {
 	if len(rows) == 0 {
 		return 0, nil
 	}
@@ -1742,7 +1742,7 @@ func SQLCreateManyTWithdrawUpdate(ctx context.Context, tx hcommon.DbExeAble, row
 	var count int64
 	var err error
 	if rows[0].ID > 0 {
-		count, err = hcommon.DbExecuteCountManyContent(
+		count, err = mcommon.DbExecuteCountManyContent(
 			ctx,
 			tx,
 			`INSERT INTO t_withdraw (
@@ -1768,7 +1768,7 @@ ON DUPLICATE KEY UPDATE
 			args...,
 		)
 	} else {
-		count, err = hcommon.DbExecuteCountManyContent(
+		count, err = mcommon.DbExecuteCountManyContent(
 			ctx,
 			tx,
 			`INSERT INTO t_withdraw (
@@ -1800,7 +1800,7 @@ ON DUPLICATE KEY UPDATE
 }
 
 // SQLSelectTTxBtcColByStatus 根据ids获取
-func SQLSelectTTxBtcColByStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTxBtc, error) {
+func SQLSelectTTxBtcColByStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, status int64) ([]*model.DBTTxBtc, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1811,7 +1811,7 @@ WHERE
 	handle_status=:handle_status`)
 
 	var rows []*model.DBTTxBtc
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1827,11 +1827,11 @@ WHERE
 }
 
 // SQLUpdateTTxBtcStatusByIDs 更新
-func SQLUpdateTTxBtcStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxBtc) (int64, error) {
+func SQLUpdateTTxBtcStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTTxBtc) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -1856,7 +1856,7 @@ WHERE
 }
 
 // SQLSelectTAppConfigTokenBtcColAll 根据ids获取
-func SQLSelectTAppConfigTokenBtcColAll(ctx context.Context, tx hcommon.DbExeAble, cols []string) ([]*model.DBTAppConfigTokenBtc, error) {
+func SQLSelectTAppConfigTokenBtcColAll(ctx context.Context, tx mcommon.DbExeAble, cols []string) ([]*model.DBTAppConfigTokenBtc, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1865,7 +1865,7 @@ FROM
 	t_app_config_token_btc`)
 
 	var rows []*model.DBTAppConfigTokenBtc
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1879,7 +1879,7 @@ FROM
 }
 
 // SQLSelectTTxBtcTokenColByOrgStatusForUpdate 根据ids获取
-func SQLSelectTTxBtcTokenColByOrgStatusForUpdate(ctx context.Context, tx hcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTxBtcToken, error) {
+func SQLSelectTTxBtcTokenColByOrgStatusForUpdate(ctx context.Context, tx mcommon.DbExeAble, cols []string, orgStatus int64) ([]*model.DBTTxBtcToken, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1891,7 +1891,7 @@ WHERE
 FOR UPDATE`)
 
 	var rows []*model.DBTTxBtcToken
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1907,7 +1907,7 @@ FOR UPDATE`)
 }
 
 // SQLSelectTTxBtcTokenColByHandleStatus 根据ids获取
-func SQLSelectTTxBtcTokenColByHandleStatus(ctx context.Context, tx hcommon.DbExeAble, cols []string, handelStatus int64) ([]*model.DBTTxBtcToken, error) {
+func SQLSelectTTxBtcTokenColByHandleStatus(ctx context.Context, tx mcommon.DbExeAble, cols []string, handelStatus int64) ([]*model.DBTTxBtcToken, error) {
 	query := strings.Builder{}
 	query.WriteString("SELECT\n")
 	query.WriteString(strings.Join(cols, ",\n"))
@@ -1918,7 +1918,7 @@ WHERE
 	handle_status=:handle_status`)
 
 	var rows []*model.DBTTxBtcToken
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1934,7 +1934,7 @@ WHERE
 }
 
 // SQLSelectTAppConfigTokenBtcColByIndexes 根据ids获取
-func SQLSelectTAppConfigTokenBtcColByIndexes(ctx context.Context, tx hcommon.DbExeAble, cols []string, tokenIndexes []int64) ([]*model.DBTAppConfigTokenBtc, error) {
+func SQLSelectTAppConfigTokenBtcColByIndexes(ctx context.Context, tx mcommon.DbExeAble, cols []string, tokenIndexes []int64) ([]*model.DBTAppConfigTokenBtc, error) {
 	if len(tokenIndexes) == 0 {
 		return nil, nil
 	}
@@ -1948,7 +1948,7 @@ WHERE
 	token_index IN (:token_index)`)
 
 	var rows []*model.DBTAppConfigTokenBtc
-	err := hcommon.DbSelectNamedContent(
+	err := mcommon.DbSelectNamedContent(
 		ctx,
 		tx,
 		&rows,
@@ -1964,11 +1964,11 @@ WHERE
 }
 
 // SQLUpdateTTxBtcTokenOrgStatusByIDs 更新
-func SQLUpdateTTxBtcTokenOrgStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxBtcToken) (int64, error) {
+func SQLUpdateTTxBtcTokenOrgStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTTxBtcToken) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -1993,11 +1993,11 @@ WHERE
 }
 
 // SQLUpdateTTxBtcTokenHandleStatusByIDs 更新
-func SQLUpdateTTxBtcTokenHandleStatusByIDs(ctx context.Context, tx hcommon.DbExeAble, ids []int64, row model.DBTTxBtcToken) (int64, error) {
+func SQLUpdateTTxBtcTokenHandleStatusByIDs(ctx context.Context, tx mcommon.DbExeAble, ids []int64, row model.DBTTxBtcToken) (int64, error) {
 	if len(ids) == 0 {
 		return 0, nil
 	}
-	count, err := hcommon.DbExecuteCountNamedContent(
+	count, err := mcommon.DbExecuteCountNamedContent(
 		ctx,
 		tx,
 		`UPDATE
@@ -2022,9 +2022,9 @@ WHERE
 }
 
 // SQLGetTSendBtcPendingBalanceReal 获取地址的打包数额
-func SQLGetTSendBtcPendingBalanceReal(ctx context.Context, tx hcommon.DbExeAble, address string, tokenIndex int64) (string, error) {
+func SQLGetTSendBtcPendingBalanceReal(ctx context.Context, tx mcommon.DbExeAble, address string, tokenIndex int64) (string, error) {
 	var i string
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&i,
@@ -2052,7 +2052,7 @@ LIMIT 1`,
 }
 
 // SQLGetTAddressMaxIntOfEos 根据id查询
-func SQLGetTAddressMaxIntOfEos(ctx context.Context, tx hcommon.DbExeAble) (int64, error) {
+func SQLGetTAddressMaxIntOfEos(ctx context.Context, tx mcommon.DbExeAble) (int64, error) {
 	var address string
 	query := strings.Builder{}
 	query.WriteString("SELECT\nIFNULL(MAX(address),0)")
@@ -2062,7 +2062,7 @@ FROM
 WHERE
 	symbol="eos"`)
 
-	ok, err := hcommon.DbGetNamedContent(
+	ok, err := mcommon.DbGetNamedContent(
 		ctx,
 		tx,
 		&address,

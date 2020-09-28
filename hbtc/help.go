@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"go-dc-wallet/app"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
 
+	"github.com/moremorefun/mcommon"
 	"github.com/shopspring/decimal"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -48,7 +48,7 @@ var network = map[string]Network{
 func GetNetwork(coinType string) Network {
 	n, ok := network[coinType]
 	if !ok {
-		hcommon.Log.Errorf("no network: %s get btc for replace", coinType)
+		mcommon.Log.Errorf("no network: %s get btc for replace", coinType)
 		return network[CoinSymbol]
 	}
 	return n
@@ -134,7 +134,7 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return nil, err
 		}
 		tx.TxIn[i].SignatureScript = script
@@ -176,7 +176,7 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return nil, err
 		}
 		tx.TxIn[i].SignatureScript = script
@@ -233,7 +233,7 @@ func BtcTxSize(vins []*StBtxTxIn, vouts []*StBtxTxOut) (int64, error) {
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return 0, err
 		}
 		tx.TxIn[i].SignatureScript = script
@@ -316,7 +316,7 @@ func OmniTxSize(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, tokenIndex 
 	}
 	opreturnScript, err := txscript.NullDataScript(b)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return 0, err
 	}
 	tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
@@ -360,7 +360,7 @@ func OmniTxSize(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, tokenIndex 
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return 0, err
 		}
 		tx.TxIn[i].SignatureScript = script
@@ -412,7 +412,7 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 	}
 	opreturnScript, err := txscript.NullDataScript(b)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return nil, err
 	}
 	tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
@@ -469,7 +469,7 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return nil, err
 		}
 		tx.TxIn[i].SignatureScript = script
@@ -520,7 +520,7 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return nil, err
 		}
 		tx.TxIn[i].SignatureScript = script
@@ -577,7 +577,7 @@ func GetEstimateTxSize(fromAddressCount int64, toAddressCount int64, isOmniScrip
 		}
 		opreturnScript, err := txscript.NullDataScript(b)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return 0, err
 		}
 		tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
@@ -601,7 +601,7 @@ func GetEstimateTxSize(fromAddressCount int64, toAddressCount int64, isOmniScrip
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return 0, err
 		}
 		tx.TxIn[i].SignatureScript = script
@@ -621,7 +621,7 @@ func RealStrToBalanceInt64(balanceRealStr string) (int64, error) {
 }
 
 // GetWifMapByAddresses 获取私钥
-func GetWifMapByAddresses(ctx context.Context, db hcommon.DbExeAble, addresses []string) (map[string]*btcutil.WIF, error) {
+func GetWifMapByAddresses(ctx context.Context, db mcommon.DbExeAble, addresses []string) (map[string]*btcutil.WIF, error) {
 	addressKeyMap, err := app.SQLGetAddressKeyMap(
 		ctx,
 		db,
@@ -637,13 +637,16 @@ func GetWifMapByAddresses(ctx context.Context, db hcommon.DbExeAble, addresses [
 	}
 	addressWifMap := make(map[string]*btcutil.WIF)
 	for k, addressKey := range addressKeyMap {
-		key := hcommon.AesDecrypt(addressKey.Pwd, xenv.Cfg.AESKey)
+		key, err := mcommon.AesDecrypt(addressKey.Pwd, xenv.Cfg.AESKey)
+		if err != nil {
+			return nil, err
+		}
 		if len(key) == 0 {
 			return nil, err
 		}
 		wif, err := btcutil.DecodeWIF(key)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return nil, err
 		}
 		addressWifMap[k] = wif

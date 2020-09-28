@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/xenv"
 	"strings"
+
+	"github.com/moremorefun/mcommon"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func main() {
 	defer xenv.EnvDestroy()
 
 	// 加密密钥
-	privateKeyStrEn := hcommon.AesEncrypt(*sourceKey, xenv.Cfg.AESKey)
+	privateKeyStrEn, err := mcommon.AesEncrypt(*sourceKey, xenv.Cfg.AESKey)
+	if err != nil {
+		mcommon.Log.Fatalf("err: [%T] %s", err, err.Error())
+	}
 	fmt.Printf("%s\n", privateKeyStrEn)
 }

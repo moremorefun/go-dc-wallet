@@ -2,10 +2,10 @@ package ethclient
 
 import (
 	"context"
-	"go-dc-wallet/hcommon"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/moremorefun/mcommon"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 
@@ -23,7 +23,7 @@ func InitClient(uri string) {
 	var err error
 	client, err = Dial(uri)
 	if err != nil {
-		hcommon.Log.Fatalf("eth client dial error: [%T] %s", err, err.Error())
+		mcommon.Log.Fatalf("eth client dial error: [%T] %s", err, err.Error())
 	}
 }
 

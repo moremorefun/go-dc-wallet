@@ -9,7 +9,6 @@ import (
 	"go-dc-wallet/eosclient"
 	"go-dc-wallet/ethclient"
 	"go-dc-wallet/hbtc"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/heth"
 	"go-dc-wallet/model"
 	"go-dc-wallet/omniclient"
@@ -19,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/moremorefun/mcommon"
 	"github.com/parnurzeal/gorequest"
 )
 
@@ -56,7 +56,7 @@ func main() {
 		true,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 
@@ -72,7 +72,7 @@ func main() {
 		heth.CoinSymbol,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	var ethAddresses []string
@@ -83,7 +83,7 @@ func main() {
 		// 创建可用地址
 		ethAddresses, err = heth.CreateHotAddress(50)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 	}
@@ -98,7 +98,7 @@ func main() {
 		hbtc.CoinSymbol,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	var btcAddresses []string
@@ -108,16 +108,16 @@ func main() {
 	if len(btcAddresses) < 10 {
 		btcAddresses, err = hbtc.CreateHotAddress(50)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 	}
 	if ethAddresses == nil {
-		hcommon.Log.Errorf("ethAddresses nil")
+		mcommon.Log.Errorf("ethAddresses nil")
 		return
 	}
 	if btcAddresses == nil {
-		hcommon.Log.Errorf("btcAddresses nil")
+		mcommon.Log.Errorf("btcAddresses nil")
 		return
 	}
 	configStrRows := []*model.DBTAppConfigStr{
@@ -174,7 +174,7 @@ func main() {
 		true,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 
@@ -199,7 +199,7 @@ func main() {
 		true,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 
@@ -223,24 +223,24 @@ func main() {
 		true,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 
 	// 5. 初始化 t_app_status_int
 	ethRpcBlockNum, err := ethclient.RpcBlockNumber(context.Background())
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	btcRpcBlockNum, err := omniclient.RpcGetBlockCount()
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	rpcChainInfo, err := eosclient.RpcChainGetInfo()
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	type StRespGasPrice struct {
@@ -261,18 +261,18 @@ func main() {
 		Timeout(time.Second * 120).
 		End()
 	if errs != nil {
-		hcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
+		mcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
 		return
 	}
 	if gresp.StatusCode != http.StatusOK {
 		// 状态错误
-		hcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
+		mcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
 		return
 	}
 	var resp StRespGasPrice
 	err = json.Unmarshal([]byte(body), &resp)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	ethToUserGasPrice := resp.Fast * int64(math.Pow10(8))
@@ -287,18 +287,18 @@ func main() {
 		Timeout(time.Second * 120).
 		End()
 	if errs != nil {
-		hcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
+		mcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
 		return
 	}
 	if gresp.StatusCode != http.StatusOK {
 		// 状态错误
-		hcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
+		mcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
 		return
 	}
 	var respBtc BtcStRespGasPrice
 	err = json.Unmarshal([]byte(body), &respBtc)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	btcToUserGasPrice := respBtc.FastestFee
@@ -358,7 +358,7 @@ func main() {
 		true,
 	)
 	if err != nil {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 
@@ -369,7 +369,7 @@ func main() {
 		"fee_wallet_address",
 	)
 	if err != nil && err != sql.ErrNoRows {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	feeAddressValue = strings.TrimSpace(feeAddressValue)
@@ -379,7 +379,7 @@ func main() {
 		"fee_wallet_address_list",
 	)
 	if err != nil && err != sql.ErrNoRows {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 	feeAddressListValue = strings.TrimSpace(feeAddressListValue)
@@ -399,7 +399,7 @@ func main() {
 		},
 	)
 	if err != nil && err != sql.ErrNoRows {
-		hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
 }

@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"go-dc-wallet/app"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/model"
 	"go-dc-wallet/omniclient"
 	"go-dc-wallet/xenv"
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/moremorefun/mcommon"
 
 	"github.com/parnurzeal/gorequest"
 
@@ -37,7 +38,10 @@ func genAddressAndAesKey() (string, string, error) {
 		return "", "", err
 	}
 	// 加密密钥
-	wifStrEn := hcommon.AesEncrypt(wif.String(), xenv.Cfg.AESKey)
+	wifStrEn, err := mcommon.AesEncrypt(wif.String(), xenv.Cfg.AESKey)
+	if err != nil {
+		return "", "", err
+	}
 	// 获取地址
 	address, err := GetNetwork(xenv.Cfg.BtcNetworkType).GetAddress(wif)
 	if err != nil {
@@ -89,7 +93,7 @@ func CheckAddressFree() {
 			"min_free_address",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取当前剩余可用地址数
@@ -99,7 +103,7 @@ func CheckAddressFree() {
 			CoinSymbol,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 如果数据库中剩余可用地址小于最小允许可用地址
@@ -109,7 +113,7 @@ func CheckAddressFree() {
 			for i := int64(0); i < minFreeValue-freeCount; i++ {
 				address, wifStrEn, err := genAddressAndAesKey()
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 存入待添加队列
@@ -128,7 +132,7 @@ func CheckAddressFree() {
 				true,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 		}
@@ -146,7 +150,7 @@ func CheckBlockSeek() {
 			"btc_block_confirm_num",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取状态 当前处理完成的最新的block number
@@ -156,12 +160,12 @@ func CheckBlockSeek() {
 			"btc_seek_num",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		rpcBlockNum, err := omniclient.RpcGetBlockCount()
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		vinTxMap := make(map[string]*omniclient.StTxResult)
@@ -181,29 +185,29 @@ func CheckBlockSeek() {
 				},
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			for _, tokenRow := range tokenRows {
-				if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
+				if !mcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
 					tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
 				}
-				if !hcommon.IsStringInSlice(tokenFeeAddresses, tokenRow.FeeAddress) {
+				if !mcommon.IsStringInSlice(tokenFeeAddresses, tokenRow.FeeAddress) {
 					tokenFeeAddresses = append(tokenFeeAddresses, tokenRow.FeeAddress)
 				}
 			}
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
-				//hcommon.Log.Debugf("btc check block: %d", i)
+				//mcommon.Log.Debugf("btc check block: %d", i)
 				blockHash, err := omniclient.RpcGetBlockHash(i)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 一个block
 				rpcBlock, err := omniclient.RpcGetBlockVerbose(blockHash)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 目标地址
@@ -228,7 +232,7 @@ func CheckBlockSeek() {
 				for _, rpcTx := range rpcBlock.Tx {
 					for i, vin := range rpcTx.Vin {
 						fromTxHash := vin.Txid
-						if !hcommon.IsStringInSlice(fromTxHashes, fromTxHash) {
+						if !mcommon.IsStringInSlice(fromTxHashes, fromTxHash) {
 							fromTxHashes = append(fromTxHashes, fromTxHash)
 						}
 						key := fmt.Sprintf("%s-%d", vin.Txid, vin.Vout)
@@ -249,7 +253,7 @@ func CheckBlockSeek() {
 					for _, vout := range rpcTx.Vout {
 						if len(vout.ScriptPubKey.Addresses) == 1 {
 							toAddress := vout.ScriptPubKey.Addresses[0]
-							if !hcommon.IsStringInSlice(toAddresses, toAddress) {
+							if !mcommon.IsStringInSlice(toAddresses, toAddress) {
 								toAddresses = append(toAddresses, toAddress)
 							}
 							toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], &StTxWithIndex{
@@ -260,7 +264,7 @@ func CheckBlockSeek() {
 						}
 					}
 				}
-				//hcommon.Log.Debugf("rpc get block: %d to addresses: %d", i, len(toAddresses))
+				//mcommon.Log.Debugf("rpc get block: %d to addresses: %d", i, len(toAddresses))
 
 				// 从db中查询这些地址是否是冲币地址中的地址
 				dbAddressRows, err := app.SQLSelectTAddressKeyColByAddress(
@@ -273,7 +277,7 @@ func CheckBlockSeek() {
 					toAddresses,
 				)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 待插入数据
@@ -298,11 +302,11 @@ func CheckBlockSeek() {
 								if !ok {
 									rpcVinTx, err = omniclient.RpcGetRawTransactionVerbose(vin.Txid)
 									if err != nil {
-										hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+										mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 										return
 									}
 									vinTxMap[vin.Txid] = rpcVinTx
-									//hcommon.Log.Debugf("get tx: %s", vin.Txid)
+									//mcommon.Log.Debugf("get tx: %s", vin.Txid)
 								}
 								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
 									omniVinAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
@@ -334,10 +338,10 @@ func CheckBlockSeek() {
 						if dbAddressRow.UseTag < 0 {
 							uxtoType = app.UxtoTypeHot
 						}
-						if hcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
+						if mcommon.IsStringInSlice(tokenHotAddresses, voutAddress) {
 							uxtoType = app.UxtoTypeOmniHot
 						}
-						if hcommon.IsStringInSlice(tokenFeeAddresses, voutAddress) {
+						if mcommon.IsStringInSlice(tokenFeeAddresses, voutAddress) {
 							uxtoType = app.UxtoTypeOmniOrgFee
 						}
 						if rpcTxWithIndex.IsOmniTx {
@@ -390,7 +394,7 @@ func CheckBlockSeek() {
 					fromTxHashes,
 				)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				for _, uxtoRow := range uxtoRows {
@@ -417,7 +421,7 @@ func CheckBlockSeek() {
 					true,
 				)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				_, err = model.SQLCreateManyTTxBtcUxto(
@@ -427,7 +431,7 @@ func CheckBlockSeek() {
 					true,
 				)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 更新uxto状态
@@ -446,7 +450,7 @@ func CheckBlockSeek() {
 					},
 				)
 				if err != nil {
-					hcommon.Log.Errorf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
 					return
 				}
 			}
@@ -462,7 +466,7 @@ func CheckTxOrg() {
 		isComment := false
 		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		defer func() {
@@ -485,7 +489,7 @@ func CheckTxOrg() {
 			app.UxtoTypeTx,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		if len(allUxtoRows) <= 0 {
@@ -498,7 +502,7 @@ func CheckTxOrg() {
 			"cold_wallet_address_btc",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取手续费配置
@@ -508,7 +512,7 @@ func CheckTxOrg() {
 			"to_cold_gas_price_btc",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取私钥
@@ -522,7 +526,7 @@ func CheckTxOrg() {
 			addresses,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 按5000个in拆分
@@ -539,12 +543,12 @@ func CheckTxOrg() {
 			for _, uxtoRow := range uxtoRows {
 				wif, ok := addressWifMap[uxtoRow.VoutAddress]
 				if !ok {
-					hcommon.Log.Errorf("no address key: %s", uxtoRow.VoutAddress)
+					mcommon.Log.Errorf("no address key: %s", uxtoRow.VoutAddress)
 					return
 				}
 				balance, err := decimal.NewFromString(uxtoRow.VoutValue)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				inItems = append(inItems, &StBtxTxIn{
@@ -557,7 +561,7 @@ func CheckTxOrg() {
 			}
 			tx, err := BtcMakeTx(inItems, outItems, feePriceValue, coldAddressValue)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			txSize := tx.SerializeSize()
@@ -565,10 +569,10 @@ func CheckTxOrg() {
 			b.Grow(txSize)
 			err = tx.Serialize(b)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			//hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+			//mcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 			// 准备插入数据
 			now := time.Now().Unix()
 			var sendRows []*model.DBTSendBtc
@@ -617,7 +621,7 @@ func CheckTxOrg() {
 				true,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			// 更新uxto状态
@@ -627,14 +631,14 @@ func CheckTxOrg() {
 				updateUxtoRows,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 		}
 
 		err = dbTx.Commit()
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		isComment = true
@@ -658,7 +662,7 @@ func CheckRawTxSend() {
 			app.SendStatusInit,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 首先单独处理提币，提取提币通知要使用的数据
@@ -666,7 +670,7 @@ func CheckRawTxSend() {
 		for _, sendRow := range sendRows {
 			switch sendRow.RelatedType {
 			case app.SendRelationTypeWithdraw:
-				if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
+				if !mcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
 					withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
 				}
 			}
@@ -688,7 +692,7 @@ func CheckRawTxSend() {
 		// 产品
 		var productIDs []int64
 		for _, withdrawRow := range withdrawMap {
-			if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
+			if !mcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
 				productIDs = append(productIDs, withdrawRow.ProductID)
 			}
 		}
@@ -712,7 +716,7 @@ func CheckRawTxSend() {
 		addNotifyRow := func(sendRow *model.DBTSendBtc) error {
 			switch sendRow.RelatedType {
 			case app.SendRelationTypeOmniOrg:
-				if !hcommon.IsIntInSlice(tokenTxIDs, sendRow.RelatedID) {
+				if !mcommon.IsIntInSlice(tokenTxIDs, sendRow.RelatedID) {
 					tokenTxIDs = append(tokenTxIDs, sendRow.RelatedID)
 				}
 			}
@@ -720,15 +724,15 @@ func CheckRawTxSend() {
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 				withdrawRow, ok := withdrawMap[sendRow.RelatedID]
 				if !ok {
-					hcommon.Log.Errorf("withdrawMap no: %d", sendRow.RelatedID)
+					mcommon.Log.Errorf("withdrawMap no: %d", sendRow.RelatedID)
 					return nil
 				}
 				productRow, ok := productMap[withdrawRow.ProductID]
 				if !ok {
-					hcommon.Log.Errorf("productMap no: %d", withdrawRow.ProductID)
+					mcommon.Log.Errorf("productMap no: %d", withdrawRow.ProductID)
 					return nil
 				}
-				nonce := hcommon.GetUUIDStr()
+				nonce := mcommon.GetUUIDStr()
 				reqObj := gin.H{
 					"tx_hash":     withdrawRow.TxHash,
 					"balance":     withdrawRow.BalanceReal,
@@ -738,10 +742,10 @@ func CheckRawTxSend() {
 					"symbol":      withdrawRow.Symbol,
 					"notify_type": app.NotifyTypeWithdrawSend,
 				}
-				reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+				reqObj["sign"] = mcommon.WechatGetSign(productRow.AppSk, reqObj)
 				req, err := json.Marshal(reqObj)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return err
 				}
 				notifyRows = append(notifyRows, &model.DBTProductNotify{
@@ -771,7 +775,7 @@ func CheckRawTxSend() {
 			}
 			_, err := omniclient.RpcSendRawTransaction(sendRow.Hex)
 			if err != nil && !strings.Contains(err.Error(), "already in block chain") {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
 			}
 			sendIDs = append(sendIDs, sendRow.ID)
@@ -782,8 +786,8 @@ func CheckRawTxSend() {
 			}
 		}
 		for _, sendRow := range sendRows {
-			if hcommon.IsStringInSlice(sendTxHashes, sendRow.TxID) {
-				if !hcommon.IsIntInSlice(sendIDs, sendRow.ID) {
+			if mcommon.IsStringInSlice(sendTxHashes, sendRow.TxID) {
+				if !mcommon.IsIntInSlice(sendIDs, sendRow.ID) {
 					sendIDs = append(sendIDs, sendRow.ID)
 					err = addNotifyRow(sendRow)
 					if err != nil {
@@ -804,7 +808,7 @@ func CheckRawTxSend() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 添加发送通知
@@ -815,7 +819,7 @@ func CheckRawTxSend() {
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 更新整理状态
@@ -830,7 +834,7 @@ func CheckRawTxSend() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 更新发送状态
@@ -845,7 +849,7 @@ func CheckRawTxSend() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 	})
@@ -868,7 +872,7 @@ func CheckRawTxConfirm() {
 			app.SendStatusSend,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取提币信息
@@ -876,7 +880,7 @@ func CheckRawTxConfirm() {
 		for _, sendRow := range sendRows {
 			if sendRow.RelatedType == app.SendRelationTypeWithdraw {
 				// 提币
-				if !hcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
+				if !mcommon.IsIntInSlice(withdrawIDs, sendRow.RelatedID) {
 					withdrawIDs = append(withdrawIDs, sendRow.RelatedID)
 				}
 			}
@@ -896,12 +900,12 @@ func CheckRawTxConfirm() {
 			withdrawIDs,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		var productIDs []int64
 		for _, withdrawRow := range withdrawMap {
-			if !hcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
+			if !mcommon.IsIntInSlice(productIDs, withdrawRow.ProductID) {
 				productIDs = append(productIDs, withdrawRow.ProductID)
 			}
 		}
@@ -917,7 +921,7 @@ func CheckRawTxConfirm() {
 			productIDs,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 
@@ -928,7 +932,7 @@ func CheckRawTxConfirm() {
 		addWithdrawNotify := func(sendRow *model.DBTSendBtc) error {
 			switch sendRow.RelatedType {
 			case app.SendRelationTypeOmniOrg:
-				if !hcommon.IsIntInSlice(tokenTxIDs, sendRow.RelatedID) {
+				if !mcommon.IsIntInSlice(tokenTxIDs, sendRow.RelatedID) {
 					tokenTxIDs = append(tokenTxIDs, sendRow.RelatedID)
 				}
 			}
@@ -936,15 +940,15 @@ func CheckRawTxConfirm() {
 				// 提币
 				withdrawRow, ok := withdrawMap[sendRow.RelatedID]
 				if !ok {
-					hcommon.Log.Errorf("no withdrawMap: %d", sendRow.RelatedID)
+					mcommon.Log.Errorf("no withdrawMap: %d", sendRow.RelatedID)
 					return nil
 				}
 				productRow, ok := productMap[withdrawRow.ProductID]
 				if !ok {
-					hcommon.Log.Errorf("no productMap: %d", withdrawRow.ProductID)
+					mcommon.Log.Errorf("no productMap: %d", withdrawRow.ProductID)
 					return nil
 				}
-				nonce := hcommon.GetUUIDStr()
+				nonce := mcommon.GetUUIDStr()
 				reqObj := gin.H{
 					"tx_hash":     withdrawRow.TxHash,
 					"balance":     withdrawRow.BalanceReal,
@@ -954,10 +958,10 @@ func CheckRawTxConfirm() {
 					"symbol":      withdrawRow.Symbol,
 					"notify_type": app.NotifyTypeWithdrawConfirm,
 				}
-				reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+				reqObj["sign"] = mcommon.WechatGetSign(productRow.AppSk, reqObj)
 				req, err := json.Marshal(reqObj)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return err
 				}
 				notifyRows = append(notifyRows, &model.DBTProductNotify{
@@ -982,10 +986,10 @@ func CheckRawTxConfirm() {
 		var sendIDs []int64
 		var confirmHashes []string
 		for _, sendRow := range sendRows {
-			if !hcommon.IsStringInSlice(confirmHashes, sendRow.TxID) {
+			if !mcommon.IsStringInSlice(confirmHashes, sendRow.TxID) {
 				rpcTx, err := omniclient.RpcGetRawTransactionVerbose(sendRow.TxID)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					continue
 				}
 				if rpcTx.Confirmations <= 0 {
@@ -1012,7 +1016,7 @@ func CheckRawTxConfirm() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 添加通知
@@ -1023,7 +1027,7 @@ func CheckRawTxConfirm() {
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 更新整理状态
@@ -1038,7 +1042,7 @@ func CheckRawTxConfirm() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 更新发送状态
@@ -1053,7 +1057,7 @@ func CheckRawTxConfirm() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 	})
@@ -1067,7 +1071,7 @@ func CheckWithdraw() {
 		isComment := false
 		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		defer func() {
@@ -1090,7 +1094,7 @@ func CheckWithdraw() {
 			[]string{CoinSymbol},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		if len(withdrawRows) == 0 {
@@ -1103,7 +1107,7 @@ func CheckWithdraw() {
 			"to_user_gas_price_btc",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取热钱包地址
@@ -1113,7 +1117,7 @@ func CheckWithdraw() {
 			"hot_wallet_address_btc",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		hotAddress := hotAddressValue
@@ -1133,7 +1137,7 @@ func CheckWithdraw() {
 			app.UxtoTypeHot,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取私钥
@@ -1147,7 +1151,7 @@ func CheckWithdraw() {
 			addresses,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 生成交易
@@ -1167,7 +1171,7 @@ func CheckWithdraw() {
 			// 添加输出
 			withdrawBalance, err := decimal.NewFromString(withdrawRow.BalanceReal)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			outBalance += withdrawBalance.Mul(decimal.NewFromInt(1e8)).IntPart()
@@ -1182,7 +1186,7 @@ func CheckWithdraw() {
 				}
 				txSize, err := BtcTxWithdrawSize(feeInUxtoRows, feeOutWithdrawRows, addressWifMap)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				if inBalance >= outBalance+txSize*feePriceValue {
@@ -1201,7 +1205,7 @@ func CheckWithdraw() {
 				uxtoRow := uxtoRows[uxtoUseIndex]
 				uxtoBalance, err := decimal.NewFromString(uxtoRow.VoutValue)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				inBalance += uxtoBalance.Mul(decimal.NewFromInt(1e8)).IntPart()
@@ -1218,13 +1222,13 @@ func CheckWithdraw() {
 				break
 			}
 		}
-		//hcommon.Log.Debugf("inUxtoRows: %#v, outWithdrawRows: %#v", inUxtoRows, outWithdrawRows)
+		//mcommon.Log.Debugf("inUxtoRows: %#v, outWithdrawRows: %#v", inUxtoRows, outWithdrawRows)
 		if len(inUxtoRows) == 0 {
-			hcommon.Log.Errorf("btc hot balance limit")
+			mcommon.Log.Errorf("btc hot balance limit")
 			return
 		}
 		if len(outWithdrawRows) == 0 {
-			hcommon.Log.Errorf("btc hot balance limit")
+			mcommon.Log.Errorf("btc hot balance limit")
 			return
 		}
 		// 创建交易
@@ -1233,12 +1237,12 @@ func CheckWithdraw() {
 		for _, vin := range inUxtoRows {
 			wif, ok := addressWifMap[vin.VoutAddress]
 			if !ok {
-				hcommon.Log.Errorf("no wif of: %s", vin.VoutAddress)
+				mcommon.Log.Errorf("no wif of: %s", vin.VoutAddress)
 				return
 			}
 			balance, err := decimal.NewFromString(vin.VoutValue)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			argVins = append(argVins, &StBtxTxIn{
@@ -1252,7 +1256,7 @@ func CheckWithdraw() {
 		for _, vout := range outWithdrawRows {
 			balance, err := decimal.NewFromString(vout.BalanceReal)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			argVouts = append(argVouts, &StBtxTxOut{
@@ -1262,17 +1266,17 @@ func CheckWithdraw() {
 		}
 		tx, err := BtcMakeTx(argVins, argVouts, feePriceValue, hotAddress)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		b := new(bytes.Buffer)
 		b.Grow(tx.SerializeSize())
 		err = tx.Serialize(b)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		//hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+		//mcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 		now := time.Now().Unix()
 		var sendRows []*model.DBTSendBtc
 		var updateUxtoRows []*model.DBTTxBtcUxto
@@ -1330,7 +1334,7 @@ func CheckWithdraw() {
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 更新uxto状态
@@ -1340,7 +1344,7 @@ func CheckWithdraw() {
 			updateUxtoRows,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 更新withdraw
@@ -1350,13 +1354,13 @@ func CheckWithdraw() {
 			updateWithdrawRows,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 提交事物
 		err = dbTx.Commit()
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		isComment = true
@@ -1381,12 +1385,12 @@ func CheckTxNotify() {
 			app.TxStatusInit,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		var productIDs []int64
 		for _, txRow := range txRows {
-			if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+			if !mcommon.IsIntInSlice(productIDs, txRow.ProductID) {
 				productIDs = append(productIDs, txRow.ProductID)
 			}
 		}
@@ -1402,7 +1406,7 @@ func CheckTxNotify() {
 			productIDs,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		var notifyTxIDs []int64
@@ -1411,11 +1415,11 @@ func CheckTxNotify() {
 		for _, txRow := range txRows {
 			productRow, ok := productMap[txRow.ProductID]
 			if !ok {
-				hcommon.Log.Warnf("no productMap: %d", txRow.ProductID)
+				mcommon.Log.Warnf("no productMap: %d", txRow.ProductID)
 				notifyTxIDs = append(notifyTxIDs, txRow.ID)
 				continue
 			}
-			nonce := hcommon.GetUUIDStr()
+			nonce := mcommon.GetUUIDStr()
 			reqObj := gin.H{
 				"tx_hash":     fmt.Sprintf("%s_%d", txRow.TxID, txRow.VoutN),
 				"app_name":    productRow.AppName,
@@ -1424,10 +1428,10 @@ func CheckTxNotify() {
 				"symbol":      CoinSymbol,
 				"notify_type": app.NotifyTypeTx,
 			}
-			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			reqObj["sign"] = mcommon.WechatGetSign(productRow.AppSk, reqObj)
 			req, err := json.Marshal(reqObj)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
 			}
 			notifyRows = append(notifyRows, &model.DBTProductNotify{
@@ -1453,7 +1457,7 @@ func CheckTxNotify() {
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		_, err = app.SQLUpdateTTxBtcStatusByIDs(
@@ -1467,7 +1471,7 @@ func CheckTxNotify() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 	})
@@ -1488,18 +1492,18 @@ func CheckGasPrice() {
 			Timeout(time.Second * 120).
 			End()
 		if errs != nil {
-			hcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
+			mcommon.Log.Errorf("err: [%T] %s", errs[0], errs[0].Error())
 			return
 		}
 		if gresp.StatusCode != http.StatusOK {
 			// 状态错误
-			hcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
+			mcommon.Log.Errorf("req status error: %d", gresp.StatusCode)
 			return
 		}
 		var resp StRespGasPrice
 		err := json.Unmarshal([]byte(body), &resp)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		toUserGasPrice := resp.FastestFee
@@ -1513,7 +1517,7 @@ func CheckGasPrice() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		_, err = app.SQLUpdateTAppStatusIntByK(
@@ -1525,7 +1529,7 @@ func CheckGasPrice() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 	})
@@ -1542,7 +1546,7 @@ func OmniCheckBlockSeek() {
 			"btc_block_confirm_num",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取状态 当前处理完成的最新的block number
@@ -1552,18 +1556,18 @@ func OmniCheckBlockSeek() {
 			"omni_seek_num",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 
 		rpcBlockNum, err := omniclient.RpcGetBlockCount()
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		startI := seekValue + 1
 		endI := rpcBlockNum - confirmValue + 1
-		//hcommon.Log.Debugf("omni block seek %d->%d", startI, endI)
+		//mcommon.Log.Debugf("omni block seek %d->%d", startI, endI)
 		if startI < endI {
 			// 获取所有token
 			var tokenIndexes []int64
@@ -1578,7 +1582,7 @@ func OmniCheckBlockSeek() {
 				},
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			for _, tokenRow := range tokenRows {
@@ -1587,10 +1591,10 @@ func OmniCheckBlockSeek() {
 			}
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
-				//hcommon.Log.Debugf("omni check block: %d", i)
+				//mcommon.Log.Debugf("omni check block: %d", i)
 				rpcTransactionHashes, err := omniclient.RpcOmniListBlockTransactions(i)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				var toAddresses []string
@@ -1599,15 +1603,15 @@ func OmniCheckBlockSeek() {
 				for _, rpcTransactionHash := range rpcTransactionHashes {
 					rpcTx, err := omniclient.RpcOmniGetTransaction(rpcTransactionHash)
 					if err != nil {
-						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 						return
 					}
 					// type_int 0 Simple Send
 					if rpcTx.TypeInt == 0 && rpcTx.Valid && rpcTx.Confirmations > 0 {
 						// 验证成功
-						if hcommon.IsIntInSlice(tokenIndexes, rpcTx.Propertyid) {
+						if mcommon.IsIntInSlice(tokenIndexes, rpcTx.Propertyid) {
 							// 是关注的代币类型
-							if !hcommon.IsStringInSlice(toAddresses, rpcTx.Referenceaddress) {
+							if !mcommon.IsStringInSlice(toAddresses, rpcTx.Referenceaddress) {
 								toAddresses = append(toAddresses, rpcTx.Referenceaddress)
 							}
 							toAddressMap[rpcTx.Referenceaddress] = append(
@@ -1628,7 +1632,7 @@ func OmniCheckBlockSeek() {
 					toAddresses,
 				)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				now := time.Now().Unix()
@@ -1640,7 +1644,7 @@ func OmniCheckBlockSeek() {
 						for _, rpcTx := range rpcTxes {
 							tokenRow, ok := tokenMap[rpcTx.Propertyid]
 							if !ok {
-								hcommon.Log.Errorf("no btc token: %d", rpcTx.Propertyid)
+								mcommon.Log.Errorf("no btc token: %d", rpcTx.Propertyid)
 								return
 							}
 							txTokenRows = append(txTokenRows, &model.DBTTxBtcToken{
@@ -1672,7 +1676,7 @@ func OmniCheckBlockSeek() {
 					true,
 				)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				// 更新block num
@@ -1685,7 +1689,7 @@ func OmniCheckBlockSeek() {
 					},
 				)
 				if err != nil {
-					hcommon.Log.Errorf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
 					return
 				}
 			}
@@ -1701,7 +1705,7 @@ func OmniCheckTxOrg() {
 		isComment := false
 		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		defer func() {
@@ -1725,7 +1729,7 @@ func OmniCheckTxOrg() {
 			app.TxOrgStatusInit,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		type stOrgItem struct {
@@ -1750,19 +1754,19 @@ func OmniCheckTxOrg() {
 			}
 			balance, err := decimal.NewFromString(txRow.Value)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			orgItem.Balance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
 			orgItem.txRows = append(orgItem.txRows, txRow)
 
-			if !hcommon.IsStringInSlice(omniAddresses, txRow.ToAddress) {
+			if !mcommon.IsStringInSlice(omniAddresses, txRow.ToAddress) {
 				omniAddresses = append(omniAddresses, txRow.ToAddress)
 			}
-			if !hcommon.IsIntInSlice(tokenIndexes, txRow.TokenIndex) {
+			if !mcommon.IsIntInSlice(tokenIndexes, txRow.TokenIndex) {
 				tokenIndexes = append(tokenIndexes, txRow.TokenIndex)
 			}
-			if !hcommon.IsStringInSlice(keyAddresses, txRow.ToAddress) {
+			if !mcommon.IsStringInSlice(keyAddresses, txRow.ToAddress) {
 				keyAddresses = append(keyAddresses, txRow.ToAddress)
 			}
 		}
@@ -1774,7 +1778,7 @@ func OmniCheckTxOrg() {
 				"to_cold_gas_price_btc",
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			tokenMap := make(map[int64]*model.DBTAppConfigTokenBtc)
@@ -1793,15 +1797,15 @@ func OmniCheckTxOrg() {
 				tokenIndexes,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			for _, tokenRow := range tokenRows {
 				tokenMap[tokenRow.TokenIndex] = tokenRow
-				if !hcommon.IsStringInSlice(tokenFeeAddresses, tokenRow.FeeAddress) {
+				if !mcommon.IsStringInSlice(tokenFeeAddresses, tokenRow.FeeAddress) {
 					tokenFeeAddresses = append(tokenFeeAddresses, tokenRow.FeeAddress)
 				}
-				if !hcommon.IsStringInSlice(keyAddresses, tokenRow.HotAddress) {
+				if !mcommon.IsStringInSlice(keyAddresses, tokenRow.HotAddress) {
 					keyAddresses = append(keyAddresses, tokenRow.HotAddress)
 				}
 			}
@@ -1811,7 +1815,7 @@ func OmniCheckTxOrg() {
 				keyAddresses,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			omniUxtoMap := make(map[string][]*model.DBTTxBtcUxto)
@@ -1830,7 +1834,7 @@ func OmniCheckTxOrg() {
 				app.UxtoTypeOmni,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			for _, omniUxtoRow := range omniUxtoRows {
@@ -1855,7 +1859,7 @@ func OmniCheckTxOrg() {
 				app.UxtoTypeOmniHot,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			for _, omniHotUxtoRow := range omniHotUxtoRows {
@@ -1872,26 +1876,26 @@ func OmniCheckTxOrg() {
 			for _, orgItem := range orgMap {
 				tokenRow, ok := tokenMap[orgItem.TokenIndex]
 				if !ok {
-					hcommon.Log.Errorf("no token: %d", orgItem.TokenIndex)
+					mcommon.Log.Errorf("no token: %d", orgItem.TokenIndex)
 					break
 				}
 				omniUxtoRows, ok := omniUxtoMap[orgItem.Address]
 				if !ok {
-					hcommon.Log.Errorf("no omni uxto %s", orgItem.Address)
+					mcommon.Log.Errorf("no omni uxto %s", orgItem.Address)
 					break
 				}
 				omniHotUxtoRows, ok := omniHotUxtoMap[tokenRow.HotAddress]
 				if !ok {
-					hcommon.Log.Errorf("omni org fee limit")
+					mcommon.Log.Errorf("omni org fee limit")
 					break
 				}
-				//hcommon.Log.Debugf("omniUxtoRows: %#v, omniHotUxtoRows: %#v", omniUxtoRows, omniHotUxtoRows)
+				//mcommon.Log.Debugf("omniUxtoRows: %#v, omniHotUxtoRows: %#v", omniUxtoRows, omniHotUxtoRows)
 				if len(omniUxtoRows) <= 0 {
-					hcommon.Log.Errorf("omni org sender uxto limit")
+					mcommon.Log.Errorf("omni org sender uxto limit")
 					break
 				}
 				if len(omniHotUxtoRows) <= 0 {
-					hcommon.Log.Errorf("omni org fee limit")
+					mcommon.Log.Errorf("omni org fee limit")
 					break
 				}
 				omniHotUxtoIndex := 0
@@ -1908,21 +1912,21 @@ func OmniCheckTxOrg() {
 						true,
 					)
 					fee := txSize * feePriceValue
-					//hcommon.Log.Debugf("fee: %d", fee)
+					//mcommon.Log.Debugf("fee: %d", fee)
 
 					inBalance := int64(0)
 					outBalance := int64(0)
 					// 输入金额
 					omniUxtoBalance, err := decimal.NewFromString(omniUxtoRows[0].VoutValue)
 					if err != nil {
-						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 						return
 					}
 					inBalance += omniUxtoBalance.Mul(decimal.NewFromInt(1e8)).IntPart()
 					for _, tmpUxtoHotRow := range tmpUxtoHotRows {
 						balance, err := decimal.NewFromString(tmpUxtoHotRow.VoutValue)
 						if err != nil {
-							hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+							mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 							return
 						}
 						inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
@@ -1938,7 +1942,7 @@ func OmniCheckTxOrg() {
 					omniHotUxtoIndex++
 				}
 				if !isOmniInputOK {
-					hcommon.Log.Errorf("omni org fee limit")
+					mcommon.Log.Errorf("omni org fee limit")
 					break
 				}
 				// 生成交易
@@ -1953,7 +1957,7 @@ func OmniCheckTxOrg() {
 					omniHotUxtoRows[:omniHotUxtoIndex+1],
 				)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				txSize := tx.SerializeSize()
@@ -1961,10 +1965,10 @@ func OmniCheckTxOrg() {
 				b.Grow(txSize)
 				err = tx.Serialize(b)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				//hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+				//mcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 				for i, txRow := range orgItem.txRows {
 					gas := int64(0)
 					gasPrice := int64(0)
@@ -2032,7 +2036,7 @@ func OmniCheckTxOrg() {
 				true,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			// 更新uxto状态
@@ -2042,7 +2046,7 @@ func OmniCheckTxOrg() {
 				usedUxtoRows,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			// 更新整理状态
@@ -2057,13 +2061,13 @@ func OmniCheckTxOrg() {
 				},
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 		}
 		err = dbTx.Commit()
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		isComment = true
@@ -2089,13 +2093,13 @@ func OmniCheckWithdraw() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		for _, tokenRow := range tokenBtcRows {
 			symbols = append(symbols, tokenRow.TokenSymbol)
 			tokenMap[tokenRow.TokenSymbol] = tokenRow
-			if !hcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
+			if !mcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
 				tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
 			}
 			balanceRealStr, err := omniclient.RpcOmniGetBalance(
@@ -2103,12 +2107,12 @@ func OmniCheckWithdraw() {
 				tokenRow.TokenIndex,
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			balance, err := RealStrToBalanceInt64(balanceRealStr.Balance)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			pendingRealStr, err := app.SQLGetTSendBtcPendingBalanceReal(
@@ -2125,7 +2129,7 @@ func OmniCheckWithdraw() {
 		isComment := false
 		dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		defer func() {
@@ -2149,7 +2153,7 @@ func OmniCheckWithdraw() {
 			symbols,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		if len(withdrawRows) == 0 {
@@ -2162,7 +2166,7 @@ func OmniCheckWithdraw() {
 			"to_user_gas_price_btc",
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 获取私钥
@@ -2172,7 +2176,7 @@ func OmniCheckWithdraw() {
 			tokenHotAddresses,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 
@@ -2192,7 +2196,7 @@ func OmniCheckWithdraw() {
 			app.UxtoTypeOmniHot,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		for _, omniHotUxtoRow := range omniHotUxtoRows {
@@ -2208,29 +2212,29 @@ func OmniCheckWithdraw() {
 		for _, withdrawRow := range withdrawRows {
 			tokenRow, ok := tokenMap[withdrawRow.Symbol]
 			if !ok {
-				hcommon.Log.Errorf("no token: %s", withdrawRow.Symbol)
+				mcommon.Log.Errorf("no token: %s", withdrawRow.Symbol)
 				return
 			}
 			// 检测token余额
 			withdrawBalance, err := RealStrToBalanceInt64(withdrawRow.BalanceReal)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			tmp := tokenHotBalance[tokenRow.TokenIndex] - withdrawBalance
 			if tmp < 0 {
-				hcommon.Log.Errorf("omni token balance limit %d", tokenRow.TokenIndex)
+				mcommon.Log.Errorf("omni token balance limit %d", tokenRow.TokenIndex)
 				continue
 			}
 			tokenHotBalance[tokenRow.TokenIndex] -= withdrawBalance
 			omniHotUxtoRows, ok := omniHotUxtoMap[tokenRow.HotAddress]
 			if !ok {
-				hcommon.Log.Errorf("no omni hot %s", tokenRow.HotAddress)
+				mcommon.Log.Errorf("no omni hot %s", tokenRow.HotAddress)
 				return
 			}
-			//hcommon.Log.Debugf("omniHotUxtoRows: %#v", omniHotUxtoRows)
+			//mcommon.Log.Debugf("omniHotUxtoRows: %#v", omniHotUxtoRows)
 			if len(omniHotUxtoRows) <= 0 {
-				hcommon.Log.Errorf("no omni hot uxto")
+				mcommon.Log.Errorf("no omni hot uxto")
 				return
 			}
 			omniHotUxtoIndex := 0
@@ -2247,11 +2251,11 @@ func OmniCheckWithdraw() {
 					true,
 				)
 				if err != nil {
-					hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
 				fee := txSize * feePriceValue
-				//hcommon.Log.Debugf("fee: %d", fee)
+				//mcommon.Log.Debugf("fee: %d", fee)
 
 				inBalance := int64(0)
 				outBalance := int64(0)
@@ -2259,7 +2263,7 @@ func OmniCheckWithdraw() {
 				for _, tmpUxtoHotRow := range tmpUxtoHotRows {
 					balance, err := decimal.NewFromString(tmpUxtoHotRow.VoutValue)
 					if err != nil {
-						hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 						return
 					}
 					inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
@@ -2275,13 +2279,13 @@ func OmniCheckWithdraw() {
 				omniHotUxtoIndex++
 			}
 			if !isOmniInputOK {
-				hcommon.Log.Errorf("omni withdraw fee limit")
+				mcommon.Log.Errorf("omni withdraw fee limit")
 				break
 			}
 			// 生成交易
 			balance, err := decimal.NewFromString(withdrawRow.BalanceReal)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			tx, err := OmniTxMake(
@@ -2295,7 +2299,7 @@ func OmniCheckWithdraw() {
 				omniHotUxtoRows[1:omniHotUxtoIndex+1],
 			)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
 			txSize := tx.SerializeSize()
@@ -2303,10 +2307,10 @@ func OmniCheckWithdraw() {
 			b.Grow(txSize)
 			err = tx.Serialize(b)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			//hcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
+			//mcommon.Log.Debugf("raw tx: %s", hex.EncodeToString(b.Bytes()))
 			// 准备数据
 			// 发送数据
 			sendRows = append(sendRows, &model.DBTSendBtc{
@@ -2357,7 +2361,7 @@ func OmniCheckWithdraw() {
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 更新uxto
@@ -2367,7 +2371,7 @@ func OmniCheckWithdraw() {
 			updateUxtoRows,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 更新提币
@@ -2377,13 +2381,13 @@ func OmniCheckWithdraw() {
 			updateWithdraws,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		// 提交事物
 		err = dbTx.Commit()
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		isComment = true
@@ -2410,12 +2414,12 @@ func OmniCheckTxNotify() {
 			app.TxStatusInit,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		var productIDs []int64
 		for _, txRow := range txRows {
-			if !hcommon.IsIntInSlice(productIDs, txRow.ProductID) {
+			if !mcommon.IsIntInSlice(productIDs, txRow.ProductID) {
 				productIDs = append(productIDs, txRow.ProductID)
 			}
 		}
@@ -2431,7 +2435,7 @@ func OmniCheckTxNotify() {
 			productIDs,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		var notifyTxIDs []int64
@@ -2440,11 +2444,11 @@ func OmniCheckTxNotify() {
 		for _, txRow := range txRows {
 			productRow, ok := productMap[txRow.ProductID]
 			if !ok {
-				hcommon.Log.Warnf("no productMap: %d", txRow.ProductID)
+				mcommon.Log.Warnf("no productMap: %d", txRow.ProductID)
 				notifyTxIDs = append(notifyTxIDs, txRow.ID)
 				continue
 			}
-			nonce := hcommon.GetUUIDStr()
+			nonce := mcommon.GetUUIDStr()
 			reqObj := gin.H{
 				"tx_hash":     txRow.TxID,
 				"app_name":    productRow.AppName,
@@ -2453,10 +2457,10 @@ func OmniCheckTxNotify() {
 				"symbol":      txRow.TokenSymbol,
 				"notify_type": app.NotifyTypeTx,
 			}
-			reqObj["sign"] = hcommon.GetSign(productRow.AppSk, reqObj)
+			reqObj["sign"] = mcommon.WechatGetSign(productRow.AppSk, reqObj)
 			req, err := json.Marshal(reqObj)
 			if err != nil {
-				hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
 			}
 			notifyRows = append(notifyRows, &model.DBTProductNotify{
@@ -2482,7 +2486,7 @@ func OmniCheckTxNotify() {
 			true,
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		_, err = app.SQLUpdateTTxBtcTokenHandleStatusByIDs(
@@ -2496,7 +2500,7 @@ func OmniCheckTxNotify() {
 			},
 		)
 		if err != nil {
-			hcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 	})

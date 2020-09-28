@@ -2,14 +2,15 @@ package app
 
 import (
 	"context"
-	"go-dc-wallet/hcommon"
 	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
 	"time"
+
+	"github.com/moremorefun/mcommon"
 )
 
 // GetLock 获取运行锁
-func GetLock(ctx context.Context, tx hcommon.DbExeAble, k string) (bool, error) {
+func GetLock(ctx context.Context, tx mcommon.DbExeAble, k string) (bool, error) {
 	genLock := func() error {
 		_, err := SQLCreateTAppLockUpdate(
 			ctx,
@@ -55,7 +56,7 @@ func GetLock(ctx context.Context, tx hcommon.DbExeAble, k string) (bool, error) 
 }
 
 // ReleaseLock 释放运行锁
-func ReleaseLock(ctx context.Context, tx hcommon.DbExeAble, k string) error {
+func ReleaseLock(ctx context.Context, tx mcommon.DbExeAble, k string) error {
 	_, err := SQLUpdateTAppLockByK(
 		ctx,
 		tx,
@@ -79,7 +80,7 @@ func LockWrap(name string, f func()) {
 		name,
 	)
 	if err != nil {
-		hcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
+		mcommon.Log.Warnf("GetLock err: [%T] %s", err, err.Error())
 		return
 	}
 	if !ok {
@@ -92,7 +93,7 @@ func LockWrap(name string, f func()) {
 			name,
 		)
 		if err != nil {
-			hcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
+			mcommon.Log.Warnf("ReleaseLock err: [%T] %s", err, err.Error())
 			return
 		}
 	}()
@@ -100,8 +101,8 @@ func LockWrap(name string, f func()) {
 }
 
 // SQLGetWithdrawMap 获取提币map
-func SQLGetWithdrawMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTWithdraw, error) {
-	if !hcommon.IsStringInSlice(cols, model.DBColTWithdrawID) {
+func SQLGetWithdrawMap(ctx context.Context, tx mcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTWithdraw, error) {
+	if !mcommon.IsStringInSlice(cols, model.DBColTWithdrawID) {
 		cols = append(cols, model.DBColTWithdrawID)
 	}
 	itemMap := make(map[int64]*model.DBTWithdraw)
@@ -123,8 +124,8 @@ func SQLGetWithdrawMap(ctx context.Context, tx hcommon.DbExeAble, cols []string,
 }
 
 // SQLGetProductMap 获取产品map
-func SQLGetProductMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTProduct, error) {
-	if !hcommon.IsStringInSlice(cols, model.DBColTProductID) {
+func SQLGetProductMap(ctx context.Context, tx mcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTProduct, error) {
+	if !mcommon.IsStringInSlice(cols, model.DBColTProductID) {
 		cols = append(cols, model.DBColTProductID)
 	}
 	itemMap := make(map[int64]*model.DBTProduct)
@@ -146,8 +147,8 @@ func SQLGetProductMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, 
 }
 
 // SQLGetAppConfigTokenMap 获取代币map
-func SQLGetAppConfigTokenMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTAppConfigToken, error) {
-	if !hcommon.IsStringInSlice(cols, model.DBColTAppConfigTokenID) {
+func SQLGetAppConfigTokenMap(ctx context.Context, tx mcommon.DbExeAble, cols []string, ids []int64) (map[int64]*model.DBTAppConfigToken, error) {
+	if !mcommon.IsStringInSlice(cols, model.DBColTAppConfigTokenID) {
 		cols = append(cols, model.DBColTAppConfigTokenID)
 	}
 	itemMap := make(map[int64]*model.DBTAppConfigToken)
@@ -169,8 +170,8 @@ func SQLGetAppConfigTokenMap(ctx context.Context, tx hcommon.DbExeAble, cols []s
 }
 
 // SQLGetAddressKeyMap 获取地址map
-func SQLGetAddressKeyMap(ctx context.Context, tx hcommon.DbExeAble, cols []string, addresses []string) (map[string]*model.DBTAddressKey, error) {
-	if !hcommon.IsStringInSlice(cols, model.DBColTAddressKeyAddress) {
+func SQLGetAddressKeyMap(ctx context.Context, tx mcommon.DbExeAble, cols []string, addresses []string) (map[string]*model.DBTAddressKey, error) {
+	if !mcommon.IsStringInSlice(cols, model.DBColTAddressKeyAddress) {
 		cols = append(cols, model.DBColTAddressKeyAddress)
 	}
 	itemMap := make(map[string]*model.DBTAddressKey)
