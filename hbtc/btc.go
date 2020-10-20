@@ -1808,6 +1808,9 @@ func OmniCheckTxOrg() {
 				if !mcommon.IsStringInSlice(keyAddresses, tokenRow.HotAddress) {
 					keyAddresses = append(keyAddresses, tokenRow.HotAddress)
 				}
+				if !mcommon.IsStringInSlice(keyAddresses, tokenRow.FeeAddress) {
+					keyAddresses = append(keyAddresses, tokenRow.FeeAddress)
+				}
 			}
 			addressWifMap, err := GetWifMapByAddresses(
 				context.Background(),
@@ -1884,7 +1887,7 @@ func OmniCheckTxOrg() {
 					mcommon.Log.Errorf("no omni uxto %s", orgItem.Address)
 					break
 				}
-				omniHotUxtoRows, ok := omniHotUxtoMap[tokenRow.HotAddress]
+				omniHotUxtoRows, ok := omniHotUxtoMap[tokenRow.FeeAddress]
 				if !ok {
 					mcommon.Log.Errorf("omni org fee limit")
 					break
@@ -1949,7 +1952,7 @@ func OmniCheckTxOrg() {
 				tx, err := OmniTxMake(
 					omniUxtoRows[0],
 					tokenRow.ColdAddress,
-					tokenRow.HotAddress,
+					tokenRow.FeeAddress,
 					tokenRow.TokenIndex,
 					orgItem.Balance,
 					feePriceValue,
