@@ -2261,6 +2261,25 @@ func CheckErc20Withdraw() {
 			if !mcommon.IsStringInSlice(tokenSymbols, tokenRow.TokenSymbol) {
 				tokenSymbols = append(tokenSymbols, tokenRow.TokenSymbol)
 			}
+		}
+		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
+			context.Background(),
+			xenv.DbCon,
+			[]string{
+				model.DBColTWithdrawID,
+				model.DBColTWithdrawSymbol,
+			},
+			app.WithdrawStatusInit,
+			tokenSymbols,
+		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		if len(withdrawRows) == 0 {
+			return
+		}
+		for _, tokenRow := range tokenRows {
 			// 获取私钥
 			_, err = StrToAddressBytes(tokenRow.HotAddress)
 			if err != nil {
@@ -2347,23 +2366,6 @@ func CheckErc20Withdraw() {
 				}
 				addressTokenBalanceMap[tokenBalanceKey] = tokenBalance
 			}
-		}
-		withdrawRows, err := app.SQLSelectTWithdrawColByStatus(
-			context.Background(),
-			xenv.DbCon,
-			[]string{
-				model.DBColTWithdrawID,
-				model.DBColTWithdrawSymbol,
-			},
-			app.WithdrawStatusInit,
-			tokenSymbols,
-		)
-		if err != nil {
-			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-			return
-		}
-		if len(withdrawRows) == 0 {
-			return
 		}
 		// 获取gap price
 		gasPriceValue, err := app.SQLGetTAppStatusIntValueByK(
