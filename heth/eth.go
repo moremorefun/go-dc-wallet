@@ -123,6 +123,7 @@ func CheckAddressFree() {
 				address, privateKeyStrEn, err := genAddressAndAesKey()
 				if err != nil {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
 				}
 				// 存入待添加队列
 				rows = append(rows, &model.DBTAddressKey{
