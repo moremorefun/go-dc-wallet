@@ -17,6 +17,7 @@ import (
 )
 
 var client *Client
+var networkID int64
 
 // InitClient 初始化接口对象
 func InitClient(uri string) {
@@ -60,10 +61,14 @@ func RpcNonceAt(ctx context.Context, address string) (int64, error) {
 
 // RpcNetworkID 获取block信息
 func RpcNetworkID(ctx context.Context) (int64, error) {
+	if networkID != 0 {
+		return networkID, nil
+	}
 	resp, err := client.NetworkID(ctx)
 	if nil != err {
 		return 0, err
 	}
+	networkID = resp.Int64()
 	return resp.Int64(), nil
 }
 
