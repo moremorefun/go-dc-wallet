@@ -1,0 +1,16 @@
+version: "3"
+services:
+  parity:
+    restart: always
+    image: openethereum/openethereum
+    ports:
+      - "8545:8545"
+      - "8546:8546"
+      - "30303:30303"
+    volumes:
+      - ./data:/hao/parity
+    command: "--base-path==/hao/parity --jsonrpc-apis=all --jsonrpc-hosts=all --no-ws"
+    logging:
+      options:
+        max-size: "100M"
+        max-file: "3"

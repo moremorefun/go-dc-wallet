@@ -1,0 +1,15 @@
+version: "3"
+services:
+  omni:
+    restart: always
+    image: mpugach/omnicored
+    ports:
+      - "8332:8332"
+      - "8333:8333"
+    volumes:
+      - ./data:/omnicore/data
+    command: "-txindex -server -rpcbind=0.0.0.0 -rpcuser=omni -rpcpassword=omni -rpcallowip=0.0.0.0/0 -printtoconsole"
+    logging:
+      options:
+        max-size: "100M"
+        max-file: "3"
