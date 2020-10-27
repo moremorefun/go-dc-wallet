@@ -1859,7 +1859,7 @@ func OmniCheckTxOrg() {
 					model.DBColTTxBtcUxtoVoutScript,
 				},
 				tokenFeeAddresses,
-				app.UxtoTypeOmniHot,
+				app.UxtoTypeOmniOrgFee,
 			)
 			if err != nil {
 				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
