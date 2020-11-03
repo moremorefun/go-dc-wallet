@@ -2029,7 +2029,7 @@ func OmniCheckTxOrg() {
 				}
 				// 重置数据
 				omniUxtoMap[orgItem.Address] = omniUxtoRows[1:]
-				omniHotUxtoMap[tokenRow.HotAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
+				omniHotUxtoMap[tokenRow.FeeAddress] = omniHotUxtoRows[omniHotUxtoIndex+1:]
 			}
 			// 添加发送
 			_, err = model.SQLCreateManyTSendBtc(
