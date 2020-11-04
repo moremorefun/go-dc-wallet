@@ -2237,8 +2237,8 @@ func OmniCheckWithdraw() {
 			}
 			//mcommon.Log.Debugf("omniHotUxtoRows: %#v", omniHotUxtoRows)
 			if len(omniHotUxtoRows) <= 0 {
-				mcommon.Log.Errorf("no omni hot uxto")
-				return
+				mcommon.Log.Errorf("no omni hot uxto limit %d", withdrawRow.ID)
+				continue
 			}
 			omniHotUxtoIndex := 0
 			isOmniInputOK := false
