@@ -2178,9 +2178,6 @@ func OmniCheckWithdraw() {
 			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		if feePriceValue > 168 {
-			feePriceValue = 168
-		}
 		// 获取私钥
 		addressWifMap, err := GetWifMapByAddresses(
 			context.Background(),
