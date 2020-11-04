@@ -423,7 +423,7 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 	}
 	outBalance += MinNondustOutput
 	// --- 计算拆分热钱包交易 ---
-	tmpBalance := int64(200000)
+	tmpBalance := int64(500000)
 	addOutPutCount := (inBalance - outBalance) / tmpBalance
 	// 获取预估大小
 	txSize, err := GetEstimateTxSize(int64(len(tx.TxIn)), 1+addOutPutCount+1, true)
