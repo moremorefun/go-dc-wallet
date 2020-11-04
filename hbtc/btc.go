@@ -1508,6 +1508,12 @@ func CheckGasPrice() {
 		}
 		toUserGasPrice := resp.FastestFee
 		toColdGasPrice := resp.HalfHourFee
+		if toUserGasPrice > 168 {
+			toUserGasPrice = 168
+		}
+		if toColdGasPrice > 168 {
+			toColdGasPrice = 168
+		}
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),
 			xenv.DbCon,
