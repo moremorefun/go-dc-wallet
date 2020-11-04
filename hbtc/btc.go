@@ -2249,7 +2249,7 @@ func OmniCheckWithdraw() {
 				tmpUxtoHotRows := omniHotUxtoRows[:omniHotUxtoIndex+1]
 				// 计算手续费
 				txSize, err := GetEstimateTxSize(
-					int64(len(tmpUxtoHotRows)),
+					int64(omniHotUxtoIndex+1),
 					2,
 					true,
 				)
