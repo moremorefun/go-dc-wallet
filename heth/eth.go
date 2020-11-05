@@ -2555,6 +2555,35 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 func CheckGasPrice() {
 	lockKey := "EthCheckGasPrice"
 	app.LockWrap(lockKey, func() {
+		// 获取最高单价
+		maxValue, err := app.SQLGetTAppStatusIntValueByK(
+			context.Background(),
+			xenv.DbCon,
+			"max_gas_price_eth",
+		)
+		if err != nil {
+			if !strings.Contains(err.Error(), "no app status int of") {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+		}
+		if maxValue <= 0 {
+			maxValue = 80000000000
+			// 创建
+			_, err := model.SQLCreateTAppStatusInt(
+				context.Background(),
+				xenv.DbCon,
+				&model.DBTAppStatusInt{
+					K: "max_gas_price_eth",
+					V: maxValue,
+				},
+				true,
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+		}
 		type StRespGasPrice struct {
 			Fast        int64   `json:"fast"`
 			Fastest     int64   `json:"fastest"`
@@ -2582,13 +2611,19 @@ func CheckGasPrice() {
 			return
 		}
 		var resp StRespGasPrice
-		err := json.Unmarshal([]byte(body), &resp)
+		err = json.Unmarshal([]byte(body), &resp)
 		if err != nil {
 			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		toUserGasPrice := resp.Fast * int64(math.Pow10(8))
 		toColdGasPrice := resp.Average * int64(math.Pow10(8))
+		if toUserGasPrice > maxValue {
+			toUserGasPrice = maxValue
+		}
+		if toColdGasPrice > maxValue {
+			toColdGasPrice = maxValue
+		}
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),
 			xenv.DbCon,
