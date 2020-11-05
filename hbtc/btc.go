@@ -1945,7 +1945,7 @@ func OmniCheckTxOrg() {
 					tmpUxtoHotRows := omniHotUxtoRows[:omniHotUxtoIndex+1]
 					// 计算手续费
 					txSize, err := GetEstimateTxSize(
-						1+int64(len(tmpUxtoHotRows)),
+						1+int64(omniHotUxtoIndex+1),
 						2,
 						true,
 					)
