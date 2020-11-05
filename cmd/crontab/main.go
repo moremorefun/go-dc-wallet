@@ -104,6 +104,11 @@ func main() {
 	if err != nil {
 		mcommon.Log.Errorf("cron add func error: %#v", err)
 	}
+	// 检测 btc hot and fee uxto
+	_, err = c.AddFunc("@every 5m", hbtc.CheckBlockSeekHotAndFee)
+	if err != nil {
+		mcommon.Log.Errorf("cron add func error: %#v", err)
+	}
 	// 检测 btc 零钱整理
 	_, err = c.AddFunc("@every 10m", hbtc.CheckTxOrg)
 	if err != nil {

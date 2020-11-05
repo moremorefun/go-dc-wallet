@@ -440,6 +440,10 @@ func CheckBlockSeek() {
 					xenv.DbCon,
 					updateUxtoRows,
 				)
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
 				// 更新block num
 				_, err = app.SQLUpdateTAppStatusIntByKGreater(
 					context.Background(),
@@ -2543,4 +2547,299 @@ func OmniCheckTxNotify() {
 		}
 	})
 
+}
+
+// CheckBlockSeekHotAndFee 检测到账
+func CheckBlockSeekHotAndFee() {
+	lockKey := "BtcCheckBlockSeekHotAndFee"
+	app.LockWrap(lockKey, func() {
+		// 获取状态 当前处理完成的最新的block number
+		seekValue, err := app.SQLGetTAppStatusIntValueByK(
+			context.Background(),
+			xenv.DbCon,
+			"btc_hot_fee_seek_num",
+		)
+		if err != nil {
+			if strings.Contains(err.Error(), "no app status int of") {
+				rpcBlockNum, err := omniclient.RpcGetBlockCount()
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				_, err = model.SQLCreateTAppStatusInt(
+					context.Background(),
+					xenv.DbCon,
+					&model.DBTAppStatusInt{
+						K: "btc_hot_fee_seek_num",
+						V: rpcBlockNum,
+					},
+					true,
+				)
+			} else {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+		}
+		rpcBlockNum, err := omniclient.RpcGetBlockCount()
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		startI := seekValue + 1
+		endI := rpcBlockNum + 1
+		if startI < endI {
+			// 获取btc热钱包地址
+			hotAddress, err := app.SQLGetTAppConfigStrValueByK(
+				context.Background(),
+				xenv.DbCon,
+				"hot_wallet_address_btc",
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			// 获取所有token
+			var tokenHotAddresses []string
+			var tokenFeeAddresses []string
+			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
+				context.Background(),
+				xenv.DbCon,
+				[]string{
+					model.DBColTAppConfigTokenBtcID,
+					model.DBColTAppConfigTokenBtcHotAddress,
+					model.DBColTAppConfigTokenBtcFeeAddress,
+				},
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+			for _, tokenRow := range tokenRows {
+				if !mcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
+					tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
+				}
+				if !mcommon.IsStringInSlice(tokenFeeAddresses, tokenRow.FeeAddress) {
+					tokenFeeAddresses = append(tokenFeeAddresses, tokenRow.FeeAddress)
+				}
+			}
+			// 所有输入tx情况
+			vinTxMap := make(map[string]*omniclient.StTxResult)
+			// 遍历获取需要查询的block信息
+			for curBlockNum := startI; curBlockNum < endI; curBlockNum++ {
+				mcommon.Log.Debugf("btc hot fee seek: %d", curBlockNum)
+				blockHash, err := omniclient.RpcGetBlockHash(curBlockNum)
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 一个block
+				rpcBlock, err := omniclient.RpcGetBlockVerbose(blockHash)
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 所有输入数据
+				var vinTxHashes []string
+				type StVinWithIndex struct {
+					TxHash string
+					VoutN  int64
+
+					SpendTxHash string
+					SpendN      int64
+				}
+				vinMap := make(map[string]*StVinWithIndex)
+				// 待插入uxto
+				var txBtcUxtoRows []*model.DBTTxBtcUxto
+				now := time.Now().Unix()
+				// 所有tx
+				for _, rpcTx := range rpcBlock.Tx {
+					// 每个tx
+					// 记录输入tx hash
+					for i, vin := range rpcTx.Vin {
+						fromTxHash := vin.Txid
+						if !mcommon.IsStringInSlice(vinTxHashes, fromTxHash) {
+							vinTxHashes = append(vinTxHashes, fromTxHash)
+						}
+						key := fmt.Sprintf("%s-%d", vin.Txid, vin.Vout)
+						vinMap[key] = &StVinWithIndex{
+							TxHash:      vin.Txid,
+							VoutN:       vin.Vout,
+							SpendTxHash: rpcTx.Txid,
+							SpendN:      int64(i),
+						}
+					}
+					// 检测是否需要关注输出
+					isIgnoreTx := true
+					for _, vout := range rpcTx.Vout {
+						if len(vout.ScriptPubKey.Addresses) == 1 {
+							// 输出地址
+							toAddress := vout.ScriptPubKey.Addresses[0]
+							if toAddress == hotAddress {
+								// btc 热钱包地址
+								isIgnoreTx = false
+								break
+							} else if mcommon.IsStringInSlice(tokenFeeAddresses, toAddress) ||
+								mcommon.IsStringInSlice(tokenHotAddresses, toAddress) {
+								// token hot and fee
+								isIgnoreTx = false
+								break
+							}
+						}
+					}
+					if isIgnoreTx {
+						continue
+					}
+					// 输出
+					omniScript := omniWithReturnHex
+					isOmniTx := false
+					omniIndex := -1
+					omniInAddress := ""
+					// 检测是否是omni交易
+					for _, vout := range rpcTx.Vout {
+						if strings.HasPrefix(vout.ScriptPubKey.Hex, omniScript) {
+							isOmniTx = true
+						}
+					}
+					// 获取omni输出索引
+					if isOmniTx {
+						for _, vin := range rpcTx.Vin {
+							rpcVinTx, ok := vinTxMap[vin.Txid]
+							if !ok {
+								rpcVinTx, err = omniclient.RpcGetRawTransactionVerbose(vin.Txid)
+								if err != nil {
+									mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+									return
+								}
+								vinTxMap[vin.Txid] = rpcVinTx
+							}
+							if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
+								omniInAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
+								break
+							}
+						}
+						for i := len(rpcTx.Vout) - 1; i >= 0; i-- {
+							vout := rpcTx.Vout[i]
+							if len(vout.ScriptPubKey.Addresses) > 0 && strings.Join(vout.ScriptPubKey.Addresses, ",") != omniInAddress {
+								omniIndex = i
+								break
+							}
+						}
+					}
+					for i, vout := range rpcTx.Vout {
+						if len(vout.ScriptPubKey.Addresses) == 1 {
+							// 输出地址
+							uxtoType := -1
+							toAddress := vout.ScriptPubKey.Addresses[0]
+							if toAddress == hotAddress {
+								// btc 热钱包地址
+								uxtoType = app.UxtoTypeHot
+							} else if mcommon.IsStringInSlice(tokenFeeAddresses, toAddress) ||
+								mcommon.IsStringInSlice(tokenHotAddresses, toAddress) {
+								if i == omniIndex {
+									// omni 交易
+									uxtoType = app.UxtoTypeOmni
+								} else {
+									if mcommon.IsStringInSlice(tokenFeeAddresses, toAddress) {
+										// 整理手续费地址
+										uxtoType = app.UxtoTypeOmniOrgFee
+									} else if mcommon.IsStringInSlice(tokenHotAddresses, toAddress) {
+										// 提币手续费地址
+										uxtoType = app.UxtoTypeOmniHot
+									}
+								}
+							}
+							if uxtoType > 0 {
+								voutScript := vout.ScriptPubKey.Hex
+								value := decimal.NewFromFloat(vout.Value).String()
+								txBtcUxtoRows = append(
+									txBtcUxtoRows,
+									&model.DBTTxBtcUxto{
+										UxtoType:     int64(uxtoType),
+										BlockHash:    rpcBlock.Hash,
+										TxID:         rpcTx.Txid,
+										VoutN:        int64(i),
+										VoutAddress:  toAddress,
+										VoutValue:    value,
+										VoutScript:   voutScript,
+										CreateTime:   now,
+										SpendTxID:    "",
+										SpendN:       0,
+										HandleStatus: 0,
+										HandleMsg:    "",
+										HandleTime:   now,
+									},
+								)
+							}
+						}
+					}
+				}
+				// 从uxto中查询txhash
+				var updateUxtoRows []*model.DBTTxBtcUxto
+				uxtoRows, err := app.SQLSelectTTxBtcUxtoColByTxIDs(
+					context.Background(),
+					xenv.DbCon,
+					[]string{
+						model.DBColTTxBtcUxtoID,
+						model.DBColTTxBtcUxtoTxID,
+						model.DBColTTxBtcUxtoVoutN,
+					},
+					vinTxHashes,
+				)
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				for _, uxtoRow := range uxtoRows {
+					key := fmt.Sprintf("%s-%d", uxtoRow.TxID, uxtoRow.VoutN)
+					rpcVin, ok := vinMap[key]
+					if ok {
+						updateUxtoRows = append(updateUxtoRows, &model.DBTTxBtcUxto{
+							ID:           uxtoRow.ID,
+							TxID:         uxtoRow.TxID,
+							VoutN:        uxtoRow.VoutN,
+							SpendTxID:    rpcVin.SpendTxHash,
+							SpendN:       rpcVin.SpendN,
+							HandleStatus: app.UxtoHandleStatusConfirm,
+							HandleMsg:    "confirm",
+							HandleTime:   now,
+						})
+					}
+				}
+				// 创建uxto
+				_, err = model.SQLCreateManyTTxBtcUxto(
+					context.Background(),
+					xenv.DbCon,
+					txBtcUxtoRows,
+					true,
+				)
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 更新uxto状态
+				_, err = app.SQLCreateManyTTxBtcUxtoUpdate(
+					context.Background(),
+					xenv.DbCon,
+					updateUxtoRows,
+				)
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 更新block num
+				_, err = app.SQLUpdateTAppStatusIntByKGreater(
+					context.Background(),
+					xenv.DbCon,
+					&model.DBTAppStatusInt{
+						K: "btc_hot_fee_seek_num",
+						V: curBlockNum,
+					},
+				)
+				if err != nil {
+					mcommon.Log.Errorf("SQLUpdateTAppStatusIntByK err: [%T] %s", err, err.Error())
+					return
+				}
+			}
+		}
+	})
 }

@@ -326,6 +326,11 @@ func main() {
 			V: btcRpcBlockNum,
 		},
 		{
+			// btc blocknum
+			K: "btc_hot_fee_seek_num",
+			V: btcRpcBlockNum,
+		},
+		{
 			// eos blocknum
 			K: "eos_seek_num",
 			V: rpcChainInfo.LastIrreversibleBlockNum,
