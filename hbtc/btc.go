@@ -1482,6 +1482,35 @@ func CheckTxNotify() {
 func CheckGasPrice() {
 	lockKey := "BtcCheckGasPrice"
 	app.LockWrap(lockKey, func() {
+		// 获取最高单价
+		maxValue, err := app.SQLGetTAppStatusIntValueByK(
+			context.Background(),
+			xenv.DbCon,
+			"max_gas_price_btc",
+		)
+		if err != nil {
+			if !strings.Contains(err.Error(), "no app status int of") {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+		}
+		if maxValue <= 0 {
+			maxValue = 168
+			// 创建
+			_, err := model.SQLCreateTAppStatusInt(
+				context.Background(),
+				xenv.DbCon,
+				&model.DBTAppStatusInt{
+					K: "max_gas_price_btc",
+					V: maxValue,
+				},
+				true,
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
+		}
 		type StRespGasPrice struct {
 			FastestFee  int64 `json:"fastestFee"`
 			HalfHourFee int64 `json:"halfHourFee"`
@@ -1501,18 +1530,18 @@ func CheckGasPrice() {
 			return
 		}
 		var resp StRespGasPrice
-		err := json.Unmarshal([]byte(body), &resp)
+		err = json.Unmarshal([]byte(body), &resp)
 		if err != nil {
 			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
 		toUserGasPrice := resp.FastestFee
 		toColdGasPrice := resp.HalfHourFee
-		if toUserGasPrice > 168 {
-			toUserGasPrice = 168
+		if toUserGasPrice > maxValue {
+			toUserGasPrice = maxValue
 		}
-		if toColdGasPrice > 168 {
-			toColdGasPrice = 168
+		if toColdGasPrice > maxValue {
+			toColdGasPrice = maxValue
 		}
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),
