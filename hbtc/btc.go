@@ -346,14 +346,17 @@ func CheckBlockSeek() {
 						}
 						if rpcTxWithIndex.IsOmniTx {
 							omniOutAddress := ""
+							isExchanged := false
 							for i := len(rpcTx.Vout) - 1; i >= 0; i-- {
 								vout := rpcTx.Vout[i]
 								if len(vout.ScriptPubKey.Addresses) > 0 {
 									toAddress := strings.Join(vout.ScriptPubKey.Addresses, ",")
-									if toAddress != omniVinAddress {
-										omniOutAddress = toAddress
-										break
+									if !isExchanged && toAddress == omniVinAddress {
+										isExchanged = true
+										continue
 									}
+									omniOutAddress = toAddress
+									break
 								}
 							}
 							if omniOutAddress == voutAddress {
@@ -2717,9 +2720,14 @@ func CheckBlockSeekHotAndFee() {
 								break
 							}
 						}
+						isExchanged := false
 						for i := len(rpcTx.Vout) - 1; i >= 0; i-- {
 							vout := rpcTx.Vout[i]
-							if len(vout.ScriptPubKey.Addresses) > 0 && strings.Join(vout.ScriptPubKey.Addresses, ",") != omniInAddress {
+							if len(vout.ScriptPubKey.Addresses) > 0 {
+								if !isExchanged && strings.Join(vout.ScriptPubKey.Addresses, ",") == omniInAddress {
+									isExchanged = true
+									continue
+								}
 								omniIndex = i
 								break
 							}
