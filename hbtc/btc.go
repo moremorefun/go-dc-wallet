@@ -2695,7 +2695,7 @@ func CheckBlockSeekHotAndFee() {
 					// 输出
 					omniScript := omniWithReturnHex
 					isOmniTx := false
-					omniIndex := -1
+					omniIndex := int64(-1)
 					omniInAddress := ""
 					// 检测是否是omni交易
 					for _, vout := range rpcTx.Vout {
@@ -2728,12 +2728,12 @@ func CheckBlockSeekHotAndFee() {
 									isExchanged = true
 									continue
 								}
-								omniIndex = i
+								omniIndex = vout.N
 								break
 							}
 						}
 					}
-					for i, vout := range rpcTx.Vout {
+					for _, vout := range rpcTx.Vout {
 						if len(vout.ScriptPubKey.Addresses) == 1 {
 							// 输出地址
 							uxtoType := -1
@@ -2743,7 +2743,7 @@ func CheckBlockSeekHotAndFee() {
 								uxtoType = app.UxtoTypeHot
 							} else if mcommon.IsStringInSlice(tokenFeeAddresses, toAddress) ||
 								mcommon.IsStringInSlice(tokenHotAddresses, toAddress) {
-								if i == omniIndex {
+								if vout.N == omniIndex {
 									// omni 交易
 									uxtoType = app.UxtoTypeOmni
 								} else {
@@ -2765,7 +2765,7 @@ func CheckBlockSeekHotAndFee() {
 										UxtoType:     int64(uxtoType),
 										BlockHash:    rpcBlock.Hash,
 										TxID:         rpcTx.Txid,
-										VoutN:        int64(i),
+										VoutN:        vout.N,
 										VoutAddress:  toAddress,
 										VoutValue:    value,
 										VoutScript:   voutScript,
