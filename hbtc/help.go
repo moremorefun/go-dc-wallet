@@ -115,7 +115,7 @@ func BtcAddTxOut(tx *wire.MsgTx, toAddress string, balance int64) error {
 }
 
 // BtcMakeTx 创建交易
-func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAddress string) (*wire.MsgTx, error) {
+func BtcMakeTx(chainParams *chaincfg.Params, vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAddress string) (*wire.MsgTx, error) {
 	inAmount := int64(0)
 	outAmount := int64(0)
 	tx := wire.NewMsgTx(wire.TxVersion)
@@ -142,19 +142,47 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 		if err != nil {
 			return nil, err
 		}
-		script, err := txscript.SignatureScript(
-			tx,
-			i,
-			txinPkScript,
-			txscript.SigHashAll,
-			vin.Wif.PrivKey,
-			true,
-		)
+		scriptClass, _, _, err := txscript.ExtractPkScriptAddrs(txinPkScript, chainParams)
 		if err != nil {
-			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return nil, err
 		}
-		tx.TxIn[i].SignatureScript = script
+		switch scriptClass {
+		case txscript.PubKeyHashTy:
+			// 17FE63jDkXSgeeqKa8EeocJrNURWjztzR2
+			script, err := txscript.SignatureScript(
+				tx,
+				i,
+				txinPkScript,
+				txscript.SigHashAll,
+				vin.Wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return nil, err
+			}
+			tx.TxIn[i].SignatureScript = script
+		case txscript.ScriptHashTy:
+			// 3LHgdqmf4pqtUrkxGWnKXwxhtgZxYnuvVZ
+			hashCache := txscript.NewTxSigHashes(tx)
+			w, err := txscript.WitnessSignature(
+				tx,
+				hashCache,
+				i,
+				vin.Balance,
+				txinPkScript,
+				txscript.SigHashAll,
+				vin.Wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return nil, err
+			}
+			tx.TxIn[i].Witness = w
+		default:
+			return nil, fmt.Errorf("error script type: %s", scriptClass.String())
+		}
 	}
 	txSize := tx.SerializeSizeStripped()
 	txFee := gasPrice * int64(txSize)
@@ -184,19 +212,47 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 		if err != nil {
 			return nil, err
 		}
-		script, err := txscript.SignatureScript(
-			tx,
-			i,
-			txinPkScript,
-			txscript.SigHashAll,
-			vin.Wif.PrivKey,
-			true,
-		)
+		scriptClass, _, _, err := txscript.ExtractPkScriptAddrs(txinPkScript, chainParams)
 		if err != nil {
-			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return nil, err
 		}
-		tx.TxIn[i].SignatureScript = script
+		switch scriptClass {
+		case txscript.PubKeyHashTy:
+			// 17FE63jDkXSgeeqKa8EeocJrNURWjztzR2
+			script, err := txscript.SignatureScript(
+				tx,
+				i,
+				txinPkScript,
+				txscript.SigHashAll,
+				vin.Wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return nil, err
+			}
+			tx.TxIn[i].SignatureScript = script
+		case txscript.ScriptHashTy:
+			// 3LHgdqmf4pqtUrkxGWnKXwxhtgZxYnuvVZ
+			hashCache := txscript.NewTxSigHashes(tx)
+			w, err := txscript.WitnessSignature(
+				tx,
+				hashCache,
+				i,
+				vin.Balance,
+				txinPkScript,
+				txscript.SigHashAll,
+				vin.Wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return nil, err
+			}
+			tx.TxIn[i].Witness = w
+		default:
+			return nil, fmt.Errorf("error script type: %s", scriptClass.String())
+		}
 		vm, err := txscript.NewEngine(
 			txinPkScript,
 			tx,
@@ -218,7 +274,7 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 }
 
 // BtcTxSize 交易大小
-func BtcTxSize(vins []*StBtxTxIn, vouts []*StBtxTxOut) (int64, error) {
+func BtcTxSize(chainParams *chaincfg.Params, vins []*StBtxTxIn, vouts []*StBtxTxOut) (int64, error) {
 	tx := wire.NewMsgTx(wire.TxVersion)
 	for _, vin := range vins {
 		hash, err := chainhash.NewHashFromStr(vin.VinTxHash)
@@ -241,26 +297,54 @@ func BtcTxSize(vins []*StBtxTxIn, vouts []*StBtxTxOut) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		script, err := txscript.SignatureScript(
-			tx,
-			i,
-			txinPkScript,
-			txscript.SigHashAll,
-			vin.Wif.PrivKey,
-			true,
-		)
+		scriptClass, _, _, err := txscript.ExtractPkScriptAddrs(txinPkScript, chainParams)
 		if err != nil {
-			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return 0, err
 		}
-		tx.TxIn[i].SignatureScript = script
+		switch scriptClass {
+		case txscript.PubKeyHashTy:
+			// 17FE63jDkXSgeeqKa8EeocJrNURWjztzR2
+			script, err := txscript.SignatureScript(
+				tx,
+				i,
+				txinPkScript,
+				txscript.SigHashAll,
+				vin.Wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return 0, err
+			}
+			tx.TxIn[i].SignatureScript = script
+		case txscript.ScriptHashTy:
+			// 3LHgdqmf4pqtUrkxGWnKXwxhtgZxYnuvVZ
+			hashCache := txscript.NewTxSigHashes(tx)
+			w, err := txscript.WitnessSignature(
+				tx,
+				hashCache,
+				i,
+				vin.Balance,
+				txinPkScript,
+				txscript.SigHashAll,
+				vin.Wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return 0, err
+			}
+			tx.TxIn[i].Witness = w
+		default:
+			return 0, fmt.Errorf("error script type: %s", scriptClass.String())
+		}
 	}
 	txSize := int64(tx.SerializeSizeStripped())
 	return txSize, nil
 }
 
 // BtcTxWithdrawSize 提币tx大小
-func BtcTxWithdrawSize(vins []*model.DBTTxBtcUxto, vouts []*model.DBTWithdraw, keyMap map[string]*btcutil.WIF) (int64, error) {
+func BtcTxWithdrawSize(chainParams *chaincfg.Params, vins []*model.DBTTxBtcUxto, vouts []*model.DBTWithdraw, keyMap map[string]*btcutil.WIF) (int64, error) {
 	var argVins []*StBtxTxIn
 	var argVouts []*StBtxTxOut
 	firstAddress := ""
@@ -301,7 +385,7 @@ func BtcTxWithdrawSize(vins []*model.DBTTxBtcUxto, vouts []*model.DBTWithdraw, k
 		VoutAddress: firstAddress,
 		Balance:     0,
 	})
-	return BtcTxSize(argVins, argVouts)
+	return BtcTxSize(chainParams, argVins, argVouts)
 }
 
 // OmniTxSize 计算omni大小

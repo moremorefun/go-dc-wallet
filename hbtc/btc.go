@@ -580,7 +580,7 @@ func CheckTxOrg() {
 					Wif:       wif,
 				})
 			}
-			tx, err := BtcMakeTx(inItems, outItems, feePriceValue, coldAddressValue)
+			tx, err := BtcMakeTx(GetNetwork(xenv.Cfg.BtcNetworkType).Params, inItems, outItems, feePriceValue, coldAddressValue)
 			if err != nil {
 				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
@@ -1205,7 +1205,7 @@ func CheckWithdraw() {
 				if len(tmpInUxtoRows) > 0 {
 					feeInUxtoRows = append(feeInUxtoRows, tmpInUxtoRows...)
 				}
-				txSize, err := BtcTxWithdrawSize(feeInUxtoRows, feeOutWithdrawRows, addressWifMap)
+				txSize, err := BtcTxWithdrawSize(GetNetwork(xenv.Cfg.BtcNetworkType).Params, feeInUxtoRows, feeOutWithdrawRows, addressWifMap)
 				if err != nil {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
@@ -1285,7 +1285,7 @@ func CheckWithdraw() {
 				Balance:     balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
 			})
 		}
-		tx, err := BtcMakeTx(argVins, argVouts, feePriceValue, hotAddress)
+		tx, err := BtcMakeTx(GetNetwork(xenv.Cfg.BtcNetworkType).Params, argVins, argVouts, feePriceValue, hotAddress)
 		if err != nil {
 			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
