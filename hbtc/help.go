@@ -81,6 +81,23 @@ func (network Network) GetAddress(wif *btcutil.WIF) (*btcutil.AddressPubKey, err
 	return btcutil.NewAddressPubKey(wif.PrivKey.PubKey().SerializeCompressed(), network.GetNetworkParams())
 }
 
+func (network Network) GetAddressSegwitNested(wif *btcutil.WIF) (*btcutil.AddressScriptHash, error) {
+	witnessProg := btcutil.Hash160(wif.PrivKey.PubKey().SerializeCompressed())
+	addressWitnessPubKeyHash, err := btcutil.NewAddressWitnessPubKeyHash(witnessProg, network.GetNetworkParams())
+	if err != nil {
+		return nil, err
+	}
+	serializedScript, err := txscript.PayToAddrScript(addressWitnessPubKeyHash)
+	if err != nil {
+		return nil, err
+	}
+	addressScriptHash, err := btcutil.NewAddressScriptHash(serializedScript, &chaincfg.MainNetParams)
+	if err != nil {
+		return nil, err
+	}
+	return addressScriptHash, nil
+}
+
 func BtcAddTxOut(tx *wire.MsgTx, toAddress string, balance int64) error {
 	addrTo, err := btcutil.DecodeAddress(
 		toAddress,

@@ -31,7 +31,12 @@ const (
 	MaxTxSize         = 1000000
 )
 
+var gloalGenIndex = 0
+
 func genAddressAndAesKey() (string, string, error) {
+	defer func() {
+		gloalGenIndex++
+	}()
 	// 生成私钥
 	wif, err := GetNetwork(xenv.Cfg.BtcNetworkType).CreatePrivateKey()
 	if err != nil {
@@ -47,7 +52,16 @@ func genAddressAndAesKey() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	return address.EncodeAddress(), wifStrEn, nil
+	addressStr := address.EncodeAddress()
+	if gloalGenIndex%2 == 0 {
+		// segwitNested
+		addressScriptHash, err := GetNetwork(xenv.Cfg.BtcNetworkType).GetAddressSegwitNested(wif)
+		if err != nil {
+			return "", "", err
+		}
+		addressStr = addressScriptHash.EncodeAddress()
+	}
+	return addressStr, wifStrEn, nil
 }
 
 // CreateHotAddress 创建自用地址
