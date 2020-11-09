@@ -2006,6 +2006,7 @@ func OmniCheckTxOrg() {
 				}
 				// 生成交易
 				tx, err := OmniTxMake(
+					GetNetwork(xenv.Cfg.BtcNetworkType).Params,
 					omniUxtoRows[0],
 					tokenRow.ColdAddress,
 					tokenRow.FeeAddress,
@@ -2348,6 +2349,7 @@ func OmniCheckWithdraw() {
 				return
 			}
 			tx, err := OmniTxMake(
+				GetNetwork(xenv.Cfg.BtcNetworkType).Params,
 				omniHotUxtoRows[0],
 				withdrawRow.ToAddress,
 				tokenRow.HotAddress,
