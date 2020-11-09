@@ -156,7 +156,7 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 		}
 		tx.TxIn[i].SignatureScript = script
 	}
-	txSize := tx.SerializeSize()
+	txSize := tx.SerializeSizeStripped()
 	txFee := gasPrice * int64(txSize)
 	change := inAmount - outAmount - txFee
 	if change < 0 {
@@ -174,7 +174,7 @@ func BtcMakeTx(vins []*StBtxTxIn, vouts []*StBtxTxOut, gasPrice int64, changeAdd
 		// 数额不足
 		return nil, errors.New("btc tx input amount not ok")
 	}
-	if tx.SerializeSize() > MaxTxSize {
+	if tx.SerializeSizeStripped() > MaxTxSize {
 		// 长度过大
 		return nil, errors.New("btc tx size too big")
 	}
@@ -255,7 +255,7 @@ func BtcTxSize(vins []*StBtxTxIn, vouts []*StBtxTxOut) (int64, error) {
 		}
 		tx.TxIn[i].SignatureScript = script
 	}
-	txSize := int64(tx.SerializeSize())
+	txSize := int64(tx.SerializeSizeStripped())
 	return txSize, nil
 }
 
@@ -382,7 +382,7 @@ func OmniTxSize(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, tokenIndex 
 		}
 		tx.TxIn[i].SignatureScript = script
 	}
-	txSize := int64(tx.SerializeSize())
+	txSize := int64(tx.SerializeSizeStripped())
 	return txSize, nil
 }
 
@@ -491,7 +491,7 @@ func OmniTxMake(senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddre
 		}
 		tx.TxIn[i].SignatureScript = script
 	}
-	txSize = int64(tx.SerializeSize())
+	txSize = int64(tx.SerializeSizeStripped())
 	leaveInBalance := inBalance - txSize*gasPrice - MinNondustOutput - addOutPutCount*tmpBalance
 	if leaveInBalance < 0 {
 		return nil, errors.New("error input")
@@ -623,7 +623,7 @@ func GetEstimateTxSize(fromAddressCount int64, toAddressCount int64, isOmniScrip
 		}
 		tx.TxIn[i].SignatureScript = script
 	}
-	txSize := int64(tx.SerializeSize()) + fromAddressCount*2
+	txSize := int64(tx.SerializeSizeStripped()) + fromAddressCount*2
 	return txSize, nil
 }
 
