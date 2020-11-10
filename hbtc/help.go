@@ -8,6 +8,7 @@ import (
 	"go-dc-wallet/app"
 	"go-dc-wallet/model"
 	"go-dc-wallet/xenv"
+	"math"
 
 	"github.com/moremorefun/mcommon"
 	"github.com/shopspring/decimal"
@@ -141,7 +142,7 @@ func BtcMakeTx(chainParams *chaincfg.Params, vins []*StBtxTxIn, vouts []*StBtxTx
 	if err != nil {
 		return nil, err
 	}
-	txSize := tx.SerializeSize()
+	txSize := GetTxVsize(tx)
 	txFee := gasPrice * int64(txSize)
 	change := inAmount - outAmount - txFee
 	if change < 0 {
@@ -194,7 +195,7 @@ func BtcTxSize(chainParams *chaincfg.Params, vins []*StBtxTxIn, vouts []*StBtxTx
 	if err != nil {
 		return 0, err
 	}
-	txSize := int64(tx.SerializeSize())
+	txSize := GetTxVsize(tx)
 	return txSize, nil
 }
 
@@ -341,7 +342,7 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 	if err != nil {
 		return nil, err
 	}
-	txSize = int64(tx.SerializeSize())
+	txSize = GetTxVsize(tx)
 	leaveInBalance := inBalance - txSize*gasPrice - MinNondustOutput - addOutPutCount*tmpBalance
 	if leaveInBalance < 0 {
 		return nil, errors.New("error input")
@@ -572,4 +573,10 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 		tx.TxIn[i].SignatureScript = setSignatureScript
 	}
 	return nil
+}
+
+// GetTxVsize 获取tx vsize
+func GetTxVsize(tx *wire.MsgTx) int64 {
+	s := math.Ceil(float64(1.0*3*tx.SerializeSizeStripped()+tx.SerializeSize()) / 4)
+	return int64(s)
 }
