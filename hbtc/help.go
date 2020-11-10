@@ -550,6 +550,24 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 			// 设置数据, 需要验证完交易后再赋值
 			txInPkScript = inAddressPKSHForSig
 			setSignatureScript = inAddressPKSHForPK
+		case txscript.WitnessV0PubKeyHashTy:
+			// 计算见证
+			w, err := txscript.WitnessSignature(
+				tx,
+				txSigHash,
+				i,
+				vin.Balance,
+				txInPkScript,
+				txscript.SigHashAll,
+				vin.Wif.PrivKey,
+				true,
+			)
+			if err != nil {
+				return err
+			}
+			// 设置见证
+			tx.TxIn[i].Witness = w
+			setSignatureScript = nil
 		default:
 			return fmt.Errorf("error script type: %s", scriptClass.String())
 		}
@@ -570,7 +588,9 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 			return err
 		}
 		// 赋值
-		tx.TxIn[i].SignatureScript = setSignatureScript
+		if len(setSignatureScript) > 0 {
+			tx.TxIn[i].SignatureScript = setSignatureScript
+		}
 	}
 	return nil
 }
