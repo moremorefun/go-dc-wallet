@@ -28,7 +28,7 @@ require (
 	github.com/tidwall/sjson v1.1.1 // indirect
 	github.com/timest/env v0.0.0-20180717050204-5fce78d35255
 	go.uber.org/zap v1.15.0
-	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de // indirect
+	golang.org/x/crypto v0.0.0-20200728195943-123391ffb6de
 	golang.org/x/sys v0.0.0-20200812155832-6a926be9bd1d // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 )

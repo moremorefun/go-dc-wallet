@@ -1308,7 +1308,7 @@ func CheckWithdraw() {
 			sendHex := ""
 			if i == 0 {
 				sendHex = hex.EncodeToString(b.Bytes())
-				gas = int64(tx.SerializeSizeStripped())
+				gas = int64(tx.SerializeSize())
 				gasPrice = feePriceValue
 			}
 			sendRows = append(sendRows, &model.DBTSendBtc{
@@ -2035,7 +2035,7 @@ func OmniCheckTxOrg() {
 					txHex := ""
 					balanceReal := "0"
 					if i == 0 {
-						gas = int64(tx.SerializeSizeStripped())
+						gas = int64(tx.SerializeSize())
 						gasPrice = feePriceValue
 						txHex = hex.EncodeToString(b.Bytes())
 						balanceReal = decimal.NewFromInt(orgItem.Balance).Div(decimal.NewFromInt(1e8)).String()
