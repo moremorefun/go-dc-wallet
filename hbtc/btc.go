@@ -2642,7 +2642,6 @@ func CheckBlockSeekHotAndFee() {
 			}
 			// 遍历获取需要查询的block信息
 			for curBlockNum := startI; curBlockNum < endI; curBlockNum++ {
-				mcommon.Log.Debugf("btc hot fee seek: %d", curBlockNum)
 				blockHash, err := omniclient.RpcGetBlockHash(curBlockNum)
 				if err != nil {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
