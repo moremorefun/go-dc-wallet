@@ -539,7 +539,9 @@ func CheckTxOrg() {
 		// 获取私钥
 		var addresses []string
 		for _, uxtoRow := range allUxtoRows {
-			addresses = append(addresses, uxtoRow.VoutAddress)
+			if !mcommon.IsStringInSlice(addresses, uxtoRow.VoutAddress) {
+				addresses = append(addresses, uxtoRow.VoutAddress)
+			}
 		}
 		addressWifMap, err := GetWifMapByAddresses(
 			context.Background(),
