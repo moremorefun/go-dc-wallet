@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"go-dc-wallet/app"
 	"go-dc-wallet/model"
+	"go-dc-wallet/omniclient"
 	"go-dc-wallet/xenv"
 	"math"
 
@@ -599,4 +600,53 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 func GetTxVsize(tx *wire.MsgTx) int64 {
 	s := math.Ceil(float64(1.0*3*tx.SerializeSizeStripped()+tx.SerializeSize()) / 4)
 	return int64(s)
+}
+
+// GetAddressesOfVin 获取vin的地址
+func GetAddressesOfVin(chainParams *chaincfg.Params, vin omniclient.StTxResultVin) ([]string, error) {
+	var adds []btcutil.Address
+	if len(vin.ScriptSig.Hex) > 0 {
+		sigScript, err := hex.DecodeString(vin.ScriptSig.Hex)
+		if err != nil {
+			return nil, err
+		}
+		pk, err := txscript.ComputePkScript(sigScript, nil)
+		if err != nil {
+			return nil, err
+		}
+		_, adds, _, err = txscript.ExtractPkScriptAddrs(pk.Script(), chainParams)
+		if err != nil {
+			return nil, err
+		}
+
+	} else {
+		if len(vin.TxinWitness) != 2 {
+			return nil, fmt.Errorf("error witness len")
+		}
+		w1, err := hex.DecodeString(vin.TxinWitness[0])
+		if err != nil {
+			return nil, err
+		}
+		w2, err := hex.DecodeString(vin.TxinWitness[1])
+		if err != nil {
+			return nil, err
+		}
+		tw := wire.TxWitness{
+			w1,
+			w2,
+		}
+		sig, err := txscript.ComputePkScript(nil, tw)
+		if err != nil {
+			return nil, err
+		}
+		_, adds, _, err = txscript.ExtractPkScriptAddrs(sig.Script(), chainParams)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var strs []string
+	for _, address := range adds {
+		strs = append(strs, address.String())
+	}
+	return strs, nil
 }

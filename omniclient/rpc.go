@@ -34,25 +34,28 @@ type StRpcResp struct {
 	Error *StRpcRespError `json:"error"`
 }
 
+type StTxResultVin struct {
+	Coinbase  string `json:"coinbase"`
+	Txid      string `json:"txid"`
+	Vout      int64  `json:"vout"`
+	ScriptSig struct {
+		Asm string `json:"asm"`
+		Hex string `json:"hex"`
+	} `json:"scriptSig"`
+	TxinWitness []string `json:"txinwitness"`
+	Sequence    int64    `json:"sequence"`
+}
+
 type StTxResult struct {
-	Txid     string `json:"txid"`
-	Hash     string `json:"hash"`
-	Version  int64  `json:"version"`
-	Size     int64  `json:"size"`
-	Vsize    int64  `json:"vsize"`
-	Weight   int64  `json:"weight"`
-	Locktime int64  `json:"locktime"`
-	Vin      []struct {
-		Coinbase  string `json:"coinbase"`
-		Txid      string `json:"txid"`
-		Vout      int64  `json:"vout"`
-		ScriptSig struct {
-			Asm string `json:"asm"`
-			Hex string `json:"hex"`
-		} `json:"scriptSig"`
-		Sequence int64 `json:"sequence"`
-	} `json:"vin"`
-	Vout []struct {
+	Txid     string          `json:"txid"`
+	Hash     string          `json:"hash"`
+	Version  int64           `json:"version"`
+	Size     int64           `json:"size"`
+	Vsize    int64           `json:"vsize"`
+	Weight   int64           `json:"weight"`
+	Locktime int64           `json:"locktime"`
+	Vin      []StTxResultVin `json:"vin"`
+	Vout     []struct {
 		Value        float64 `json:"value"`
 		N            int64   `json:"n"`
 		ScriptPubKey struct {
