@@ -182,7 +182,6 @@ func CheckBlockSeek() {
 			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
-		vinTxMap := make(map[string]*omniclient.StTxResult)
 		startI := seekValue + 1
 		endI := rpcBlockNum - confirmValue + 1
 		if startI < endI {
@@ -312,18 +311,16 @@ func CheckBlockSeek() {
 						omniVinAddress := ""
 						if rpcTxWithIndex.IsOmniTx {
 							for _, vin := range rpcTx.Vin {
-								rpcVinTx, ok := vinTxMap[vin.Txid]
-								if !ok {
-									rpcVinTx, err = omniclient.RpcGetRawTransactionVerbose(vin.Txid)
-									if err != nil {
-										mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-										return
-									}
-									vinTxMap[vin.Txid] = rpcVinTx
-									//mcommon.Log.Debugf("get tx: %s", vin.Txid)
+								vinAddresses, err := GetAddressesOfVin(
+									GetNetwork(xenv.Cfg.BtcNetworkType).Params,
+									vin,
+								)
+								if err != nil {
+									mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+									return
 								}
-								if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
-									omniVinAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
+								if len(vinAddresses) > 0 {
+									omniVinAddress = strings.Join(vinAddresses, ",")
 									break
 								}
 							}
@@ -2643,8 +2640,6 @@ func CheckBlockSeekHotAndFee() {
 					tokenFeeAddresses = append(tokenFeeAddresses, tokenRow.FeeAddress)
 				}
 			}
-			// 所有输入tx情况
-			vinTxMap := make(map[string]*omniclient.StTxResult)
 			// 遍历获取需要查询的block信息
 			for curBlockNum := startI; curBlockNum < endI; curBlockNum++ {
 				mcommon.Log.Debugf("btc hot fee seek: %d", curBlockNum)
@@ -2724,17 +2719,16 @@ func CheckBlockSeekHotAndFee() {
 					// 获取omni输出索引
 					if isOmniTx {
 						for _, vin := range rpcTx.Vin {
-							rpcVinTx, ok := vinTxMap[vin.Txid]
-							if !ok {
-								rpcVinTx, err = omniclient.RpcGetRawTransactionVerbose(vin.Txid)
-								if err != nil {
-									mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-									return
-								}
-								vinTxMap[vin.Txid] = rpcVinTx
+							vinAddresses, err := GetAddressesOfVin(
+								GetNetwork(xenv.Cfg.BtcNetworkType).Params,
+								vin,
+							)
+							if err != nil {
+								mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+								return
 							}
-							if len(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses) > 0 {
-								omniInAddress = strings.Join(rpcVinTx.Vout[vin.Vout].ScriptPubKey.Addresses, ",")
+							if len(vinAddresses) > 0 {
+								omniInAddress = strings.Join(vinAddresses, ",")
 								break
 							}
 						}

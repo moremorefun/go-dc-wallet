@@ -619,7 +619,7 @@ func GetAddressesOfVin(chainParams *chaincfg.Params, vin omniclient.StTxResultVi
 			return nil, err
 		}
 
-	} else {
+	} else if len(vin.TxinWitness) > 0 {
 		if len(vin.TxinWitness) != 2 {
 			return nil, fmt.Errorf("error witness len")
 		}
@@ -643,6 +643,10 @@ func GetAddressesOfVin(chainParams *chaincfg.Params, vin omniclient.StTxResultVi
 		if err != nil {
 			return nil, err
 		}
+	} else if len(vin.Coinbase) > 0 {
+
+	} else {
+		return nil, fmt.Errorf("error vin info")
 	}
 	var strs []string
 	for _, address := range adds {
