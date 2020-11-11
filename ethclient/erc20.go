@@ -137,7 +137,7 @@ func bindEth(address common.Address, caller bind.ContractCaller, transactor bind
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Eth *EthRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_Eth *EthRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _Eth.Contract.EthCaller.contract.Call(opts, result, method, params...)
 }
 
@@ -156,7 +156,7 @@ func (_Eth *EthRaw) Transact(opts *bind.TransactOpts, method string, params ...i
 // sets the output to result. The result type might be a single field for simple
 // returns, a slice of interfaces for anonymous returns and a struct for named
 // returns.
-func (_Eth *EthCallerRaw) Call(opts *bind.CallOpts, result interface{}, method string, params ...interface{}) error {
+func (_Eth *EthCallerRaw) Call(opts *bind.CallOpts, result *[]interface{}, method string, params ...interface{}) error {
 	return _Eth.Contract.contract.Call(opts, result, method, params...)
 }
 
@@ -175,12 +175,17 @@ func (_Eth *EthTransactorRaw) Transact(opts *bind.TransactOpts, method string, p
 //
 // Solidity: function allowance(address tokenOwner, address spender) view returns(uint256 remaining)
 func (_Eth *EthCaller) Allowance(opts *bind.CallOpts, tokenOwner common.Address, spender common.Address) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _Eth.contract.Call(opts, out, "allowance", tokenOwner, spender)
-	return *ret0, err
+	var out []interface{}
+	err := _Eth.contract.Call(opts, &out, "allowance", tokenOwner, spender)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // Allowance is a free data retrieval call binding the contract method 0xdd62ed3e.
@@ -201,12 +206,17 @@ func (_Eth *EthCallerSession) Allowance(tokenOwner common.Address, spender commo
 //
 // Solidity: function balanceOf(address tokenOwner) view returns(uint256 balance)
 func (_Eth *EthCaller) BalanceOf(opts *bind.CallOpts, tokenOwner common.Address) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _Eth.contract.Call(opts, out, "balanceOf", tokenOwner)
-	return *ret0, err
+	var out []interface{}
+	err := _Eth.contract.Call(opts, &out, "balanceOf", tokenOwner)
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // BalanceOf is a free data retrieval call binding the contract method 0x70a08231.
@@ -227,12 +237,17 @@ func (_Eth *EthCallerSession) BalanceOf(tokenOwner common.Address) (*big.Int, er
 //
 // Solidity: function decimals() view returns(uint8)
 func (_Eth *EthCaller) Decimals(opts *bind.CallOpts) (uint8, error) {
-	var (
-		ret0 = new(uint8)
-	)
-	out := ret0
-	err := _Eth.contract.Call(opts, out, "decimals")
-	return *ret0, err
+	var out []interface{}
+	err := _Eth.contract.Call(opts, &out, "decimals")
+
+	if err != nil {
+		return *new(uint8), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(uint8)).(*uint8)
+
+	return out0, err
+
 }
 
 // Decimals is a free data retrieval call binding the contract method 0x313ce567.
@@ -253,12 +268,17 @@ func (_Eth *EthCallerSession) Decimals() (uint8, error) {
 //
 // Solidity: function name() view returns(string)
 func (_Eth *EthCaller) Name(opts *bind.CallOpts) (string, error) {
-	var (
-		ret0 = new(string)
-	)
-	out := ret0
-	err := _Eth.contract.Call(opts, out, "name")
-	return *ret0, err
+	var out []interface{}
+	err := _Eth.contract.Call(opts, &out, "name")
+
+	if err != nil {
+		return *new(string), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(string)).(*string)
+
+	return out0, err
+
 }
 
 // Name is a free data retrieval call binding the contract method 0x06fdde03.
@@ -279,12 +299,17 @@ func (_Eth *EthCallerSession) Name() (string, error) {
 //
 // Solidity: function symbol() view returns(string)
 func (_Eth *EthCaller) Symbol(opts *bind.CallOpts) (string, error) {
-	var (
-		ret0 = new(string)
-	)
-	out := ret0
-	err := _Eth.contract.Call(opts, out, "symbol")
-	return *ret0, err
+	var out []interface{}
+	err := _Eth.contract.Call(opts, &out, "symbol")
+
+	if err != nil {
+		return *new(string), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(string)).(*string)
+
+	return out0, err
+
 }
 
 // Symbol is a free data retrieval call binding the contract method 0x95d89b41.
@@ -305,12 +330,17 @@ func (_Eth *EthCallerSession) Symbol() (string, error) {
 //
 // Solidity: function totalSupply() view returns(uint256)
 func (_Eth *EthCaller) TotalSupply(opts *bind.CallOpts) (*big.Int, error) {
-	var (
-		ret0 = new(*big.Int)
-	)
-	out := ret0
-	err := _Eth.contract.Call(opts, out, "totalSupply")
-	return *ret0, err
+	var out []interface{}
+	err := _Eth.contract.Call(opts, &out, "totalSupply")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
 }
 
 // TotalSupply is a free data retrieval call binding the contract method 0x18160ddd.

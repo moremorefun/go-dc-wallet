@@ -1523,7 +1523,7 @@ func CheckErc20BlockSeek() {
 						}
 						for _, log := range logs {
 							var transferEvent LogTransfer
-							err := contractAbi.Unpack(&transferEvent, "Transfer", log.Data)
+							err := contractAbi.UnpackIntoInterface(&transferEvent, "Transfer", log.Data)
 							if err != nil {
 								mcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 								return
