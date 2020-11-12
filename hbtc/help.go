@@ -93,7 +93,7 @@ func (network Network) GetAddressSegwitNested(wif *btcutil.WIF) (*btcutil.Addres
 	if err != nil {
 		return nil, err
 	}
-	addressScriptHash, err := btcutil.NewAddressScriptHash(serializedScript, &chaincfg.MainNetParams)
+	addressScriptHash, err := btcutil.NewAddressScriptHash(serializedScript, network.GetNetworkParams())
 	if err != nil {
 		return nil, err
 	}
