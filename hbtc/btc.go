@@ -1537,6 +1537,7 @@ func CheckGasPrice() {
 			HourFee     int64 `json:"hourFee"`
 		}
 		gresp, body, errs := gorequest.New().
+			Proxy(xenv.Cfg.Proxy).
 			Get("https://bitcoinfees.earn.com/api/v1/fees/recommended").
 			Timeout(time.Second * 120).
 			End()

@@ -24,6 +24,8 @@ type config struct {
 	MySqlDataSourceName string `env:"MYSQL"`
 	MySqlIsShowSQL      bool   `env:"MYSQL-IS-SHOW-SQL" default:"false"`
 
+	Proxy string `env:"PROXY"`
+
 	AESKey string `env:"AES-KEY"`
 
 	BtcNetworkType string `env:"BTC-NETWORK-TYPE" default:"btc"`

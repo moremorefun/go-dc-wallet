@@ -2598,6 +2598,7 @@ func CheckGasPrice() {
 			FastestWait float64 `json:"fastestWait"`
 		}
 		gresp, body, errs := gorequest.New().
+			Proxy(xenv.Cfg.Proxy).
 			Get("https://ethgasstation.info/api/ethgasAPI.json").
 			Timeout(time.Second * 120).
 			End()
