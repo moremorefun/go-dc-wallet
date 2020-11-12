@@ -1648,32 +1648,65 @@ func OmniCheckBlockSeek() {
 			// 遍历获取需要查询的block信息
 			for i := startI; i < endI; i++ {
 				//mcommon.Log.Debugf("omni check block: %d", i)
-				rpcTransactionHashes, err := omniclient.RpcOmniListBlockTransactions(i)
+				blockHash, err := omniclient.RpcGetBlockHash(i)
 				if err != nil {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
+				// 一个block
+				rpcBlock, err := omniclient.RpcGetBlockVerbose(blockHash)
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
+				// 目标地址
 				var toAddresses []string
-				toAddressMap := make(map[string][]*omniclient.StOmniTx)
-
-				for _, rpcTransactionHash := range rpcTransactionHashes {
-					rpcTx, err := omniclient.RpcOmniGetTransaction(rpcTransactionHash)
-					if err != nil {
-						mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-						return
+				toAddressTxMap := make(map[string][]*omniclient.StTxResult)
+				for _, rpcTx := range rpcBlock.Tx {
+					isOmniTx := false
+					omniInAddress := ""
+					for _, vout := range rpcTx.Vout {
+						if strings.HasPrefix(vout.ScriptPubKey.Hex, omniWithReturnHex) {
+							isOmniTx = true
+							break
+						}
 					}
-					// type_int 0 Simple Send
-					if rpcTx.TypeInt == 0 && rpcTx.Valid && rpcTx.Confirmations > 0 {
-						// 验证成功
-						if mcommon.IsIntInSlice(tokenIndexes, rpcTx.Propertyid) {
-							// 是关注的代币类型
-							if !mcommon.IsStringInSlice(toAddresses, rpcTx.Referenceaddress) {
-								toAddresses = append(toAddresses, rpcTx.Referenceaddress)
-							}
-							toAddressMap[rpcTx.Referenceaddress] = append(
-								toAddressMap[rpcTx.Referenceaddress],
-								rpcTx,
+					if isOmniTx {
+						for _, vin := range rpcTx.Vin {
+							vinAddresses, err := GetAddressesOfVin(
+								GetNetwork(xenv.Cfg.BtcNetworkType).Params,
+								vin,
 							)
+							if err != nil {
+								mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+								return
+							}
+							if len(vinAddresses) > 0 {
+								omniInAddress = strings.Join(vinAddresses, ",")
+								break
+							}
+						}
+						isExchanged := false
+						for i := len(rpcTx.Vout) - 1; i >= 0; i-- {
+							vout := rpcTx.Vout[i]
+							if len(vout.ScriptPubKey.Addresses) > 0 {
+								if !isExchanged && strings.Join(vout.ScriptPubKey.Addresses, ",") == omniInAddress {
+									isExchanged = true
+									continue
+								}
+								// 添加omni接受地址
+								if len(vout.ScriptPubKey.Addresses) == 1 {
+									toAddress := vout.ScriptPubKey.Addresses[0]
+									if !mcommon.IsStringInSlice(toAddresses, toAddress) {
+										toAddresses = append(toAddresses, toAddress)
+									}
+									toAddressTxMap[toAddress] = append(
+										toAddressTxMap[toAddress],
+										rpcTx,
+									)
+								}
+								break
+							}
 						}
 					}
 				}
@@ -1695,36 +1728,42 @@ func OmniCheckBlockSeek() {
 				var txTokenRows []*model.DBTTxBtcToken
 				for _, dbAddressRow := range dbAddressRows {
 					if dbAddressRow.UseTag >= 0 {
-						toAddress := dbAddressRow.Address
-						rpcTxes := toAddressMap[toAddress]
+						// 非fee和hot地址
+						rpcTxes := toAddressTxMap[dbAddressRow.Address]
 						for _, rpcTx := range rpcTxes {
-							tokenRow, ok := tokenMap[rpcTx.Propertyid]
-							if !ok {
-								mcommon.Log.Errorf("no btc token: %d", rpcTx.Propertyid)
+							rpcTx, err := omniclient.RpcOmniGetTransaction(rpcTx.Txid)
+							if err != nil {
+								mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 								return
 							}
-							txTokenRows = append(txTokenRows, &model.DBTTxBtcToken{
-								ProductID:    dbAddressRow.UseTag,
-								TokenIndex:   rpcTx.Propertyid,
-								TokenSymbol:  tokenRow.TokenSymbol,
-								BlockHash:    rpcTx.Blockhash,
-								TxID:         rpcTx.Txid,
-								FromAddress:  rpcTx.Sendingaddress,
-								ToAddress:    rpcTx.Referenceaddress,
-								Value:        rpcTx.Amount,
-								Blocktime:    rpcTx.Blocktime,
-								CreateAt:     now,
-								HandleStatus: 0,
-								HandleMsg:    "",
-								HandleAt:     0,
-								OrgStatus:    0,
-								OrgMsg:       "",
-								OrgAt:        0,
-							})
+							// type_int 0 Simple Send
+							if rpcTx.TypeInt == 0 && rpcTx.Valid && rpcTx.Confirmations > 0 {
+								tokenRow, ok := tokenMap[rpcTx.Propertyid]
+								if ok {
+									txTokenRows = append(txTokenRows, &model.DBTTxBtcToken{
+										ProductID:    dbAddressRow.UseTag,
+										TokenIndex:   rpcTx.Propertyid,
+										TokenSymbol:  tokenRow.TokenSymbol,
+										BlockHash:    rpcTx.Blockhash,
+										TxID:         rpcTx.Txid,
+										FromAddress:  rpcTx.Sendingaddress,
+										ToAddress:    rpcTx.Referenceaddress,
+										Value:        rpcTx.Amount,
+										Blocktime:    rpcTx.Blocktime,
+										CreateAt:     now,
+										HandleStatus: 0,
+										HandleMsg:    "",
+										HandleAt:     0,
+										OrgStatus:    0,
+										OrgMsg:       "",
+										OrgAt:        0,
+									})
+								}
+							}
 						}
 					}
-
 				}
+				// 插入tx数据
 				_, err = model.SQLCreateManyTTxBtcToken(
 					context.Background(),
 					xenv.DbCon,
