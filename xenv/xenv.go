@@ -34,7 +34,8 @@ type config struct {
 	OmniRPCUser string `env:"OMNI_RPC_USER"`
 	OmniRPCPwd  string `env:"OMNI_RPC_PWD"`
 
-	EosRPC string `env:"EOS_RPC"`
+	EosRPC    string `env:"EOS_RPC"`
+	EosEnable bool   `env:"EOS_ENABLE"`
 }
 
 // Cfg

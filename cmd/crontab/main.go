@@ -161,37 +161,38 @@ func main() {
 	if err != nil {
 		mcommon.Log.Errorf("cron add func error: %#v", err)
 	}
-
-	// --- eos ---
-	// 检测 eos 生成地址
-	_, err = c.AddFunc("@every 1m", heos.CheckAddressFree)
-	if err != nil {
-		mcommon.Log.Errorf("cron add func error: %#v", err)
-	}
-	// 检测 eos 冲币
-	_, err = c.AddFunc("@every 3s", heos.CheckBlockSeek)
-	if err != nil {
-		mcommon.Log.Errorf("cron add func error: %#v", err)
-	}
-	// 检测 eos 提币
-	_, err = c.AddFunc("@every 3m", heos.CheckWithdraw)
-	if err != nil {
-		mcommon.Log.Errorf("cron add func error: %#v", err)
-	}
-	// 检测 eos 发送交易
-	_, err = c.AddFunc("@every 1s", heos.CheckRawTxSend)
-	if err != nil {
-		mcommon.Log.Errorf("cron add func error: %#v", err)
-	}
-	// 检测 eos 交易上链
-	_, err = c.AddFunc("@every 3s", heos.CheckRawTxConfirm)
-	if err != nil {
-		mcommon.Log.Errorf("cron add func error: %#v", err)
-	}
-	// 检测 eos 通知到账
-	_, err = c.AddFunc("@every 3s", heos.CheckTxNotify)
-	if err != nil {
-		mcommon.Log.Errorf("cron add func error: %#v", err)
+	if xenv.Cfg.EosEnable {
+		// --- eos ---
+		// 检测 eos 生成地址
+		_, err = c.AddFunc("@every 1m", heos.CheckAddressFree)
+		if err != nil {
+			mcommon.Log.Errorf("cron add func error: %#v", err)
+		}
+		// 检测 eos 冲币
+		_, err = c.AddFunc("@every 3s", heos.CheckBlockSeek)
+		if err != nil {
+			mcommon.Log.Errorf("cron add func error: %#v", err)
+		}
+		// 检测 eos 提币
+		_, err = c.AddFunc("@every 3m", heos.CheckWithdraw)
+		if err != nil {
+			mcommon.Log.Errorf("cron add func error: %#v", err)
+		}
+		// 检测 eos 发送交易
+		_, err = c.AddFunc("@every 1s", heos.CheckRawTxSend)
+		if err != nil {
+			mcommon.Log.Errorf("cron add func error: %#v", err)
+		}
+		// 检测 eos 交易上链
+		_, err = c.AddFunc("@every 3s", heos.CheckRawTxConfirm)
+		if err != nil {
+			mcommon.Log.Errorf("cron add func error: %#v", err)
+		}
+		// 检测 eos 通知到账
+		_, err = c.AddFunc("@every 3s", heos.CheckTxNotify)
+		if err != nil {
+			mcommon.Log.Errorf("cron add func error: %#v", err)
+		}
 	}
 
 	c.Start()
