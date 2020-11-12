@@ -131,6 +131,9 @@ func CheckDoNotify() {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				}
 			} else {
+				if len(body) > 500 {
+					body = body[:500]
+				}
 				//mcommon.Log.Errorf("no error in resp")
 				_, err = SQLUpdateTProductNotifyStatusByID(
 					context.Background(),
