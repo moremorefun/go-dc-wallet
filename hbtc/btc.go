@@ -23,6 +23,7 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// btc 数据字段
 const (
 	CoinSymbol        = "btc"
 	MinNondustOutput  = 546 // satoshis
@@ -226,7 +227,7 @@ func CheckBlockSeek() {
 				// 目标地址
 				var toAddresses []string
 				type StTxWithIndex struct {
-					RpcTx    *omniclient.StTxResult
+					RPCTx    *omniclient.StTxResult
 					Index    int64
 					IsOmniTx bool
 				}
@@ -270,7 +271,7 @@ func CheckBlockSeek() {
 								toAddresses = append(toAddresses, toAddress)
 							}
 							toAddressTxMap[toAddress] = append(toAddressTxMap[toAddress], &StTxWithIndex{
-								RpcTx:    rpcTx,
+								RPCTx:    rpcTx,
 								Index:    vout.N,
 								IsOmniTx: isOmniTx,
 							})
@@ -302,7 +303,7 @@ func CheckBlockSeek() {
 					toAddress := dbAddressRow.Address
 					rpcTxWithIndexes := toAddressTxMap[toAddress]
 					for _, rpcTxWithIndex := range rpcTxWithIndexes {
-						rpcTx := rpcTxWithIndex.RpcTx
+						rpcTx := rpcTxWithIndex.RPCTx
 						voutIndex := rpcTxWithIndex.Index
 						checkVout := rpcTx.Vout[voutIndex]
 

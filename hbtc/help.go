@@ -25,6 +25,7 @@ import (
 	"github.com/btcsuite/btcutil"
 )
 
+// StBtxTxIn 输入信息
 type StBtxTxIn struct {
 	VinTxHash string
 	VinTxN    int64
@@ -33,11 +34,13 @@ type StBtxTxIn struct {
 	Wif       *btcutil.WIF
 }
 
+// StBtxTxOut 输出信息
 type StBtxTxOut struct {
 	VoutAddress string
 	Balance     int64
 }
 
+// Network 类型
 type Network struct {
 	Params *chaincfg.Params
 }
@@ -47,6 +50,7 @@ var network = map[string]Network{
 	"btc-test": {Params: &chaincfg.TestNet3Params},
 }
 
+// GetNetwork 获取对象
 func GetNetwork(coinType string) Network {
 	n, ok := network[coinType]
 	if !ok {
@@ -56,10 +60,12 @@ func GetNetwork(coinType string) Network {
 	return n
 }
 
+// GetNetworkParams 获取网络参数
 func (network Network) GetNetworkParams() *chaincfg.Params {
 	return network.Params
 }
 
+// CreatePrivateKey 创建私钥
 func (network Network) CreatePrivateKey() (*btcutil.WIF, error) {
 	secret, err := btcec.NewPrivateKey(btcec.S256())
 	if err != nil {
@@ -68,6 +74,7 @@ func (network Network) CreatePrivateKey() (*btcutil.WIF, error) {
 	return btcutil.NewWIF(secret, network.GetNetworkParams(), true)
 }
 
+// ImportWIF 导入私钥
 func (network Network) ImportWIF(wifStr string) (*btcutil.WIF, error) {
 	wif, err := btcutil.DecodeWIF(wifStr)
 	if err != nil {
@@ -79,10 +86,12 @@ func (network Network) ImportWIF(wifStr string) (*btcutil.WIF, error) {
 	return wif, nil
 }
 
+// GetAddress 获取地址
 func (network Network) GetAddress(wif *btcutil.WIF) (*btcutil.AddressPubKey, error) {
 	return btcutil.NewAddressPubKey(wif.PrivKey.PubKey().SerializeCompressed(), network.GetNetworkParams())
 }
 
+// GetAddressSegwitNested 获取隔离见证地址
 func (network Network) GetAddressSegwitNested(wif *btcutil.WIF) (*btcutil.AddressScriptHash, error) {
 	witnessProg := btcutil.Hash160(wif.PrivKey.PubKey().SerializeCompressed())
 	addressWitnessPubKeyHash, err := btcutil.NewAddressWitnessPubKeyHash(witnessProg, network.GetNetworkParams())
@@ -100,6 +109,7 @@ func (network Network) GetAddressSegwitNested(wif *btcutil.WIF) (*btcutil.Addres
 	return addressScriptHash, nil
 }
 
+// BtcAddTxOut 添加一个输出
 func BtcAddTxOut(tx *wire.MsgTx, toAddress string, balance int64) error {
 	addrTo, err := btcutil.DecodeAddress(
 		toAddress,
