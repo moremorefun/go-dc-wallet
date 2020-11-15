@@ -272,11 +272,27 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 	outPoint := wire.NewOutPoint(hash, uint32(senderUxtoRow.VoutN))
 	txIn := wire.NewTxIn(outPoint, nil, nil)
 	tx.AddTxIn(txIn)
+	// 设置输入
 	balance, err := decimal.NewFromString(senderUxtoRow.VoutValue)
 	if err != nil {
 		return nil, err
 	}
 	inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
+	wif, ok := keyMap[senderUxtoRow.VoutAddress]
+	if !ok {
+		return nil, errors.New("no wif")
+	}
+	vins = append(
+		vins,
+		&StBtxTxIn{
+			VinTxHash: senderUxtoRow.TxID,
+			VinTxN:    senderUxtoRow.VoutN,
+			VinScript: senderUxtoRow.VoutScript,
+			Balance:   balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
+			Wif:       wif,
+		},
+	)
+
 	// 添加input
 	for _, inUxtoRow := range inUxtoRows {
 		hash, err := chainhash.NewHashFromStr(inUxtoRow.TxID)
@@ -497,6 +513,10 @@ func GetWifMapByAddresses(ctx context.Context, db mcommon.DbExeAble, addresses [
 func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) error {
 	txSigHash := txscript.NewTxSigHashes(tx)
 	for i, vin := range vins {
+		// 重置sig
+		tx.TxIn[i].SignatureScript = nil
+
+		var setSignatureScript []byte
 		// 解析vin的script字符串
 		txInPkScript, err := hex.DecodeString(vin.VinScript)
 		if err != nil {
@@ -508,7 +528,6 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 			return err
 		}
 		// 设置的vin的签名字段
-		var setSignatureScript []byte
 		switch scriptClass {
 		case txscript.PubKeyHashTy:
 			// vin为转账到地址
@@ -523,8 +542,7 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 			if err != nil {
 				return err
 			}
-			setSignatureScript = script
-			tx.TxIn[i].SignatureScript = setSignatureScript
+			tx.TxIn[i].SignatureScript = script
 		case txscript.ScriptHashTy:
 			// vin为转账到script
 			witnessProg := btcutil.Hash160(vin.Wif.PrivKey.PubKey().SerializeCompressed())
@@ -578,7 +596,6 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 			}
 			// 设置见证
 			tx.TxIn[i].Witness = w
-			setSignatureScript = nil
 		default:
 			return fmt.Errorf("error script type: %s", scriptClass.String())
 		}
@@ -598,7 +615,6 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 		if err != nil {
 			return err
 		}
-		// 赋值
 		if len(setSignatureScript) > 0 {
 			tx.TxIn[i].SignatureScript = setSignatureScript
 		}
