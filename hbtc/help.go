@@ -259,7 +259,7 @@ func BtcTxWithdrawSize(chainParams *chaincfg.Params, vins []*model.DBTTxBtcUxto,
 func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddress string, tokenIndex int64, tokenBalance int64, gasPrice int64, keyMap map[string]*btcutil.WIF, inUxtoRows []*model.DBTTxBtcUxto) (*wire.MsgTx, error) {
 	inBalance := int64(0)
 	outBalance := int64(0)
-
+	// 输入数据
 	var vins []*StBtxTxIn
 
 	// --- 生成基础交易 ---
@@ -308,16 +308,16 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 		}
 		inBalance += balance.Mul(decimal.NewFromInt(1e8)).IntPart()
 		// 加入输入列表
-		wif, ok := keyMap[senderUxtoRow.VoutAddress]
+		wif, ok := keyMap[inUxtoRow.VoutAddress]
 		if !ok {
 			return nil, errors.New("no wif")
 		}
 		vins = append(
 			vins,
 			&StBtxTxIn{
-				VinTxHash: senderUxtoRow.TxID,
-				VinTxN:    senderUxtoRow.VoutN,
-				VinScript: senderUxtoRow.VoutScript,
+				VinTxHash: inUxtoRow.TxID,
+				VinTxN:    inUxtoRow.VoutN,
+				VinScript: inUxtoRow.VoutScript,
 				Balance:   balance.Mul(decimal.NewFromInt(1e8)).IntPart(),
 				Wif:       wif,
 			},
