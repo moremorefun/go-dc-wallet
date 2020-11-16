@@ -1209,6 +1209,7 @@ func SQLCreateManyTTxBtcUxtoUpdate(ctx context.Context, tx mcommon.DbExeAble, ro
 ) VALUES
     %s
 ON DUPLICATE KEY UPDATE 
+	block_hash=VALUES(block_hash),
 	spend_tx_id=VALUES(spend_tx_id),
 	spend_n=VALUES(spend_n),
 	handle_status=VALUES(handle_status),
