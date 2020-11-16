@@ -1013,7 +1013,7 @@ func CheckRawTxConfirm() {
 			txIDs,
 			model.DBTTx{
 				OrgStatus: app.TxOrgStatusConfirm,
-				OrgMsg:    "confirm",
+				OrgMsg:    "confirmed",
 				OrgTime:   now,
 			},
 		)
@@ -1028,7 +1028,7 @@ func CheckRawTxConfirm() {
 			erc20TxIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusConfirm,
-				OrgMsg:    "confirm",
+				OrgMsg:    "confirmed",
 				OrgTime:   now,
 			},
 		)

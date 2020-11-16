@@ -423,7 +423,7 @@ func CheckBlockSeek() {
 							SpendTxID:    rpcVin.SpendTxHash,
 							SpendN:       rpcVin.SpendN,
 							HandleStatus: app.UxtoHandleStatusConfirm,
-							HandleMsg:    "confirm",
+							HandleMsg:    "confirmed",
 							HandleTime:   now,
 						})
 					}
@@ -1032,7 +1032,7 @@ func CheckRawTxConfirm() {
 			withdrawIDs,
 			&model.DBTWithdraw{
 				HandleStatus: app.WithdrawStatusConfirm,
-				HandleMsg:    "confirm",
+				HandleMsg:    "confirmed",
 				HandleTime:   now,
 			},
 		)
@@ -1058,7 +1058,7 @@ func CheckRawTxConfirm() {
 			tokenTxIDs,
 			model.DBTTxBtcToken{
 				OrgStatus: app.TxOrgStatusConfirm,
-				OrgMsg:    "confirm",
+				OrgMsg:    "confirmed",
 				OrgAt:     now,
 			},
 		)
@@ -1074,7 +1074,7 @@ func CheckRawTxConfirm() {
 			&model.DBTSendBtc{
 				HandleStatus: app.SendStatusConfirm,
 				HandleTime:   now,
-				HandleMsg:    "confirm",
+				HandleMsg:    "confirmed",
 			},
 		)
 		if err != nil {
@@ -2860,7 +2860,7 @@ func CheckBlockSeekHotAndFee() {
 							SpendTxID:    rpcVin.SpendTxHash,
 							SpendN:       rpcVin.SpendN,
 							HandleStatus: app.UxtoHandleStatusConfirm,
-							HandleMsg:    "confirm",
+							HandleMsg:    "confirmed",
 							HandleTime:   now,
 						})
 					}
