@@ -594,7 +594,7 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 			ID:           withdrawID,
 			TxHash:       txHash,
 			HandleStatus: app.WithdrawStatusHex,
-			HandleMsg:    "gen tx hex",
+			HandleMsg:    "hex",
 			HandleTime:   now,
 		},
 	)
@@ -614,7 +614,7 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 			Hex:          string(packedTxBs),
 			CreateTime:   now,
 			HandleStatus: app.SendStatusInit,
-			HandleMsg:    "init",
+			HandleMsg:    "",
 			HandleAt:     now,
 		},
 		false,

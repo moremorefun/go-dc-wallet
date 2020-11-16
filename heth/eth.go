@@ -535,7 +535,7 @@ func CheckAddressOrg() {
 				info.RowIDs,
 				model.DBTTx{
 					OrgStatus: app.TxOrgStatusHex,
-					OrgMsg:    "gen raw tx",
+					OrgMsg:    "hex",
 					OrgTime:   now,
 				},
 			)
@@ -796,7 +796,7 @@ func CheckRawTxSend() {
 			erc20TxFeeIDs,
 			model.DBTTxErc20{
 				OrgStatus: app.TxOrgStatusFeeSend,
-				OrgMsg:    "send",
+				OrgMsg:    "fee send",
 				OrgTime:   now,
 			},
 		)
@@ -1243,7 +1243,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 			ID:           withdrawID,
 			TxHash:       txHash,
 			HandleStatus: app.WithdrawStatusHex,
-			HandleMsg:    "gen tx hex",
+			HandleMsg:    "hex",
 			HandleTime:   now,
 		},
 	)
@@ -1265,7 +1265,7 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 			Nonce:        nonce,
 			Hex:          rawTxHex,
 			HandleStatus: app.SendStatusInit,
-			HandleMsg:    "init",
+			HandleMsg:    "",
 			HandleTime:   now,
 		},
 		false,
@@ -2512,7 +2512,7 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 			ID:           withdrawID,
 			TxHash:       txHash,
 			HandleStatus: app.WithdrawStatusHex,
-			HandleMsg:    "gen tx hex",
+			HandleMsg:    "hex",
 			HandleTime:   now,
 		},
 	)
@@ -2534,7 +2534,7 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 			Nonce:        nonce,
 			Hex:          rawTxHex,
 			HandleStatus: app.SendStatusInit,
-			HandleMsg:    "init",
+			HandleMsg:    "",
 			HandleTime:   now,
 		},
 		false,
