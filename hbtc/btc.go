@@ -422,7 +422,6 @@ func CheckBlockSeek() {
 					if ok {
 						updateUxtoRows = append(updateUxtoRows, &model.DBTTxBtcUxto{
 							ID:           uxtoRow.ID,
-							BlockHash:    rpcBlock.Hash,
 							TxID:         uxtoRow.TxID,
 							VoutN:        uxtoRow.VoutN,
 							SpendTxID:    rpcVin.SpendTxHash,
@@ -3041,7 +3040,6 @@ func CheckBlockSeekHotAndFee() {
 					if ok {
 						updateUxtoRows = append(updateUxtoRows, &model.DBTTxBtcUxto{
 							ID:           uxtoRow.ID,
-							BlockHash:    rpcBlock.Hash,
 							TxID:         uxtoRow.TxID,
 							VoutN:        uxtoRow.VoutN,
 							SpendTxID:    rpcVin.SpendTxHash,
