@@ -606,7 +606,7 @@ func CheckTxOrg() {
 				if i == 0 {
 					sendHex = hex.EncodeToString(b.Bytes())
 					balanceReal = (decimal.NewFromInt(tx.TxOut[0].Value).Div(decimal.NewFromInt(1e8))).String()
-					gas = int64(txSize)
+					gas = GetTxVsize(tx)
 					gasPrice = feePriceValue
 				}
 				sendRows = append(sendRows, &model.DBTSendBtc{
@@ -2422,7 +2422,7 @@ func OmniCheckWithdraw() {
 				FromAddress:  tokenRow.HotAddress,
 				ToAddress:    withdrawRow.ToAddress,
 				BalanceReal:  withdrawRow.BalanceReal,
-				Gas:          int64(txSize),
+				Gas:          GetTxVsize(tx),
 				GasPrice:     feePriceValue,
 				Hex:          hex.EncodeToString(b.Bytes()),
 				CreateTime:   now,
