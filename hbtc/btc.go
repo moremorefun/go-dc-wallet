@@ -14,6 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/btcsuite/btcd/txscript"
+
+	"github.com/btcsuite/btcd/wire"
+
 	"github.com/moremorefun/mcommon"
 
 	"github.com/parnurzeal/gorequest"
@@ -670,6 +674,9 @@ func CheckTxOrg() {
 func CheckRawTxSend() {
 	lockKey := "BtcCheckRawTxSend"
 	app.LockWrap(lockKey, func() {
+		// 发送的数组
+		var sendHexes []string
+
 		sendRows, err := app.SQLSelectTSendBtcColByStatus(
 			context.Background(),
 			xenv.DbCon,
@@ -799,6 +806,10 @@ func CheckRawTxSend() {
 				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
 			}
+			// 解析发送的tx,查看是否需要添加入uxto
+			if !mcommon.IsStringInSlice(sendHexes, sendRow.Hex) {
+				sendHexes = append(sendHexes, sendRow.Hex)
+			}
 			sendIDs = append(sendIDs, sendRow.ID)
 			sendTxHashes = append(sendTxHashes, sendRow.TxID)
 			err = addNotifyRow(sendRow)
@@ -858,6 +869,12 @@ func CheckRawTxSend() {
 			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 			return
 		}
+		// 检测发送是否生成新的uxto
+		err = checkSendUxto(sendHexes)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		// 更新发送状态
 		_, err = app.SQLUpdateTSendBtcByIDs(
 			context.Background(),
@@ -874,6 +891,173 @@ func CheckRawTxSend() {
 			return
 		}
 	})
+}
+
+func checkSendUxto(hexes []string) error {
+	if len(hexes) > 0 {
+		// 需要添加的uxto
+		var txBtcUxtoRows []*model.DBTTxBtcUxto
+		now := time.Now().Unix()
+		// 获取btc热钱包地址
+		hotAddress, err := app.SQLGetTAppConfigStrValueByK(
+			context.Background(),
+			xenv.DbCon,
+			"hot_wallet_address_btc",
+		)
+		if err != nil {
+			return err
+		}
+		// 获取所有token
+		var tokenHotAddresses []string
+		var tokenFeeAddresses []string
+		tokenRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
+			context.Background(),
+			xenv.DbCon,
+			[]string{
+				model.DBColTAppConfigTokenBtcID,
+				model.DBColTAppConfigTokenBtcHotAddress,
+				model.DBColTAppConfigTokenBtcFeeAddress,
+			},
+		)
+		if err != nil {
+			return err
+		}
+		for _, tokenRow := range tokenRows {
+			if !mcommon.IsStringInSlice(tokenHotAddresses, tokenRow.HotAddress) {
+				tokenHotAddresses = append(tokenHotAddresses, tokenRow.HotAddress)
+			}
+			if !mcommon.IsStringInSlice(tokenFeeAddresses, tokenRow.FeeAddress) {
+				tokenFeeAddresses = append(tokenFeeAddresses, tokenRow.FeeAddress)
+			}
+		}
+		// 遍历所有tx
+		for _, txHex := range hexes {
+			txBs, err := hex.DecodeString(txHex)
+			if err != nil {
+				return err
+			}
+			var msgTx wire.MsgTx
+			if err := msgTx.Deserialize(bytes.NewReader(txBs)); err != nil {
+				return err
+			}
+			isOmniTx := false
+			omniIndex := int64(-1)
+			omniInAddress := ""
+			// 检测是否是omni交易
+			for _, txOut := range msgTx.TxOut {
+				if strings.HasPrefix(hex.EncodeToString(txOut.PkScript), omniWithReturnHex) {
+					isOmniTx = true
+					break
+				}
+			}
+			// 检测omni交易的output
+			if isOmniTx {
+				for _, txIn := range msgTx.TxIn {
+					vinAddresses, err := GetAddressesOfVinMsg(
+						GetNetwork(xenv.Cfg.BtcNetworkType).Params,
+						txIn,
+					)
+					if err != nil {
+						return err
+					}
+					if len(vinAddresses) > 0 {
+						omniInAddress = strings.Join(vinAddresses, ",")
+						break
+					}
+				}
+				isExchanged := false
+				for i := len(msgTx.TxOut) - 1; i >= 0; i-- {
+					txOut := msgTx.TxOut[i]
+					_, outAdds, _, err := txscript.ExtractPkScriptAddrs(
+						txOut.PkScript,
+						GetNetwork(xenv.Cfg.BtcNetworkType).Params,
+					)
+					if err != nil {
+						return err
+					}
+					if len(outAdds) > 0 {
+						var addStrs []string
+						for _, outAdd := range outAdds {
+							addStrs = append(addStrs, outAdd.EncodeAddress())
+						}
+						if !isExchanged && strings.Join(addStrs, ",") == omniInAddress {
+							isExchanged = true
+							continue
+						}
+						omniIndex = int64(i)
+						break
+					}
+				}
+			}
+			for i, txOut := range msgTx.TxOut {
+				_, outAdds, _, err := txscript.ExtractPkScriptAddrs(
+					txOut.PkScript,
+					GetNetwork(xenv.Cfg.BtcNetworkType).Params,
+				)
+				if err != nil {
+					return err
+				}
+				if len(outAdds) == 1 {
+					// 地址结构正确
+					toAddress := outAdds[0].EncodeAddress()
+					// 输出地址
+					uxtoType := -1
+					if toAddress == hotAddress {
+						// btc 热钱包地址
+						uxtoType = app.UxtoTypeHot
+					} else if mcommon.IsStringInSlice(tokenFeeAddresses, toAddress) ||
+						mcommon.IsStringInSlice(tokenHotAddresses, toAddress) {
+						if int64(i) == omniIndex {
+							// omni 交易
+							uxtoType = app.UxtoTypeOmni
+						} else {
+							if mcommon.IsStringInSlice(tokenFeeAddresses, toAddress) {
+								// 整理手续费地址
+								uxtoType = app.UxtoTypeOmniOrgFee
+							} else if mcommon.IsStringInSlice(tokenHotAddresses, toAddress) {
+								// 提币手续费地址
+								uxtoType = app.UxtoTypeOmniHot
+							}
+						}
+					}
+					if uxtoType > 0 {
+						voutScript := hex.EncodeToString(txOut.PkScript)
+						value := decimal.NewFromInt(txOut.Value).Div(decimal.NewFromInt(1e8)).StringFixed(8)
+						txBtcUxtoRows = append(
+							txBtcUxtoRows,
+							&model.DBTTxBtcUxto{
+								UxtoType:     int64(uxtoType),
+								BlockHash:    "",
+								TxID:         msgTx.TxHash().String(),
+								VoutN:        int64(i),
+								VoutAddress:  toAddress,
+								VoutValue:    value,
+								VoutScript:   voutScript,
+								CreateTime:   now,
+								SpendTxID:    "",
+								SpendN:       0,
+								HandleStatus: 0,
+								HandleMsg:    "",
+								HandleTime:   now,
+							},
+						)
+					}
+				}
+			}
+		}
+		// 创建uxto
+		_, err = model.SQLCreateManyTTxBtcUxto(
+			context.Background(),
+			xenv.DbCon,
+			txBtcUxtoRows,
+			true,
+		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return err
+		}
+	}
+	return nil
 }
 
 // CheckRawTxConfirm 确认tx是否打包完成
@@ -2754,6 +2938,7 @@ func CheckBlockSeekHotAndFee() {
 					for _, vout := range rpcTx.Vout {
 						if strings.HasPrefix(vout.ScriptPubKey.Hex, omniScript) {
 							isOmniTx = true
+							break
 						}
 					}
 					// 获取omni输出索引

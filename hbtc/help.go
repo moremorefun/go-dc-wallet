@@ -680,3 +680,35 @@ func GetAddressesOfVin(chainParams *chaincfg.Params, vin omniclient.StTxResultVi
 	}
 	return strs, nil
 }
+
+// GetAddressesOfVinMsg 获取vin的地址
+func GetAddressesOfVinMsg(chainParams *chaincfg.Params, txIn *wire.TxIn) ([]string, error) {
+	var adds []btcutil.Address
+	if len(txIn.SignatureScript) > 0 {
+		pk, err := txscript.ComputePkScript(txIn.SignatureScript, nil)
+		if err != nil {
+			return nil, err
+		}
+		_, adds, _, err = txscript.ExtractPkScriptAddrs(pk.Script(), chainParams)
+		if err != nil {
+			return nil, err
+		}
+
+	} else if len(txIn.Witness[0]) > 0 {
+		sig, err := txscript.ComputePkScript(nil, txIn.Witness)
+		if err != nil {
+			return nil, err
+		}
+		_, adds, _, err = txscript.ExtractPkScriptAddrs(sig.Script(), chainParams)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		return nil, fmt.Errorf("error vin info")
+	}
+	var strs []string
+	for _, address := range adds {
+		strs = append(strs, address.String())
+	}
+	return strs, nil
+}
