@@ -543,14 +543,14 @@ func CheckAddressOrg() {
 				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			// 提交事物
-			err = dbTx.Commit()
-			if err != nil {
-				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
-				return
-			}
-			isComment = true
 		}
+		// 提交事物
+		err = dbTx.Commit()
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
+		isComment = true
 	})
 }
 
