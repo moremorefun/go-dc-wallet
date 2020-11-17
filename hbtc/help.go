@@ -263,7 +263,6 @@ func BtcTxWithdrawSize(chainParams *chaincfg.Params, vins []*model.DBTTxBtcUxto,
 // OmniTxMake 生成交易
 func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto, toAddress string, changeAddress string, tokenIndex int64, tokenBalance int64, gasPrice int64, keyMap map[string]*btcutil.WIF, inUxtoRows []*model.DBTTxBtcUxto) (*wire.MsgTx, error) {
 	inBalance := int64(0)
-	outBalance := int64(0)
 	// 输入数据
 	var vins []*StBtxTxIn
 
@@ -297,7 +296,6 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 			Wif:       wif,
 		},
 	)
-
 	// 添加input
 	for _, inUxtoRow := range inUxtoRows {
 		hash, err := chainhash.NewHashFromStr(inUxtoRow.TxID)
@@ -340,19 +338,13 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 		return nil, err
 	}
 	tx.AddTxOut(wire.NewTxOut(0, opreturnScript))
-	// 添加 out omni address
-	err = BtcAddTxOut(tx, toAddress, MinNondustOutput)
-	if err != nil {
-		return nil, err
-	}
-	outBalance += MinNondustOutput
 	// --- 计算拆分热钱包交易 ---
 	tmpBalance := int64(200000)
-	addOutPutCount := (inBalance - outBalance) / tmpBalance
+	addOutPutCount := (inBalance - MinNondustOutput) / tmpBalance
 	// 获取预估大小
-	txSize, err := GetEstimateTxSize(int64(len(tx.TxIn)), 1+addOutPutCount+1, true)
+	txSize, err := GetEstimateTxSize(int64(len(tx.TxIn)), addOutPutCount+1+1, true)
 	fee := txSize * gasPrice
-	addOutPutCount = (inBalance - outBalance - fee) / tmpBalance
+	addOutPutCount = (inBalance - MinNondustOutput - fee) / tmpBalance
 	// --- 添加拆分输出 ---
 	for i := int64(0); i < addOutPutCount; i++ {
 		err = BtcAddTxOut(tx, changeAddress, tmpBalance)
@@ -362,6 +354,11 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 	}
 	// --- 添加找零 ---
 	err = BtcAddTxOut(tx, changeAddress, 0)
+	if err != nil {
+		return nil, err
+	}
+	// 添加 out omni address
+	err = BtcAddTxOut(tx, toAddress, MinNondustOutput)
 	if err != nil {
 		return nil, err
 	}
@@ -375,24 +372,19 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 		return nil, err
 	}
 	txSize = GetTxVsize(tx)
-	leaveInBalance := inBalance - txSize*gasPrice - MinNondustOutput - addOutPutCount*tmpBalance
+	leaveInBalance := inBalance - addOutPutCount*tmpBalance - MinNondustOutput - txSize*gasPrice
 	if leaveInBalance < 0 {
 		return nil, errors.New("error input")
 	}
+	changeIndex := len(tx.TxOut) - 2
 	if leaveInBalance < MinNondustOutput {
-		tx.TxOut = tx.TxOut[:len(tx.TxOut)-1]
+		// 删除找零 out len-2
+		tx.TxOut = append(tx.TxOut[:changeIndex], tx.TxOut[changeIndex+1:]...)
 	} else {
-		tx.TxOut[len(tx.TxOut)-1].Value = leaveInBalance
+		// 重置找零金额
+		tx.TxOut[changeIndex].Value = leaveInBalance
 	}
 	// --- 重新签名 ---
-	var newOut []*wire.TxOut
-	for i, out := range tx.TxOut {
-		if i != 1 {
-			newOut = append(newOut, out)
-		}
-	}
-	newOut = append(newOut, tx.TxOut[1])
-	tx.TxOut = newOut
 	err = SigVins(
 		chainParams,
 		tx,
