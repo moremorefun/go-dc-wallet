@@ -149,7 +149,7 @@ func BtcMakeTx(chainParams *chaincfg.Params, vins []*StBtxTxIn, vouts []*StBtxTx
 		outAmount += vout.Balance
 	}
 	// 添加预找零信息
-	err := BtcAddTxOut(tx, changeAddress, 0)
+	err := BtcAddTxOut(tx, changeAddress, BtcInitChange)
 	if err != nil {
 		return nil, err
 	}
@@ -353,7 +353,7 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 		}
 	}
 	// --- 添加找零 ---
-	err = BtcAddTxOut(tx, changeAddress, 0)
+	err = BtcAddTxOut(tx, changeAddress, BtcInitChange)
 	if err != nil {
 		return nil, err
 	}

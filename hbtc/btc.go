@@ -34,6 +34,7 @@ const (
 	omniHex           = "6f6d6e69"
 	omniWithReturnHex = "6a146f6d6e69"
 	MaxTxSize         = 1000000
+	BtcInitChange     = 210000000000
 )
 
 //var gloalGenIndex = 0
