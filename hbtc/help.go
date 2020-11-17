@@ -148,8 +148,13 @@ func BtcMakeTx(chainParams *chaincfg.Params, vins []*StBtxTxIn, vouts []*StBtxTx
 		}
 		outAmount += vout.Balance
 	}
+	// 添加预找零信息
+	err := BtcAddTxOut(tx, changeAddress, 0)
+	if err != nil {
+		return nil, err
+	}
 	// 计算手续费
-	err := SigVins(chainParams, tx, vins)
+	err = SigVins(chainParams, tx, vins)
 	if err != nil {
 		return nil, err
 	}
@@ -161,11 +166,11 @@ func BtcMakeTx(chainParams *chaincfg.Params, vins []*StBtxTxIn, vouts []*StBtxTx
 		return nil, errors.New("btc tx input amount not ok")
 	}
 	if change >= MinNondustOutput {
-		// 创建找零
-		err := BtcAddTxOut(tx, changeAddress, change)
-		if err != nil {
-			return nil, err
-		}
+		// 设置预找零数额
+		tx.TxOut[len(tx.TxOut)-1].Value = change
+	} else {
+		// 删除预找零
+		tx.TxOut = tx.TxOut[:len(tx.TxOut)-1]
 	}
 	if len(tx.TxOut) <= 0 {
 		// 数额不足
