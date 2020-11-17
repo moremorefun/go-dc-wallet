@@ -154,7 +154,7 @@ func BtcMakeTx(chainParams *chaincfg.Params, vins []*StBtxTxIn, vouts []*StBtxTx
 		return nil, err
 	}
 	txSize := GetTxVsize(tx)
-	txFee := gasPrice * int64(txSize)
+	txFee := gasPrice * txSize
 	change := inAmount - outAmount - txFee
 	if change < 0 {
 		// 数额不足
