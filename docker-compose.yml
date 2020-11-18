@@ -5,6 +5,8 @@ services:
     restart: always
     env_file:
       - .env
+    volumes:
+      - /dev/urandom:/dev/random
     logging:
       options:
         max-size: "100M"
