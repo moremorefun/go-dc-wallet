@@ -688,6 +688,9 @@ func GetAddressesOfVinMsg(chainParams *chaincfg.Params, txIn *wire.TxIn) ([]stri
 		}
 		_, adds, _, err = txscript.ExtractPkScriptAddrs(pk.Script(), chainParams)
 		if err != nil {
+			if txscript.IsErrorCode(err, txscript.ErrMalformedPush) {
+				return nil, nil
+			}
 			return nil, err
 		}
 
@@ -698,6 +701,9 @@ func GetAddressesOfVinMsg(chainParams *chaincfg.Params, txIn *wire.TxIn) ([]stri
 		}
 		_, adds, _, err = txscript.ExtractPkScriptAddrs(sig.Script(), chainParams)
 		if err != nil {
+			if txscript.IsErrorCode(err, txscript.ErrMalformedPush) {
+				return nil, nil
+			}
 			return nil, err
 		}
 	} else {
