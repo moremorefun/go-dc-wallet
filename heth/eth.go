@@ -1920,21 +1920,12 @@ func CheckErc20TxOrg() {
 		now := time.Now().Unix()
 		needEthFeeMap := make(map[string]*StOrgInfo)
 		for k, orgInfo := range orgMap {
-			toAddress := orgInfo.ToAddress
-			// 计算eth费用
-			addressEthBalanceMap[toAddress] = addressEthBalanceMap[toAddress].Sub(addressEthBalanceMap[toAddress], erc20Fee)
-			if addressEthBalanceMap[toAddress].Cmp(new(big.Int)) < 0 {
-				// eth手续费不足
-				// 处理添加手续费
-				needEthFeeMap[k] = orgInfo
-				continue
-			}
+			// 检测是否达到整理金额
 			tokenRow, ok := tokenMap[orgInfo.TokenID]
 			if !ok {
 				mcommon.Log.Errorf("no tokenMap: %d", orgInfo.TokenID)
 				continue
 			}
-
 			orgMinBalance, err := TokenEthStrToWeiBigInit(tokenRow.OrgMinBalance, tokenRow.TokenDecimals)
 			if err != nil {
 				mcommon.Log.Warnf("err: [%T] %s", err, err.Error())
@@ -1942,6 +1933,15 @@ func CheckErc20TxOrg() {
 			}
 			if orgInfo.TokenBalance.Cmp(orgMinBalance) < 0 {
 				mcommon.Log.Errorf("token balance < org min balance")
+				continue
+			}
+			// 计算eth费用
+			toAddress := orgInfo.ToAddress
+			addressEthBalanceMap[toAddress] = addressEthBalanceMap[toAddress].Sub(addressEthBalanceMap[toAddress], erc20Fee)
+			if addressEthBalanceMap[toAddress].Cmp(new(big.Int)) < 0 {
+				// eth手续费不足
+				// 处理添加手续费
+				needEthFeeMap[k] = orgInfo
 				continue
 			}
 			// 处理token转账
