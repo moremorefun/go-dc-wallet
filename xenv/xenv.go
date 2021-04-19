@@ -28,16 +28,18 @@ type config struct {
 
 	AESKey string `env:"AES-KEY"`
 
+	BtcEnable      bool   `env:"BTC_ENABLE" default:"true"`
 	BtcNetworkType string `env:"BTC-NETWORK-TYPE" default:"btc"`
 
-	EthRPC string `env:"ETH_RPC"`
+	EthEnable bool   `env:"ETH_ENABLE" default:"true"`
+	EthRPC    string `env:"ETH_RPC"`
 
 	OmniRPCHost string `env:"OMNI_RPC_HOST"`
 	OmniRPCUser string `env:"OMNI_RPC_USER"`
 	OmniRPCPwd  string `env:"OMNI_RPC_PWD"`
 
 	EosRPC    string `env:"EOS_RPC"`
-	EosEnable bool   `env:"EOS_ENABLE"`
+	EosEnable bool   `env:"EOS_ENABLE" default:"true"`
 }
 
 // Cfg
