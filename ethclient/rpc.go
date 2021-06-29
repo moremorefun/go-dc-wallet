@@ -2,9 +2,10 @@ package ethclient
 
 import (
 	"context"
+	"fmt"
 	"math/big"
+	"strings"
 
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/moremorefun/mcommon"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -30,7 +31,7 @@ func InitClient(uri string) {
 
 // RpcBlockNumber 获取最新的block number
 func RpcBlockNumber(ctx context.Context) (int64, error) {
-	blockNum, err := client.GetBlockNumber(ctx)
+	blockNum, err := client.BlockNumber(ctx)
 	if nil != err {
 		return 0, err
 	}
@@ -140,13 +141,38 @@ func RpcFilterLogs(ctx context.Context, startBlock int64, endBlock int64, contra
 // RpcTokenBalance 获取token余额
 func RpcTokenBalance(ctx context.Context, tokenAddress string, address string) (*big.Int, error) {
 	tokenAddressHash := common.HexToAddress(tokenAddress)
-	instance, err := NewEth(tokenAddressHash, client)
+	// 生成交易
+	contractAbi, err := abi.JSON(strings.NewReader(EthABI))
 	if err != nil {
 		return nil, err
 	}
-	balance, err := instance.BalanceOf(&bind.CallOpts{}, common.HexToAddress(address))
+	input, err := contractAbi.Pack(
+		"balanceOf",
+		common.HexToAddress(address),
+	)
 	if err != nil {
 		return nil, err
 	}
-	return balance, nil
+	msg := ethereum.CallMsg{
+		From:  common.HexToAddress(address),
+		To:    &tokenAddressHash,
+		Value: nil,
+		Data:  input,
+	}
+	out, err := client.CallContract(context.Background(), msg, nil)
+	if err != nil {
+		return nil, err
+	}
+	res, err := contractAbi.Unpack("balanceOf", out)
+	if err != nil {
+		return nil, err
+	}
+	if len(res) != 1 {
+		return nil, fmt.Errorf("error call res")
+	}
+	out0, ok := res[0].(*big.Int)
+	if !ok {
+		return nil, fmt.Errorf("error call res")
+	}
+	return out0, nil
 }

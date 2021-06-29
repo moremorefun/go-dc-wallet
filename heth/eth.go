@@ -216,7 +216,7 @@ func CheckBlockSeek() {
 				for _, rpcTx := range rpcBlock.Transactions() {
 					// 转账数额大于0 and 不是创建合约交易
 					if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
-						msg, err := rpcTx.AsMessage(types.NewEIP155Signer(rpcTx.ChainId()))
+						msg, err := rpcTx.AsMessage(types.NewEIP155Signer(rpcTx.ChainId()), nil)
 						if err != nil {
 							mcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
 							return
@@ -263,7 +263,7 @@ func CheckBlockSeek() {
 					// 获取地址对应的交易列表
 					txes := toAddressTxMap[dbAddressRow.Address]
 					for _, tx := range txes {
-						msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()))
+						msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), nil)
 						if err != nil {
 							mcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
 							return
@@ -472,8 +472,11 @@ func CheckAddressOrg() {
 				mcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
 				return
 			}
-			ts := types.Transactions{signedTx}
-			rawTxBytes := ts.GetRlp(0)
+			rawTxBytes, err := signedTx.MarshalBinary()
+			if err != nil {
+				mcommon.Log.Warnf("MarshalBinary err: [%T] %s", err, err.Error())
+				return
+			}
 			rawTxHex := hex.EncodeToString(rawTxBytes)
 			txHash := strings.ToLower(signedTx.Hash().Hex())
 			// 创建存入数据
@@ -1231,8 +1234,11 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 	if err != nil {
 		return err
 	}
-	ts := types.Transactions{signedTx}
-	rawTxBytes := ts.GetRlp(0)
+	rawTxBytes, err := signedTx.MarshalBinary()
+	if err != nil {
+		mcommon.Log.Warnf("MarshalBinary err: [%T] %s", err, err.Error())
+		return err
+	}
 	rawTxHex := hex.EncodeToString(rawTxBytes)
 	txHash := strings.ToLower(signedTx.Hash().Hex())
 	now := time.Now().Unix()
@@ -1984,8 +1990,11 @@ func CheckErc20TxOrg() {
 				mcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 				continue
 			}
-			ts := types.Transactions{signedTx}
-			rawTxBytes := ts.GetRlp(0)
+			rawTxBytes, err := signedTx.MarshalBinary()
+			if err != nil {
+				mcommon.Log.Warnf("MarshalBinary err: [%T] %s", err, err.Error())
+				continue
+			}
 			rawTxHex := hex.EncodeToString(rawTxBytes)
 			txHash := strings.ToLower(signedTx.Hash().Hex())
 			// 创建存入数据
@@ -2144,8 +2153,11 @@ func CheckErc20TxOrg() {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
 				}
-				ts := types.Transactions{signedTx}
-				rawTxBytes := ts.GetRlp(0)
+				rawTxBytes, err := signedTx.MarshalBinary()
+				if err != nil {
+					mcommon.Log.Warnf("MarshalBinary err: [%T] %s", err, err.Error())
+					return
+				}
 				rawTxHex := hex.EncodeToString(rawTxBytes)
 				txHash := strings.ToLower(signedTx.Hash().Hex())
 				now := time.Now().Unix()
@@ -2500,8 +2512,11 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 	if err != nil {
 		return err
 	}
-	ts := types.Transactions{signedTx}
-	rawTxBytes := ts.GetRlp(0)
+	rawTxBytes, err := signedTx.MarshalBinary()
+	if err != nil {
+		mcommon.Log.Warnf("MarshalBinary err: [%T] %s", err, err.Error())
+		return err
+	}
 	rawTxHex := hex.EncodeToString(rawTxBytes)
 	txHash := strings.ToLower(signedTx.Hash().Hex())
 	now := time.Now().Unix()
