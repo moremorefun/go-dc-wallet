@@ -2,7 +2,6 @@
 .idea
 .env
 vendor
-go.sum
 
 __debug_bin
 
