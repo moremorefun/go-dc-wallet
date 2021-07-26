@@ -51,6 +51,10 @@ func CheckAddressFree() {
 				context.Background(),
 				xenv.DbCon,
 			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
 			if maxAddress < MiniAddress {
 				maxAddress = MiniAddress
 			}
@@ -671,6 +675,10 @@ func CheckRawTxSend() {
 			},
 			withdrawIDs,
 		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		// 产品
 		var productIDs []int64
 		for _, withdrawRow := range withdrawMap {
@@ -689,6 +697,10 @@ func CheckRawTxSend() {
 			},
 			productIDs,
 		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		// 执行发送
 		var sendIDs []int64
 		withdrawIDs = []int64{}
@@ -1025,5 +1037,9 @@ func CheckRawTxConfirm() {
 				HandleAt:     now,
 			},
 		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 	})
 }

@@ -718,6 +718,10 @@ func CheckRawTxSend() {
 			},
 			withdrawIDs,
 		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		// 产品
 		var productIDs []int64
 		for _, withdrawRow := range withdrawMap {
@@ -736,6 +740,10 @@ func CheckRawTxSend() {
 			},
 			productIDs,
 		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		// 发送
 		// 通知数据
 		var notifyRows []*model.DBTProductNotify
@@ -1812,7 +1820,6 @@ func OmniCheckBlockSeek() {
 		//mcommon.Log.Debugf("omni block seek %d->%d", startI, endI)
 		if startI < endI {
 			// 获取所有token
-			var tokenIndexes []int64
 			tokenMap := make(map[int64]*model.DBTAppConfigTokenBtc)
 			tokenRows, err := app.SQLSelectTAppConfigTokenBtcColAll(
 				context.Background(),
@@ -1828,7 +1835,6 @@ func OmniCheckBlockSeek() {
 				return
 			}
 			for _, tokenRow := range tokenRows {
-				tokenIndexes = append(tokenIndexes, tokenRow.TokenIndex)
 				tokenMap[tokenRow.TokenIndex] = tokenRow
 			}
 			// 遍历获取需要查询的block信息
@@ -2195,6 +2201,10 @@ func OmniCheckTxOrg() {
 						2,
 						true,
 					)
+					if err != nil {
+						mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+						return
+					}
 					fee := txSize * feePriceValue
 					//mcommon.Log.Debugf("fee: %d", fee)
 
@@ -2406,7 +2416,15 @@ func OmniCheckWithdraw() {
 				tokenRow.HotAddress,
 				tokenRow.TokenIndex,
 			)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
 			pending, err := RealStrToBalanceInt64(pendingRealStr)
+			if err != nil {
+				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+				return
+			}
 			balance -= pending
 			tokenHotBalance[tokenRow.TokenIndex] = balance
 		}
@@ -2819,6 +2837,10 @@ func CheckBlockSeekHotAndFee() {
 					},
 					true,
 				)
+				if err != nil {
+					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+					return
+				}
 			} else {
 				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return

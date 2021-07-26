@@ -343,6 +343,10 @@ func OmniTxMake(chainParams *chaincfg.Params, senderUxtoRow *model.DBTTxBtcUxto,
 	addOutPutCount := (inBalance - MinNondustOutput) / tmpBalance
 	// 获取预估大小
 	txSize, err := GetEstimateTxSize(int64(len(tx.TxIn)), addOutPutCount+1+1, true)
+	if err != nil {
+		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+		return nil, err
+	}
 	fee := txSize * gasPrice
 	addOutPutCount = (inBalance - MinNondustOutput - fee) / tmpBalance
 	// --- 添加拆分输出 ---

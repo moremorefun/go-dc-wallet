@@ -601,6 +601,10 @@ func CheckRawTxSend() {
 			},
 			withdrawIDs,
 		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		// 产品
 		var productIDs []int64
 		for _, withdrawRow := range withdrawMap {
@@ -619,6 +623,10 @@ func CheckRawTxSend() {
 			},
 			productIDs,
 		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		// 执行发送
 		var sendIDs []int64
 		var txIDs []int64
@@ -1065,6 +1073,10 @@ func CheckRawTxConfirm() {
 				HandleTime:   now,
 			},
 		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 	})
 }
 
@@ -2328,9 +2340,7 @@ func CheckErc20Withdraw() {
 					mcommon.Log.Errorf("error key of: %s", hotAddress)
 					return
 				}
-				if strings.HasPrefix(key, "0x") {
-					key = key[2:]
-				}
+				key = strings.TrimPrefix(key, "0x")
 				privateKey, err := crypto.HexToECDSA(key)
 				if err != nil {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())

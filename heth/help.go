@@ -163,9 +163,7 @@ func GetPKMapOfAddresses(ctx context.Context, db mcommon.DbExeAble, addresses []
 			mcommon.Log.Errorf("error key of: %s", k)
 			continue
 		}
-		if strings.HasPrefix(key, "0x") {
-			key = key[2:]
-		}
+		key = strings.TrimPrefix(key, "0x")
 		privateKey, err := crypto.HexToECDSA(key)
 		if err != nil {
 			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
@@ -204,9 +202,7 @@ func GetPkOfAddress(ctx context.Context, db mcommon.DbExeAble, address string) (
 		mcommon.Log.Errorf("error key of: %s", address)
 		return nil, fmt.Errorf("no key of: %s", address)
 	}
-	if strings.HasPrefix(key, "0x") {
-		key = key[2:]
-	}
+	key = strings.TrimPrefix(key, "0x")
 	privateKey, err := crypto.HexToECDSA(key)
 	if err != nil {
 		mcommon.Log.Errorf("HexToECDSA err: [%T] %s", err, err.Error())
