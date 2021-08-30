@@ -61,16 +61,9 @@ func GetNonce(tx mcommon.DbExeAble, address string) (int64, error) {
 }
 
 // IsValidAddress validate hex address
-func IsValidAddress(iaddress interface{}) bool {
+func IsValidAddress(iaddress string) bool {
 	re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-	switch v := iaddress.(type) {
-	case string:
-		return re.MatchString(v)
-	case common.Address:
-		return re.MatchString(v.Hex())
-	default:
-		return false
-	}
+	return re.MatchString(iaddress)
 }
 
 // AddressBytesToStr 地址转化为字符串
@@ -81,7 +74,7 @@ func AddressBytesToStr(addressBytes common.Address) string {
 // StrToAddressBytes 字符串转化为地址
 func StrToAddressBytes(str string) (common.Address, error) {
 	if !IsValidAddress(str) {
-		return common.HexToAddress("0x0"), fmt.Errorf("str not address: %s", str)
+		return common.Address{}, fmt.Errorf("str not address: %s", str)
 	}
 	return common.HexToAddress(str), nil
 }

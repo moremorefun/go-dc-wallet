@@ -11,7 +11,6 @@ import (
 	"go-dc-wallet/value"
 	"go-dc-wallet/xenv"
 	"net/http"
-	"regexp"
 	"strings"
 	"time"
 
@@ -251,8 +250,7 @@ func postWithdraw(c *gin.Context) {
 	if mcommon.IsStringInSlice(ethSymbols, req.Symbol) {
 		// 验证地址
 		req.Address = strings.ToLower(req.Address)
-		re := regexp.MustCompile("^0x[0-9a-fA-F]{40}$")
-		if !re.MatchString(req.Address) {
+		if !heth.IsValidAddress(req.Address) {
 			mcommon.GinDoRespErr(
 				c,
 				value.ErrorAddressWrong,
