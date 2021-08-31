@@ -12,7 +12,6 @@ require (
 	github.com/gin-contrib/zap v0.0.1
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-kit/kit v0.11.0 // indirect
-	github.com/go-ole/go-ole v1.2.5 // indirect
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/joho/godotenv v1.3.0
 	github.com/kr/pretty v0.3.0 // indirect
@@ -23,6 +22,5 @@ require (
 	github.com/shopspring/decimal v1.2.0
 	github.com/tidwall/sjson v1.1.7 // indirect
 	github.com/timest/env v0.0.0-20180717050204-5fce78d35255
-	go.uber.org/tools v0.0.0-20190618225709-2cfd321de3ee // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )
