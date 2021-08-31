@@ -1499,7 +1499,7 @@ func CheckErc20BlockSeek() {
 						if log.Removed {
 							continue
 						}
-						toAddress := AddressBytesToStr(common.HexToAddress(log.Topics[2].Hex()))
+						toAddress := CommonHashToAddrssStringLower(log.Topics[2])
 						if !mcommon.IsStringInSlice(toAddresses, toAddress) {
 							toAddresses = append(toAddresses, toAddress)
 						}
@@ -1546,8 +1546,8 @@ func CheckErc20BlockSeek() {
 								mcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 								return
 							}
-							transferEvent.From = strings.ToLower(common.HexToAddress(log.Topics[1].Hex()).Hex())
-							transferEvent.To = strings.ToLower(common.HexToAddress(log.Topics[2].Hex()).Hex())
+							transferEvent.From = CommonHashToAddrssStringLower(log.Topics[1])
+							transferEvent.To = CommonHashToAddrssStringLower(log.Topics[2])
 							contractAddress := strings.ToLower(log.Address.Hex())
 							configTokenRow, ok := configTokenRowMap[contractAddress]
 							if !ok {
@@ -1580,7 +1580,7 @@ func CheckErc20BlockSeek() {
 							// 检测input
 							input, err := contractAbi.Pack(
 								"transfer",
-								common.HexToAddress(log.Topics[2].Hex()),
+								CommonHashToAddrss(log.Topics[2]),
 								transferEvent.Tokens,
 							)
 							if err != nil {

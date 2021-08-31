@@ -79,6 +79,23 @@ func StrToAddressBytes(str string) (common.Address, error) {
 	return common.HexToAddress(str), nil
 }
 
+// CommonHashToAddrss 字节转换为地址
+func CommonHashToAddrss(bytes common.Hash) common.Address {
+	var b common.Address
+	b.SetBytes(bytes[:])
+	return b
+}
+
+// CommonHashToAddrssString 字节转换为地址
+func CommonHashToAddrssString(bytes common.Hash) string {
+	return CommonHashToAddrss(bytes).Hex()
+}
+
+// CommonHashToAddrssStringLower 字节转换为地址
+func CommonHashToAddrssStringLower(bytes common.Hash) string {
+	return strings.ToLower(CommonHashToAddrss(bytes).Hex())
+}
+
 // EthStrToWeiBigInit 转换金额 eth to wei
 func EthStrToWeiBigInit(balanceRealStr string) (*big.Int, error) {
 	balanceReal, err := decimal.NewFromString(balanceRealStr)
