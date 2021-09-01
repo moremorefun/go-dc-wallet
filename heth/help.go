@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/moremorefun/mcommon"
 
@@ -219,4 +220,23 @@ func GetPkOfAddress(ctx context.Context, db mcommon.DbExeAble, address string) (
 		return nil, err
 	}
 	return privateKey, nil
+}
+
+func NewSignTransaction(chainID int64, nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasFeeCap *big.Int, gasTipCap *big.Int, data []byte, prv *ecdsa.PrivateKey) (*types.Transaction, error) {
+	tx := types.NewTx(&types.DynamicFeeTx{
+		ChainID:   big.NewInt(chainID),
+		Nonce:     nonce,
+		GasTipCap: gasTipCap,
+		GasFeeCap: gasFeeCap,
+		Gas:       gasLimit,
+		To:        &to,
+		Value:     amount,
+		Data:      data,
+	})
+	signedTx, err := types.SignTx(tx, types.NewLondonSigner(big.NewInt(chainID)), prv)
+	if err != nil {
+		mcommon.Log.Warnf("err: [%T] %s", err, err.Error())
+		return nil, err
+	}
+	return signedTx, nil
 }
