@@ -244,20 +244,20 @@ func main() {
 		return
 	}
 	type StRespGasPrice struct {
-		Fast        int64   `json:"fast"`
-		Fastest     int64   `json:"fastest"`
-		SafeLow     int64   `json:"safeLow"`
-		Average     int64   `json:"average"`
-		BlockTime   float64 `json:"block_time"`
-		BlockNum    int64   `json:"blockNum"`
-		Speed       float64 `json:"speed"`
-		SafeLowWait float64 `json:"safeLowWait"`
-		AvgWait     float64 `json:"avgWait"`
-		FastWait    float64 `json:"fastWait"`
-		FastestWait float64 `json:"fastestWait"`
+		Status  string `json:"status"`
+		Message string `json:"message"`
+		Result  struct {
+			LastBlock       int64   `json:"LastBlock,string"`
+			SafeGasPrice    float64 `json:"SafeGasPrice,string"`
+			ProposeGasPrice float64 `json:"ProposeGasPrice,string"`
+			FastGasPrice    float64 `json:"FastGasPrice,string"`
+			SuggestBaseFee  float64 `json:"suggestBaseFee,string"`
+			GasUsedRatio    string  `json:"gasUsedRatio"`
+		} `json:"result"`
 	}
 	gresp, body, errs := gorequest.New().
-		Get("https://ethgasstation.info/api/ethgasAPI.json").
+		Proxy(xenv.Cfg.Proxy).
+		Get("https://api.etherscan.io/api?module=gastracker&action=gasoracle&apikey=YourApiKeyToken").
 		Timeout(time.Second * 120).
 		End()
 	if errs != nil {
@@ -275,8 +275,21 @@ func main() {
 		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return
 	}
-	ethToUserGasPrice := resp.Fast * int64(math.Pow10(8))
-	ethToColdGasPrice := resp.Average * int64(math.Pow10(8))
+	if resp.Status != "1" {
+		// 状态错误
+		mcommon.Log.Errorf("req status error: %s", resp.Status)
+		return
+	}
+	ethToUserGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
+	suggestBaseFee := int64(resp.Result.SuggestBaseFee * math.Pow10(9))
+	tipFee := (ethToUserGasPrice - suggestBaseFee) * 2
+	if tipFee < 0 {
+		tipFee = 1 * int64(math.Pow10(9))
+	}
+
+	ethToUserGasPrice = ethToUserGasPrice * 2
+	ethToColdGasPrice := ethToUserGasPrice
+
 	type BtcStRespGasPrice struct {
 		FastestFee  int64 `json:"fastestFee"`
 		HalfHourFee int64 `json:"halfHourFee"`
@@ -344,6 +357,11 @@ func main() {
 			// eth 到用户手续费
 			K: "to_user_gas_price",
 			V: ethToUserGasPrice,
+		},
+		{
+			// eth tip fee 给矿工的手续费
+			K: "to_tip_gas_price",
+			V: tipFee,
 		},
 		{
 			// btc 到冷钱包手续费
