@@ -24,8 +24,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/ethereum/go-ethereum/rlp"
-
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/core/types"
@@ -216,7 +214,7 @@ func CheckBlockSeek() {
 				for _, rpcTx := range rpcBlock.Transactions() {
 					// 转账数额大于0 and 不是创建合约交易
 					if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
-						msg, err := rpcTx.AsMessage(types.NewEIP155Signer(rpcTx.ChainId()), nil)
+						msg, err := rpcTx.AsMessage(types.NewLondonSigner(rpcTx.ChainId()), nil)
 						if err != nil {
 							mcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
 							return
@@ -263,7 +261,7 @@ func CheckBlockSeek() {
 					// 获取地址对应的交易列表
 					txes := toAddressTxMap[dbAddressRow.Address]
 					for _, tx := range txes {
-						msg, err := tx.AsMessage(types.NewEIP155Signer(tx.ChainId()), nil)
+						msg, err := tx.AsMessage(types.NewLondonSigner(tx.ChainId()), nil)
 						if err != nil {
 							mcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
 							return
@@ -723,8 +721,8 @@ func CheckRawTxSend() {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					continue
 				}
-				tx := new(types.Transaction)
-				err = rlp.DecodeBytes(rawTxBytes, &tx)
+				tx := &types.Transaction{}
+				err = tx.UnmarshalBinary(rawTxBytes)
 				if err != nil {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					continue
@@ -2691,14 +2689,13 @@ func CheckGasPrice() {
 			mcommon.Log.Errorf("req status error: %s", resp.Status)
 			return
 		}
+		fastGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
 		toUserGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
 		suggestBaseFee := int64(resp.Result.SuggestBaseFee * math.Pow10(9))
-		tipFee := (toUserGasPrice - suggestBaseFee) * 2
+		tipFee := (fastGasPrice - suggestBaseFee)
 		if tipFee < 0 {
 			tipFee = 1 * int64(math.Pow10(9))
 		}
-
-		toUserGasPrice = toUserGasPrice * 2
 		toColdGasPrice := toUserGasPrice
 
 		if toUserGasPrice > maxValue {
@@ -2706,6 +2703,9 @@ func CheckGasPrice() {
 		}
 		if toColdGasPrice > maxValue {
 			toColdGasPrice = maxValue
+		}
+		if tipFee > toUserGasPrice {
+			tipFee = toUserGasPrice
 		}
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),

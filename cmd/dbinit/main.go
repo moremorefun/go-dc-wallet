@@ -280,15 +280,17 @@ func main() {
 		mcommon.Log.Errorf("req status error: %s", resp.Status)
 		return
 	}
+	fastGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
 	ethToUserGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
 	suggestBaseFee := int64(resp.Result.SuggestBaseFee * math.Pow10(9))
-	tipFee := (ethToUserGasPrice - suggestBaseFee) * 2
+	tipFee := (fastGasPrice - suggestBaseFee)
 	if tipFee < 0 {
 		tipFee = 1 * int64(math.Pow10(9))
 	}
-
-	ethToUserGasPrice = ethToUserGasPrice * 2
 	ethToColdGasPrice := ethToUserGasPrice
+	if tipFee > ethToUserGasPrice {
+		tipFee = ethToUserGasPrice
+	}
 
 	type BtcStRespGasPrice struct {
 		FastestFee  int64 `json:"fastestFee"`
