@@ -334,7 +334,7 @@ func CheckAddressOrg() {
 			mcommon.Log.Warnf("SQLGetTAppConfigInt err: [%T] %s", err, err.Error())
 			return
 		}
-		coldAddress, err := StrToAddressBytes(coldAddressValue)
+		_, err = StrToAddressBytes(coldAddressValue)
 		if err != nil {
 			mcommon.Log.Errorf("eth organize cold address err: [%T] %s", err, err.Error())
 			return
@@ -381,6 +381,15 @@ func CheckAddressOrg() {
 			return
 		}
 		gasPrice := gasPriceValue
+		tipPriceValue, err := app.SQLGetTAppStatusIntValueByK(
+			context.Background(),
+			xenv.DbCon,
+			"to_tip_gas_price",
+		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		gasLimit := int64(21000)
 		feeValue := big.NewInt(gasLimit * gasPrice)
 		// chain id
@@ -458,16 +467,17 @@ func CheckAddressOrg() {
 			}
 			// 生成tx
 			var data []byte
-			tx := types.NewTransaction(
-				uint64(nonce),
-				coldAddress,
+			signedTx, err := NewSignTransaction(
+				nonce,
+				coldAddressValue,
 				sendBalance,
-				uint64(gasLimit),
-				big.NewInt(gasPrice),
+				gasLimit,
+				gasPrice,
+				tipPriceValue,
 				data,
+				chainID,
+				privateKey,
 			)
-			// 签名
-			signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
 			if err != nil {
 				mcommon.Log.Warnf("RpcNetworkID err: [%T] %s", err, err.Error())
 				return
@@ -1162,6 +1172,15 @@ func CheckWithdraw() {
 			return
 		}
 		gasPrice := gasPriceValue
+		tipPriceValue, err := app.SQLGetTAppStatusIntValueByK(
+			context.Background(),
+			xenv.DbCon,
+			"to_tip_gas_price",
+		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		gasLimit := int64(21000)
 		feeValue := gasLimit * gasPrice
 		chainID, err := ethclient.RpcNetworkID(context.Background())
@@ -1170,7 +1189,7 @@ func CheckWithdraw() {
 			return
 		}
 		for _, withdrawRow := range withdrawRows {
-			err = handleWithdraw(withdrawRow.ID, chainID, hotAddressValue, privateKey, hotAddressBalance, gasLimit, gasPrice, feeValue)
+			err = handleWithdraw(withdrawRow.ID, chainID, hotAddressValue, privateKey, hotAddressBalance, gasLimit, gasPrice, tipPriceValue, feeValue)
 			if err != nil {
 				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
@@ -1179,7 +1198,7 @@ func CheckWithdraw() {
 	})
 }
 
-func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateKey *ecdsa.PrivateKey, hotAddressBalance *big.Int, gasLimit, gasPrice, feeValue int64) error {
+func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateKey *ecdsa.PrivateKey, hotAddressBalance *big.Int, gasLimit, gasPrice, tipPrice, feeValue int64) error {
 	isComment := false
 	dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 	if err != nil {
@@ -1230,19 +1249,21 @@ func handleWithdraw(withdrawID int64, chainID int64, hotAddress string, privateK
 	}
 	// 创建交易
 	var data []byte
-	toAddress, err := StrToAddressBytes(withdrawRow.ToAddress)
+	_, err = StrToAddressBytes(withdrawRow.ToAddress)
 	if err != nil {
 		return err
 	}
-	tx := types.NewTransaction(
-		uint64(nonce),
-		toAddress,
+	signedTx, err := NewSignTransaction(
+		nonce,
+		withdrawRow.ToAddress,
 		balanceBigInt,
-		uint64(gasLimit),
-		big.NewInt(gasPrice),
+		gasLimit,
+		gasPrice,
+		tipPrice,
 		data,
+		chainID,
+		privateKey,
 	)
-	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
 	if err != nil {
 		return err
 	}
@@ -1799,6 +1820,15 @@ func CheckErc20TxOrg() {
 			mcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 			return
 		}
+		tipPriceValue, err := app.SQLGetTAppStatusIntValueByK(
+			context.Background(),
+			xenv.DbCon,
+			"to_tip_gas_price",
+		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		erc20Fee := big.NewInt(erc20GasUseValue * gasPriceValue)
 		ethGasUse := int64(21000)
 		ethFee := big.NewInt(ethGasUse * gasPriceValue)
@@ -1989,15 +2019,17 @@ func CheckErc20TxOrg() {
 				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				return
 			}
-			rpcTx := types.NewTransaction(
-				uint64(nonce),
-				common.HexToAddress(tokenRow.TokenAddress),
+			signedTx, err := NewSignTransaction(
+				nonce,
+				tokenRow.TokenAddress,
 				big.NewInt(0),
-				uint64(erc20GasUseValue),
-				big.NewInt(gasPriceValue),
+				erc20GasUseValue,
+				gasPriceValue,
+				tipPriceValue,
 				input,
+				chainID,
+				privateKey,
 			)
-			signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
 			if err != nil {
 				mcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 				continue
@@ -2152,15 +2184,17 @@ func CheckErc20TxOrg() {
 				}
 				// 创建交易
 				var data []byte
-				tx := types.NewTransaction(
-					uint64(nonce),
-					common.HexToAddress(orgInfo.ToAddress),
+				signedTx, err := NewSignTransaction(
+					nonce,
+					orgInfo.ToAddress,
 					erc20Fee,
-					uint64(ethGasUse),
-					big.NewInt(gasPriceValue),
+					ethGasUse,
+					gasPriceValue,
+					tipPriceValue,
 					data,
+					chainID,
+					privateKey,
 				)
-				signedTx, err := types.SignTx(tx, types.NewEIP155Signer(big.NewInt(chainID)), privateKey)
 				if err != nil {
 					mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 					return
@@ -2401,6 +2435,15 @@ func CheckErc20Withdraw() {
 			return
 		}
 		gasPrice := gasPriceValue
+		tipPriceValue, err := app.SQLGetTAppStatusIntValueByK(
+			context.Background(),
+			xenv.DbCon,
+			"to_tip_gas_price",
+		)
+		if err != nil {
+			mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
+			return
+		}
 		erc20GasUseValue, err := app.SQLGetTAppConfigIntValueByK(
 			context.Background(),
 			xenv.DbCon,
@@ -2419,7 +2462,7 @@ func CheckErc20Withdraw() {
 			return
 		}
 		for _, withdrawRow := range withdrawRows {
-			err = handleErc20Withdraw(withdrawRow.ID, chainID, &tokenMap, &addressKeyMap, &addressEthBalanceMap, &addressTokenBalanceMap, gasLimit, gasPrice, feeValue)
+			err = handleErc20Withdraw(withdrawRow.ID, chainID, &tokenMap, &addressKeyMap, &addressEthBalanceMap, &addressTokenBalanceMap, gasLimit, gasPrice, tipPriceValue, feeValue)
 			if err != nil {
 				mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 				continue
@@ -2428,7 +2471,7 @@ func CheckErc20Withdraw() {
 	})
 }
 
-func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*model.DBTAppConfigToken, addressKeyMap *map[string]*ecdsa.PrivateKey, addressEthBalanceMap *map[string]*big.Int, addressTokenBalanceMap *map[string]*big.Int, gasLimit, gasPrice int64, feeValue *big.Int) error {
+func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*model.DBTAppConfigToken, addressKeyMap *map[string]*ecdsa.PrivateKey, addressEthBalanceMap *map[string]*big.Int, addressTokenBalanceMap *map[string]*big.Int, gasLimit, gasPrice, tipPrice int64, feeValue *big.Int) error {
 	isComment := false
 	dbTx, err := xenv.DbCon.BeginTxx(context.Background(), nil)
 	if err != nil {
@@ -2510,15 +2553,17 @@ func handleErc20Withdraw(withdrawID int64, chainID int64, tokenMap *map[string]*
 		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
 	}
-	rpcTx := types.NewTransaction(
-		uint64(nonce),
-		common.HexToAddress(tokenRow.TokenAddress),
+	signedTx, err := NewSignTransaction(
+		nonce,
+		tokenRow.TokenAddress,
 		big.NewInt(0),
-		uint64(gasLimit),
-		big.NewInt(gasPrice),
+		gasLimit,
+		gasPrice,
+		tipPrice,
 		input,
+		chainID,
+		key,
 	)
-	signedTx, err := types.SignTx(rpcTx, types.NewEIP155Signer(big.NewInt(chainID)), key)
 	if err != nil {
 		return err
 	}
