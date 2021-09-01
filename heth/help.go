@@ -222,14 +222,15 @@ func GetPkOfAddress(ctx context.Context, db mcommon.DbExeAble, address string) (
 	return privateKey, nil
 }
 
-func NewSignTransaction(chainID int64, nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasFeeCap *big.Int, gasTipCap *big.Int, data []byte, prv *ecdsa.PrivateKey) (*types.Transaction, error) {
+func NewSignTransaction(nonce int64, to string, amount *big.Int, gasLimit int64, gasFeeCap int64, gasTipCap int64, data []byte, chainID int64, prv *ecdsa.PrivateKey) (*types.Transaction, error) {
+	toAddress := common.HexToAddress(to)
 	tx := types.NewTx(&types.DynamicFeeTx{
 		ChainID:   big.NewInt(chainID),
-		Nonce:     nonce,
-		GasTipCap: gasTipCap,
-		GasFeeCap: gasFeeCap,
-		Gas:       gasLimit,
-		To:        &to,
+		Nonce:     uint64(nonce),
+		GasTipCap: big.NewInt(gasTipCap),
+		GasFeeCap: big.NewInt(gasFeeCap),
+		Gas:       uint64(gasLimit),
+		To:        &toAddress,
 		Value:     amount,
 		Data:      data,
 	})
