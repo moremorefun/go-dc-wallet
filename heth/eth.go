@@ -2689,16 +2689,12 @@ func CheckGasPrice() {
 			mcommon.Log.Errorf("req status error: %s", resp.Status)
 			return
 		}
-		fastGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
-		toUserGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
-		suggestBaseFee := int64(resp.Result.SuggestBaseFee * math.Pow10(9))
-		tipFee := (fastGasPrice - suggestBaseFee)
+		toUserGasPrice := int64(2 * resp.Result.FastGasPrice * math.Pow10(9))
+		toColdGasPrice := int64(1.2 * resp.Result.FastGasPrice * math.Pow10(9))
+		tipFee := int64(math.Ceil(resp.Result.FastGasPrice-resp.Result.SuggestBaseFee) * math.Pow10(9))
 		if tipFee < 0 {
 			tipFee = 1 * int64(math.Pow10(9))
 		}
-		toColdGasPrice := toUserGasPrice
-		toUserGasPrice = toUserGasPrice * 2
-
 		if toUserGasPrice > maxValue {
 			toUserGasPrice = maxValue
 		}

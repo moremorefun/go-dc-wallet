@@ -280,15 +280,12 @@ func main() {
 		mcommon.Log.Errorf("req status error: %s", resp.Status)
 		return
 	}
-	fastGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
-	ethToUserGasPrice := int64(resp.Result.FastGasPrice * math.Pow10(9))
-	suggestBaseFee := int64(resp.Result.SuggestBaseFee * math.Pow10(9))
-	tipFee := (fastGasPrice - suggestBaseFee)
+	ethToUserGasPrice := int64(2 * resp.Result.FastGasPrice * math.Pow10(9))
+	ethToColdGasPrice := int64(1.2 * resp.Result.FastGasPrice * math.Pow10(9))
+	tipFee := int64(math.Ceil(resp.Result.FastGasPrice-resp.Result.SuggestBaseFee) * math.Pow10(9))
 	if tipFee < 0 {
 		tipFee = 1 * int64(math.Pow10(9))
 	}
-	ethToColdGasPrice := ethToUserGasPrice
-	ethToUserGasPrice = ethToUserGasPrice * 2
 	if tipFee > ethToColdGasPrice {
 		tipFee = ethToColdGasPrice
 	}
