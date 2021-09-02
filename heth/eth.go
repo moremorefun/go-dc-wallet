@@ -2697,6 +2697,7 @@ func CheckGasPrice() {
 			tipFee = 1 * int64(math.Pow10(9))
 		}
 		toColdGasPrice := toUserGasPrice
+		toUserGasPrice = toUserGasPrice * 2
 
 		if toUserGasPrice > maxValue {
 			toUserGasPrice = maxValue
@@ -2704,8 +2705,8 @@ func CheckGasPrice() {
 		if toColdGasPrice > maxValue {
 			toColdGasPrice = maxValue
 		}
-		if tipFee > toUserGasPrice {
-			tipFee = toUserGasPrice
+		if tipFee > toColdGasPrice {
+			tipFee = toColdGasPrice
 		}
 		_, err = app.SQLUpdateTAppStatusIntByK(
 			context.Background(),

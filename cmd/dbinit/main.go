@@ -288,10 +288,10 @@ func main() {
 		tipFee = 1 * int64(math.Pow10(9))
 	}
 	ethToColdGasPrice := ethToUserGasPrice
-	if tipFee > ethToUserGasPrice {
-		tipFee = ethToUserGasPrice
+	ethToUserGasPrice = ethToUserGasPrice * 2
+	if tipFee > ethToColdGasPrice {
+		tipFee = ethToColdGasPrice
 	}
-
 	type BtcStRespGasPrice struct {
 		FastestFee  int64 `json:"fastestFee"`
 		HalfHourFee int64 `json:"halfHourFee"`

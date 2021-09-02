@@ -52,7 +52,7 @@ func main() {
 			mcommon.Log.Errorf("cron add func error: %#v", err)
 		}
 		// 检测 eth 发送交易
-		_, err = c.AddFunc("@every 1m", heth.CheckRawTxSend)
+		_, err = c.AddFunc("@every 5s", heth.CheckRawTxSend)
 		if err != nil {
 			mcommon.Log.Errorf("cron add func error: %#v", err)
 		}
@@ -67,7 +67,7 @@ func main() {
 			mcommon.Log.Errorf("cron add func error: %#v", err)
 		}
 		// 检测 eth gas price
-		_, err = c.AddFunc("@every 2m", heth.CheckGasPrice)
+		_, err = c.AddFunc("@every 5s", heth.CheckGasPrice)
 		if err != nil {
 			mcommon.Log.Errorf("cron add func error: %#v", err)
 		}
