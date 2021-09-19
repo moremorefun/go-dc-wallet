@@ -213,7 +213,7 @@ func CheckBlockSeek() {
 				// 遍历block中的tx
 				for _, rpcTx := range rpcBlock.Transactions() {
 					// 转账数额大于0 and 不是创建合约交易
-					if rpcTx.Value().Int64() > 0 && rpcTx.To() != nil {
+					if rpcTx.Value().Cmp(big.NewInt(0)) > 0 && rpcTx.To() != nil {
 						msg, err := rpcTx.AsMessage(types.NewLondonSigner(rpcTx.ChainId()), nil)
 						if err != nil {
 							mcommon.Log.Errorf("AsMessage err: [%T] %s", err, err.Error())
