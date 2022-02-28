@@ -143,7 +143,8 @@ func TokenWeiBigIntToEthStr(wei *big.Int, tokenDecimals int64) (string, error) {
 	if err != nil {
 		return "0", err
 	}
-	balanceStr := balance.Div(decimal.NewFromInt(10).Pow(decimal.NewFromInt(tokenDecimals))).StringFixed(int32(tokenDecimals))
+	balanceStr := balance.Mul(decimal.New(1, -int32(tokenDecimals))).String()
+	//balanceStr := balance.Div(decimal.NewFromInt(10).Pow(decimal.NewFromInt(tokenDecimals))).StringFixed(int32(tokenDecimals))
 	return balanceStr, nil
 }
 
