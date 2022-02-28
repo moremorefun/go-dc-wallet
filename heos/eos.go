@@ -563,12 +563,12 @@ func handleWithdraw(rpcChainInfo *eosclient.StChainGetInfo, withdrawID int64, ho
 		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
 	}
-	keys, err := kb.AvailableKeys()
+	keys, err := kb.AvailableKeys(context.Background())
 	if err != nil {
 		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
 	}
-	_, err = kb.Sign(signTx, chainID, keys[0])
+	_, err = kb.Sign(context.Background(), signTx, chainID, keys[0])
 	if err != nil {
 		mcommon.Log.Errorf("err: [%T] %s", err, err.Error())
 		return err
