@@ -23,17 +23,13 @@ import (
 )
 
 const (
-	// EthToWei 数据单位
-	EthToWei = 1e18
+	// EthDecimals 数据单位
+	EthDecimals = 18
 	// CoinSymbol 单位标志
 	CoinSymbol = "eth"
 )
 
-// ethToWeiDecimal 转换单位
-var ethToWeiDecimal decimal.Decimal
-
 func init() {
-	ethToWeiDecimal = decimal.NewFromInt(EthToWei)
 }
 
 // GetNonce 获取nonce值
@@ -103,7 +99,7 @@ func EthStrToWeiBigInit(balanceRealStr string) (*big.Int, error) {
 	if err != nil {
 		return nil, err
 	}
-	balanceStr := balanceReal.Mul(ethToWeiDecimal).StringFixed(0)
+	balanceStr := balanceReal.Mul(decimal.New(1, EthDecimals)).StringFixed(0)
 	b := new(big.Int)
 	_, ok := b.SetString(balanceStr, 10)
 	if !ok {
@@ -118,7 +114,7 @@ func WeiBigIntToEthStr(wei *big.Int) (string, error) {
 	if err != nil {
 		return "0", err
 	}
-	balanceStr := balance.Div(ethToWeiDecimal).StringFixed(18)
+	balanceStr := balance.Mul(decimal.New(1, -EthDecimals)).StringFixed(18)
 	return balanceStr, nil
 }
 
@@ -128,7 +124,7 @@ func TokenEthStrToWeiBigInit(balanceRealStr string, tokenDecimals int64) (*big.I
 	if err != nil {
 		return nil, err
 	}
-	balanceStr := balanceReal.Mul(decimal.NewFromInt(10).Pow(decimal.NewFromInt(tokenDecimals))).StringFixed(0)
+	balanceStr := balanceReal.Mul(decimal.New(1, int32(tokenDecimals))).StringFixed(0)
 	b := new(big.Int)
 	_, ok := b.SetString(balanceStr, 10)
 	if !ok {
@@ -144,7 +140,6 @@ func TokenWeiBigIntToEthStr(wei *big.Int, tokenDecimals int64) (string, error) {
 		return "0", err
 	}
 	balanceStr := balance.Mul(decimal.New(1, -int32(tokenDecimals))).String()
-	//balanceStr := balance.Div(decimal.NewFromInt(10).Pow(decimal.NewFromInt(tokenDecimals))).StringFixed(int32(tokenDecimals))
 	return balanceStr, nil
 }
 
@@ -235,7 +230,7 @@ func NewSignTransaction(nonce int64, to string, amount *big.Int, gasLimit int64,
 		Value:     amount,
 		Data:      data,
 	})
-	signedTx, err := types.SignTx(tx, types.NewLondonSigner(big.NewInt(chainID)), prv)
+	signedTx, err := types.SignTx(tx, types.LatestSignerForChainID(big.NewInt(chainID)), prv)
 	if err != nil {
 		mcommon.Log.Warnf("err: [%T] %s", err, err.Error())
 		return nil, err
