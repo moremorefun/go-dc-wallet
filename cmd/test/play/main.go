@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 	"go-dc-wallet/hbtc"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
 
 	"github.com/btcsuite/btcd/txscript"
 

@@ -20,9 +20,9 @@ import (
 
 	"github.com/btcsuite/btcd/wire"
 
-	"github.com/btcsuite/btcd/btcec"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcutil"
 )
 
 // StBtxTxIn 输入信息
@@ -67,7 +67,7 @@ func (network Network) GetNetworkParams() *chaincfg.Params {
 
 // CreatePrivateKey 创建私钥
 func (network Network) CreatePrivateKey() (*btcutil.WIF, error) {
-	secret, err := btcec.NewPrivateKey(btcec.S256())
+	secret, err := btcec.NewPrivateKey()
 	if err != nil {
 		return nil, err
 	}
@@ -512,7 +512,7 @@ func GetWifMapByAddresses(ctx context.Context, db mcommon.DbExeAble, addresses [
 
 // SigVins 对vin进行签名
 func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) error {
-	txSigHash := txscript.NewTxSigHashes(tx)
+	txSigHash := txscript.NewTxSigHashes(tx, nil)
 	for i, vin := range vins {
 		// 重置sig
 		tx.TxIn[i].SignatureScript = nil
@@ -608,6 +608,7 @@ func SigVins(chainParams *chaincfg.Params, tx *wire.MsgTx, vins []*StBtxTxIn) er
 			nil,
 			txSigHash,
 			vin.Balance,
+			nil,
 		)
 		if err != nil {
 			return err
